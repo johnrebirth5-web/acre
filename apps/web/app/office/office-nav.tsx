@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -32,7 +33,13 @@ const navGroups: NavGroup[] = [
   {
     title: "Settings",
     icon: "⚙",
-    items: [{ label: "Company" }, { label: "Users" }, { label: "Checklists" }, { label: "Fields" }, { label: "Commission plans" }]
+    items: [
+      { label: "Company", href: "/office/company" },
+      { label: "Users" },
+      { label: "Checklists" },
+      { label: "Fields" },
+      { label: "Commission plans" }
+    ]
   },
   {
     title: "User",
@@ -48,10 +55,14 @@ export function OfficeNav() {
     <>
       <aside className="sidebar office-dashboard-sidebar">
         <div className="office-logo-panel">
-          <div className="office-logo-mark">
-            <span>ac</span>
-            <span>re</span>
-          </div>
+          <Image
+            alt="Acre New York Realty logo"
+            className="office-logo-image"
+            height={1404}
+            priority
+            src="/acre-logo-nyr.svg"
+            width={1175}
+          />
         </div>
 
         <div className="office-company-switcher">
