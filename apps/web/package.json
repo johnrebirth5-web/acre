@@ -1,0 +1,24 @@
+{
+  "name": "@acre/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@acre/auth": "0.1.0",
+    "@acre/backoffice": "0.1.0",
+    "@acre/db": "0.1.0",
+    "@acre/ui": "0.1.0",
+    "next": "^16.1.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.3.5"
+  }
+}

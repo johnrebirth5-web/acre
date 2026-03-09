@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  agent
+  office_manager
+  office_admin
+}
+
+enum MembershipStatus {
+  active
+  invited
+  disabled
+}
+
+enum ListingStatus {
+  draft
+  active
+  hot
+  pending
+  off_market
+  sold
+}
+
+enum TaskStatus {
+  queued
+  in_progress
+  completed
+  canceled
+}
+
+enum NotificationType {
+  system
+  listing
+  follow_up
+  event
+}
+
+enum EventVisibility {
+  all_agents
+  office_only
+  invite_only
+}
+
+enum RsvpStatus {
+  going
+  maybe
+  declined
+}
+
+enum ResourceType {
+  training_video
+  vendor_card
+  document
+  template
+  playbook
+}
+
+model Organization {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  timezone      String         @default("America/New_York")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  offices       Office[]
+  memberships   Membership[]
+  listings      Listing[]
+  clients       Client[]
+  followUpTasks FollowUpTask[]
+  notifications Notification[]
+  events        Event[]
+  resources     Resource[]
+  vendors       Vendor[]
+  auditLogs     AuditLog[]
+}
+
+model Office {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  market         String
+  isPrimary      Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships    Membership[]
+  listings       Listing[]
+  events         Event[]
+  resources      Resource[]
+  vendors        Vendor[]
+
+  @@unique([organizationId, slug])
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  firstName   String
+  lastName    String
+  timezone    String       @default("America/New_York")
+  locale      String       @default("en-US")
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+}
+
+model Membership {
+  id                String            @id @default(cuid())
+  organizationId    String
+  officeId          String?
+  userId            String
+  role              UserRole
+  status            MembershipStatus  @default(active)
+  title             String?
+  permissions       Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office            Office?           @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingsOwned     Listing[]
+  clientsOwned      Client[]
+  tasksAssigned     FollowUpTask[]
+  notifications     Notification[]
+  eventsCreated     Event[]
+  eventRsvps        EventRsvp[]
+  auditLogs         AuditLog[]
+
+  @@unique([organizationId, userId])
+}
+
+model Listing {
+  id                String             @id @default(cuid())
+  organizationId    String
+  officeId          String?
+  ownerMembershipId String?
+  title             String
+  slug              String
+  sourceUrl         String?
+  status            ListingStatus      @default(draft)
+  price             Decimal?           @db.Decimal(12, 2)
+  city              String
+  neighborhood      String
+  bedrooms          Int?
+  bathrooms         Decimal?           @db.Decimal(4, 1)
+  isPublic          Boolean            @default(false)
+  heroFacts         Json?
+  seoKeywords       String[]
+  aiSummary         String?
+  parsedJson        Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office            Office?            @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  ownerMembership   Membership?        @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  assets            ListingAsset[]
+  shareLinks        ListingShareLink[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
+  @@index([organizationId, isPublic])
+}
+
+model ListingAsset {
+  id         String   @id @default(cuid())
+  listingId  String
+  assetType  String
+  label      String
+  url        String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model ListingShareLink {
+  id           String    @id @default(cuid())
+  listingId    String
+  membershipId String?
+  channel      String
+  code         String    @unique
+  targetUrl    String
+  clickCount   Int       @default(0)
+  qrAssetUrl   String?
+  createdAt    DateTime  @default(now())
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id                String        @id @default(cuid())
+  organizationId    String
+  ownerMembershipId String?
+  fullName          String
+  source            String
+  stage             String
+  intent            String
+  budgetMin         Decimal?      @db.Decimal(12, 2)
+  budgetMax         Decimal?      @db.Decimal(12, 2)
+  preferredAreas    String[]
+  needsSummary      Json?
+  notes             String?
+  lastContactAt     DateTime?
+  nextFollowUpAt    DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerMembership   Membership?   @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  followUpTasks     FollowUpTask[]
+
+  @@index([organizationId, stage])
+}
+
+model FollowUpTask {
+  id                 String        @id @default(cuid())
+  organizationId     String
+  clientId           String?
+  assigneeMemberId   String?
+  title              String
+  status             TaskStatus    @default(queued)
+  dueAt              DateTime?
+  metadata           Json?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  organization       Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client             Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  assigneeMembership Membership?   @relation(fields: [assigneeMemberId], references: [id], onDelete: SetNull)
+  notifications      Notification[]
+
+  @@index([organizationId, status])
+}
+
+model Notification {
+  id                 String           @id @default(cuid())
+  organizationId     String
+  membershipId       String?
+  followUpTaskId     String?
+  eventId            String?
+  type               NotificationType
+  title              String
+  body               String
+  actionUrl          String?
+  readAt             DateTime?
+  createdAt          DateTime         @default(now())
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  membership         Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  followUpTask       FollowUpTask?    @relation(fields: [followUpTaskId], references: [id], onDelete: SetNull)
+  event              Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, type])
+}
+
+model Event {
+  id                  String          @id @default(cuid())
+  organizationId      String
+  officeId            String?
+  createdByMemberId   String?
+  title               String
+  description         String
+  visibility          EventVisibility @default(all_agents)
+  startsAt            DateTime
+  endsAt              DateTime?
+  location            String?
+  meetingUrl          String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  organization        Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office              Office?         @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  createdByMembership Membership?     @relation(fields: [createdByMemberId], references: [id], onDelete: SetNull)
+  rsvps               EventRsvp[]
+  notifications       Notification[]
+
+  @@index([organizationId, startsAt])
+}
+
+model EventRsvp {
+  id           String      @id @default(cuid())
+  eventId      String
+  membershipId String
+  status       RsvpStatus
+  respondedAt  DateTime    @default(now())
+  event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, membershipId])
+}
+
+model Resource {
+  id             String        @id @default(cuid())
+  organizationId String
+  officeId       String?
+  type           ResourceType
+  title          String
+  slug           String
+  summary        String
+  url            String
+  tags           String[]
+  isPublished    Boolean       @default(true)
+  searchText     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?       @relation(fields: [officeId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, slug])
+}
+
+model Vendor {
+  id             String        @id @default(cuid())
+  organizationId String
+  officeId       String?
+  category       String
+  name           String
+  headline       String
+  phone          String?
+  email          String?
+  website        String?
+  neighborhoods  String[]
+  notes          String?
+  isFeatured     Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?       @relation(fields: [officeId], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String
+  membershipId   String?
+  entityType     String
+  entityId       String
+  action         String
+  payload        Json?
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  membership     Membership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, entityType])
+}

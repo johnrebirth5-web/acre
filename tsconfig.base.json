@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@acre/auth": [
+        "packages/auth/src/index.ts"
+      ],
+      "@acre/backoffice": [
+        "packages/backoffice/src/index.ts"
+      ],
+      "@acre/db": [
+        "packages/db/src/index.ts"
+      ],
+      "@acre/ui": [
+        "packages/ui/src/index.tsx"
+      ]
+    }
+  }
+}
