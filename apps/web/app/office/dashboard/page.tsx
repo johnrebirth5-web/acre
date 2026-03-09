@@ -4,7 +4,7 @@ export default function OfficeDashboardPage() {
   const snapshot = getOfficeDashboardSnapshot();
 
   return (
-    <>
+    <div className="bm-dashboard">
       <section className="bm-goal-card">
         <div className="bm-goal-main">
           <div className="bm-card-head">
@@ -69,9 +69,15 @@ export default function OfficeDashboardPage() {
                 <strong>
                   {update.timeLabel} {update.title}
                 </strong>
-                {update.details.map((detail) => (
-                  <p key={detail}>{detail}</p>
-                ))}
+                {update.details.map((detail) =>
+                  detail.startsWith("https://") ? (
+                    <a className="bm-text-link" href={detail} key={detail}>
+                      {detail}
+                    </a>
+                  ) : (
+                    <p key={detail}>{detail}</p>
+                  )
+                )}
               </article>
             ))}
           </div>
@@ -85,8 +91,10 @@ export default function OfficeDashboardPage() {
           <div className="bm-link-list">
             {snapshot.usefulLinks.map((link) => (
               <article className="bm-link-row" key={link.id}>
-                <span className="bm-link-icon">🔗</span>
-                <strong>{link.label}</strong>
+                <span className="bm-link-icon">⛓</span>
+                <a className="bm-link-label" href="#">
+                  {link.label}
+                </a>
               </article>
             ))}
           </div>
@@ -100,8 +108,10 @@ export default function OfficeDashboardPage() {
           <div className="bm-link-list">
             {snapshot.trainingLinks.map((link) => (
               <article className="bm-link-row" key={link.id}>
-                <span className="bm-link-icon">🔗</span>
-                <strong>{link.label}</strong>
+                <span className="bm-link-icon">⛓</span>
+                <a className="bm-link-label" href="#">
+                  {link.label}
+                </a>
               </article>
             ))}
           </div>
@@ -133,6 +143,11 @@ export default function OfficeDashboardPage() {
           ))}
         </div>
       </section>
-    </>
+
+      <button className="bm-help-button" type="button">
+        <span className="bm-help-icon">?</span>
+        NEED HELP?
+      </button>
+    </div>
   );
 }

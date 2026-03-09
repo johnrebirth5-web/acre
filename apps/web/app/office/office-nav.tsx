@@ -12,7 +12,7 @@ type NavGroup = {
 const navGroups: NavGroup[] = [
   {
     title: "Overview",
-    icon: "▥",
+    icon: "◫",
     items: [
       { label: "Dashboard", href: "/office/dashboard" },
       { label: "Pipeline", href: "/office/pipeline" },
@@ -26,7 +26,7 @@ const navGroups: NavGroup[] = [
   },
   {
     title: "To Do",
-    icon: "•",
+    icon: "◔",
     items: [{ label: "Approve docs" }, { label: "Task list" }]
   },
   {
@@ -36,7 +36,7 @@ const navGroups: NavGroup[] = [
   },
   {
     title: "User",
-    icon: "⚙",
+    icon: "◉",
     items: [{ label: "Notifications" }, { label: "Account" }, { label: "Billing" }, { label: "Add-ons" }, { label: "Sign out" }]
   }
 ];

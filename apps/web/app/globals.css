@@ -1009,29 +1009,29 @@ select {
 
 .office-bm-groups {
   display: grid;
-  gap: 28px;
-  padding: 20px 0 28px;
+  gap: 34px;
+  padding: 16px 0 28px;
 }
 
 .office-bm-group {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .office-bm-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   padding: 0 18px;
   color: #11306d;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .office-bm-header span {
-  font-size: 1rem;
+  font-size: 0.96rem;
 }
 
 .office-bm-items {
@@ -1040,9 +1040,9 @@ select {
 
 .office-bm-link {
   display: block;
-  padding: 7px 18px 7px 48px;
+  padding: 6px 18px 6px 48px;
   color: #30343b;
-  font-size: 0.72rem;
+  font-size: 0.69rem;
   font-weight: 500;
 }
 
@@ -1057,8 +1057,12 @@ select {
 
 .office-dashboard-main {
   gap: 0;
-  padding: 24px 26px 34px;
+  padding: 22px 28px 34px;
   background: #ececec;
+}
+
+.bm-dashboard {
+  position: relative;
 }
 
 .bm-goal-card,
@@ -1069,7 +1073,7 @@ select {
 }
 
 .bm-goal-card {
-  padding: 24px 26px;
+  padding: 24px 28px 18px;
 }
 
 .bm-card-head {
@@ -1077,7 +1081,7 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .bm-card-head h2,
@@ -1090,22 +1094,22 @@ select {
 }
 
 .bm-card-head h2 {
-  font-size: 1.03rem;
+  font-size: 0.97rem;
 }
 
 .bm-card-head h3 {
-  font-size: 0.96rem;
+  font-size: 0.87rem;
 }
 
 .bm-card-head span {
   color: #b7b7b7;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
 }
 
 .bm-goal-chart {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 370px;
-  gap: 18px;
+  gap: 24px;
   align-items: stretch;
 }
 
@@ -1118,16 +1122,16 @@ select {
 .bm-chart-axis {
   display: grid;
   align-content: start;
-  gap: 10px;
-  padding-top: 8px;
+  gap: 9px;
+  padding-top: 6px;
   color: #b1b1b1;
-  font-size: 0.7rem;
+  font-size: 0.67rem;
   text-align: right;
 }
 
 .bm-chart-line-shell {
   position: relative;
-  min-height: 340px;
+  min-height: 312px;
   display: grid;
   align-content: end;
 }
@@ -1136,7 +1140,7 @@ select {
   position: absolute;
   top: 10px;
   left: 0;
-  right: 32px;
+  right: 28px;
   height: 1px;
   background: #d7dce6;
 }
@@ -1144,10 +1148,10 @@ select {
 .bm-chart-dots {
   position: absolute;
   left: 0;
-  right: 40px;
-  bottom: 54px;
+  right: 34px;
+  bottom: 47px;
   display: flex;
-  gap: 86px;
+  gap: 92px;
   padding-left: 0;
 }
 
@@ -1161,11 +1165,11 @@ select {
 .bm-chart-months {
   display: grid;
   grid-template-columns: repeat(13, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
   align-items: end;
-  padding-right: 30px;
+  padding-right: 28px;
   color: #b1b1b1;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
 }
 
 .bm-chart-months span {
@@ -1189,14 +1193,14 @@ select {
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 12px;
-  padding: 6px 12px 0;
+  gap: 14px;
+  padding: 0 10px 0 0;
 }
 
 .bm-goal-ring {
   position: relative;
-  width: 230px;
-  height: 230px;
+  width: 248px;
+  height: 248px;
   border-radius: 50%;
   background: conic-gradient(#e2e2e2 0deg, #e2e2e2 320deg, transparent 320deg 360deg);
 }
@@ -1204,7 +1208,7 @@ select {
 .bm-goal-ring::after {
   content: "";
   position: absolute;
-  inset: 30px;
+  inset: 32px;
   border-radius: 50%;
   background: #ffffff;
 }
@@ -1220,7 +1224,7 @@ select {
 }
 
 .bm-goal-ring-inner strong {
-  font-size: 2.6rem;
+  font-size: 3rem;
   font-weight: 500;
   color: #303030;
 }
@@ -1229,13 +1233,13 @@ select {
 .bm-goal-foot span,
 .bm-time-left span {
   color: #909090;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
 }
 
 .bm-goal-foot strong,
 .bm-time-left strong {
   color: #173c8a;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 500;
 }
 
@@ -1245,13 +1249,13 @@ select {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 240px;
+  max-width: 272px;
 }
 
 .bm-time-bar {
   width: 100%;
-  max-width: 240px;
-  height: 7px;
+  max-width: 272px;
+  height: 10px;
   border-radius: 999px;
   background: #dddddd;
   overflow: hidden;
@@ -1267,12 +1271,12 @@ select {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
-  margin-top: 24px;
+  margin-top: 40px;
 }
 
 .bm-info-card {
-  min-height: 260px;
-  padding: 20px 22px;
+  min-height: 304px;
+  padding: 18px 26px 22px;
 }
 
 .bm-update-list,
@@ -1282,14 +1286,14 @@ select {
 
 .bm-update-item {
   display: grid;
-  gap: 4px;
-  padding-bottom: 20px;
+  gap: 5px;
+  padding-bottom: 24px;
   color: #353535;
-  font-size: 0.72rem;
+  font-size: 0.71rem;
 }
 
 .bm-update-item strong {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
 }
 
@@ -1298,13 +1302,20 @@ select {
   color: #444;
 }
 
+.bm-text-link {
+  color: #0f62db;
+  font-size: 0.71rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .bm-link-row {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
-  min-height: 44px;
-  padding: 6px 0;
+  min-height: 48px;
+  padding: 4px 0;
   border-top: 1px solid #ececec;
 }
 
@@ -1320,10 +1331,11 @@ select {
   border-radius: 4px;
   background: #ededed;
   color: #ffffff;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
-.bm-link-row strong {
+.bm-link-label {
   color: #0f62db;
   font-size: 0.72rem;
   font-weight: 500;
@@ -1331,8 +1343,8 @@ select {
 
 .bm-transactions-card {
   margin-top: 24px;
-  padding: 18px 22px 14px;
-  min-height: 220px;
+  padding: 18px 26px 14px;
+  min-height: 260px;
 }
 
 .bm-transactions-table {
@@ -1344,7 +1356,7 @@ select {
   grid-template-columns: 44px minmax(0, 1.6fr) 0.6fr 0.8fr 0.9fr;
   gap: 14px;
   align-items: center;
-  min-height: 34px;
+  min-height: 32px;
   color: #9c9c9c;
   font-size: 0.67rem;
   text-transform: uppercase;
@@ -1356,7 +1368,7 @@ select {
   grid-template-columns: 44px minmax(0, 1.6fr) 0.6fr 0.8fr 0.9fr;
   gap: 14px;
   align-items: center;
-  min-height: 58px;
+  min-height: 62px;
   border-top: 1px solid #ededed;
   color: #777;
   font-size: 0.72rem;
@@ -1556,13 +1568,42 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 74px;
-  min-height: 24px;
+  min-width: 78px;
+  min-height: 25px;
   padding: 0 8px;
   border-radius: 999px;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: capitalize;
+}
+
+.bm-help-button {
+  position: fixed;
+  right: 38px;
+  bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  background: #0d2e74;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 16px rgba(13, 46, 116, 0.22);
+}
+
+.bm-help-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  line-height: 1;
 }
 
 .bm-status-opportunity {
@@ -1677,6 +1718,10 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .bm-help-button {
+    right: 24px;
+  }
+
   .bm-pipeline-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1720,6 +1765,10 @@ select {
   .bm-info-card,
   .bm-transactions-card {
     padding: 16px;
+  }
+
+  .bm-info-card {
+    min-height: auto;
   }
 
   .bm-goal-chart,
@@ -1792,5 +1841,12 @@ select {
 
   .bm-pipeline-column:first-child {
     border-top: 0;
+  }
+
+  .bm-help-button {
+    right: 14px;
+    bottom: 72px;
+    min-height: 42px;
+    padding: 0 14px;
   }
 }
