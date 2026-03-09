@@ -3,7 +3,7 @@
 `Acre` 是一个面向房地产经纪公司内部团队的 Web 工作台。当前仓库实现的是 `Acre Agent OS` 的第一版工程骨架，服务对象是：
 
 - `Agent`：一线经纪人，使用 listings、轻 CRM、活动通知、资源库、AI 工具
-- `Office Team`：运营/管理人员，使用 listings admin、events、resources、analytics
+- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Activity / Library / Accounting`
 
 这不是客户前台网站。客户前台后续会是独立 surface，复用这里的 listings 和后台数据能力。
 
@@ -14,18 +14,42 @@
 - 一个 `Next.js` 响应式 Web 应用，支持桌面和手机浏览器
 - 两套工作台入口：
   - `Agent Workspace`
-  - `Office Console`
+  - `Office Console / Back Office`
+- `Office Console` 已经按 `Brokermint` 的后台信息架构重做第一轮：
+  - 左侧分组导航
+  - `Dashboard`
+  - `Pipeline`
+  - `Transactions`
+  - `Contacts`
+  - `Reports`
+  - `Activity`
+  - `Library`
+  - `Accounting`
+- `Dashboard` 当前已实现一版高保真静态结构：
+  - `Goal Tracking`
+  - `Weekly Updates`
+  - `Acre Useful Links`
+  - `Back Office Agent Training Links`
+  - `Recent Transactions`
+- `Pipeline` 当前已实现一版静态漏斗页，按 `Opportunity / Active / Pending / Closed / Cancelled` 分栏展示
+- `Transactions` 当前已实现一版静态列表页，包含搜索框、状态过滤和事务表格
 - 基础页面路由：
-  - `/`
+  - `/` -> `/office/dashboard`
+  - `/agent` -> `/agent/dashboard`
+  - `/office` -> `/office/dashboard`
   - `/agent/dashboard`
   - `/agent/listings`
   - `/agent/clients`
   - `/agent/notifications`
   - `/agent/resources`
   - `/office/dashboard`
-  - `/office/listings`
-  - `/office/events`
-  - `/office/resources`
+  - `/office/pipeline`
+  - `/office/transactions`
+  - `/office/contacts`
+  - `/office/reports`
+  - `/office/activity`
+  - `/office/library`
+  - `/office/accounting`
 - 一组只读 API：
   - `/api/health`
   - `/api/agent/dashboard`
@@ -42,6 +66,7 @@
 
 - 未实现真实登录、session、用户鉴权
 - 未实现数据库读写，页面和 API 当前都使用 `@acre/backoffice` 里的内存示例数据
+- 未实现 `Brokermint` 中更深层的交易详情子页、审批流、checklists、accounting ledger、buyer offers
 - 未实现任何写操作接口，当前 API 全是 `GET`
 - 未实现 Prisma Client 初始化、migration 流程、seed、真实 CRUD
 - 未实现测试体系
@@ -137,6 +162,7 @@ acre/
 - [packages/backoffice/src/index.ts](./packages/backoffice/src/index.ts) 是当前最核心的业务入口文件
 - [packages/auth/src/index.ts](./packages/auth/src/index.ts) 定义角色和权限
 - [packages/db/prisma/schema.prisma](./packages/db/prisma/schema.prisma) 定义数据库结构，但尚未接入运行时
+- [apps/web/app/office/dashboard/page.tsx](./apps/web/app/office/dashboard/page.tsx)、[apps/web/app/office/pipeline/page.tsx](./apps/web/app/office/pipeline/page.tsx)、[apps/web/app/office/transactions/page.tsx](./apps/web/app/office/transactions/page.tsx) 是当前 `Back Office` UI 的主要入口
 
 ## 新人第一次接手建议先看什么
 

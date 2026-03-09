@@ -11,6 +11,7 @@
 - API 当前返回的是 `@acre/backoffice` 的内存数据
 - 数据库 schema 已定义，但数据库还没有进入请求链路
 - 权限模型存在，但还没有和真实登录态绑定
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，但目前仍然是静态示例数据驱动
 
 ## 技术栈
 
@@ -27,6 +28,10 @@
 - 当前没有表单库
 - 当前没有 UI 框架
 - 页面主要是服务端组件 + 少量客户端导航组件
+- 当前 `Back Office` 最接近真实参考的页面是：
+  - [apps/web/app/office/dashboard/page.tsx](../apps/web/app/office/dashboard/page.tsx)
+  - [apps/web/app/office/pipeline/page.tsx](../apps/web/app/office/pipeline/page.tsx)
+  - [apps/web/app/office/transactions/page.tsx](../apps/web/app/office/transactions/page.tsx)
 
 ### 后端
 
@@ -98,12 +103,15 @@
 
 - organization / offices / members
 - listings / clients / events / notifications / resources / vendors
+- transactions / pipeline buckets
 - `getAgentDashboardSnapshot`
 - `getOfficeDashboardSnapshot`
 - `listListings`
 - `listClients`
 - `listEvents`
 - `listResources`
+- `listTransactions`
+- `getPipelineBuckets`
 - `getApiCatalog`
 
 ### `packages/auth`
@@ -169,6 +177,13 @@
 - 远程 API 调用
 - 缓存层
 
+当前 `Back Office` 页面读取路径大致是：
+
+1. `/office/dashboard` 调 `getOfficeDashboardSnapshot`
+2. `/office/pipeline` 调 `getPipelineBuckets`
+3. `/office/transactions` 调 `listTransactions`
+4. 页面直接把这些静态 DTO 渲染成后台 UI
+
 ### 未来预期数据流
 
 暂定方案：
@@ -220,6 +235,21 @@
 - public site 后续也会依赖 listings
 
 这部分以后最可能演化为系统最重要的核心模块。
+
+### 3.5 Transactions 是当前 Back Office 的主轴
+
+按用户最新范围定义，当前阶段优先复刻的是 `Brokermint` 的 `Back Office`，不是 Acre 全平台所有模块。因此当前最重要的 UI/业务主轴是：
+
+- `Dashboard`
+- `Pipeline`
+- `Transactions`
+- `Contacts`
+- `Reports`
+- `Activity`
+- `Library`
+- `Accounting`
+
+其中真正最需要优先落成真实数据的，是 `Transactions` 以及它关联出来的 `Pipeline`、`Contacts`、`Reports`。
 
 ### 4. CRM / Follow-up / Notifications 是 agent 工作流核心
 

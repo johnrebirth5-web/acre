@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function HomePage() {
+export default function OfficeIndexPage() {
   redirect("/office/dashboard");
 }

@@ -112,6 +112,47 @@ export type MetricCard = {
   trend: string;
 };
 
+export type OfficeUpdate = {
+  id: string;
+  title: string;
+  timeLabel: string;
+  details: string[];
+};
+
+export type OfficeLink = {
+  id: string;
+  label: string;
+  kind: string;
+};
+
+export type TransactionSnapshot = {
+  id: string;
+  label: string;
+  amount: string;
+  stage: string;
+  owner: string;
+};
+
+export type TransactionStatus = "Opportunity" | "Active" | "Pending" | "Closed" | "Cancelled";
+
+export type TransactionRecord = {
+  id: string;
+  address: string;
+  importantDate: string;
+  price: string;
+  owner: string;
+  representing: string;
+  status: TransactionStatus;
+  volume: number;
+};
+
+export type PipelineBucket = {
+  status: TransactionStatus;
+  count: number;
+  volumeLabel: string;
+  transactions: TransactionRecord[];
+};
+
 export type AgentDashboardSnapshot = {
   organization: OrganizationSummary;
   user: AcreMember;
@@ -131,6 +172,16 @@ export type OfficeDashboardSnapshot = {
   events: EventSnapshot[];
   resources: ResourceSnapshot[];
   workflowNotes: string[];
+  goal: {
+    target: string;
+    progressPercent: number;
+    currentValue: string;
+    timeLeft: string;
+  };
+  weeklyUpdates: OfficeUpdate[];
+  usefulLinks: OfficeLink[];
+  trainingLinks: OfficeLink[];
+  recentTransactions: TransactionSnapshot[];
 };
 
 export const organization: OrganizationSummary = {
@@ -461,6 +512,124 @@ export const officeWorkflowNotes = [
   "Resource hub needs one search surface across videos, docs, templates, and vendor cards."
 ];
 
+export const officeWeeklyUpdates: OfficeUpdate[] = [
+  {
+    id: "update-launch-party",
+    title: "Launch Party @ Stanhope",
+    timeLabel: "[Thu 1.29]",
+    details: ["Time: 5:00 - 7:00 PM", "Location: 196 Stanhope St, Brooklyn, NY 11237"]
+  },
+  {
+    id: "update-commercial-workshop",
+    title: "Commercial Workshop - Ivan",
+    timeLabel: "[Thu 1.29]",
+    details: ["Time: 8:30 - 9:30 PM", "Zoom: https://us06web.zoom.us/j/85958213872"]
+  },
+  {
+    id: "update-weekly-meeting",
+    title: "Acre Weekly Meeting",
+    timeLabel: "[Thu 2.5]",
+    details: ["Time: 10:00 - 10:30 AM", "Join Zoom Meeting", "https://us06web.zoom.us/j/88901672776"]
+  }
+];
+
+export const officeUsefulLinks: OfficeLink[] = [
+  { id: "link-rebate", label: "Rebate Application Form", kind: "Form" },
+  { id: "link-reimbursement", label: "Reimbursement Form", kind: "Form" },
+  { id: "link-referral", label: "External Referral Info Collection Form", kind: "Form" },
+  { id: "link-cyof", label: "CYOF Form", kind: "Form" },
+  { id: "link-policy", label: "Reimbursement Policy", kind: "Policy" }
+];
+
+export const officeTrainingLinks: OfficeLink[] = [
+  { id: "training-video", label: "Back Office Agent Training video", kind: "Training" },
+  { id: "training-transaction", label: "How to create a transaction", kind: "Guide" },
+  { id: "training-esign", label: "Esignature", kind: "Guide" },
+  { id: "training-state-forms", label: "How to access state and association forms", kind: "Guide" },
+  { id: "training-buyer-offers", label: "Buyer Offers", kind: "Guide" }
+];
+
+export const transactions: TransactionRecord[] = [
+  {
+    id: "tx-shaikh-rental",
+    address: "J. SHAIKH Rental",
+    importantDate: "Feb 18, 2026",
+    price: "$0",
+    owner: "Naomi Chen",
+    representing: "Tenant",
+    status: "Opportunity",
+    volume: 0
+  },
+  {
+    id: "tx-riverline",
+    address: "Riverline West 12B",
+    importantDate: "Mar 22, 2026",
+    price: "$865,000",
+    owner: "Simon Park",
+    representing: "Buyer",
+    status: "Active",
+    volume: 865000
+  },
+  {
+    id: "tx-orchard",
+    address: "The Orchard 8A",
+    importantDate: "Apr 04, 2026",
+    price: "$1,420,000",
+    owner: "Jane Wu",
+    representing: "Buyer",
+    status: "Pending",
+    volume: 1420000
+  },
+  {
+    id: "tx-harbor",
+    address: "Harbor Point PH2",
+    importantDate: "Jan 14, 2026",
+    price: "$2,340,000",
+    owner: "Simon Park",
+    representing: "Seller",
+    status: "Closed",
+    volume: 2340000
+  },
+  {
+    id: "tx-bergen",
+    address: "Bergen Loft 4C",
+    importantDate: "Feb 03, 2026",
+    price: "$710,000",
+    owner: "Naomi Chen",
+    representing: "Buyer",
+    status: "Cancelled",
+    volume: 710000
+  },
+  {
+    id: "tx-stanhope",
+    address: "196 Stanhope St 3R",
+    importantDate: "Mar 09, 2026",
+    price: "$4,300 / mo",
+    owner: "Jane Wu",
+    representing: "Landlord",
+    status: "Active",
+    volume: 51600
+  },
+  {
+    id: "tx-aurelia",
+    address: "Aurelia Tower 19F",
+    importantDate: "Mar 27, 2026",
+    price: "$1,080,000",
+    owner: "Naomi Chen",
+    representing: "Buyer",
+    status: "Pending",
+    volume: 1080000
+  }
+];
+
+export const recentTransactions: TransactionSnapshot[] = transactions.slice(0, 3).map((transaction) => ({
+  id: transaction.id,
+  label: transaction.address,
+  amount: transaction.price,
+  stage: transaction.status.toLowerCase(),
+  owner: transaction.owner
+}));
+
 export function getCurrentOrganization() {
   return organization;
 }
@@ -495,6 +664,29 @@ export function listVendors() {
 
 export function listEvents() {
   return events;
+}
+
+export function listTransactions() {
+  return transactions;
+}
+
+export function getPipelineBuckets(): PipelineBucket[] {
+  const statuses: TransactionStatus[] = ["Opportunity", "Active", "Pending", "Closed", "Cancelled"];
+
+  return statuses.map((status) => {
+    const bucketTransactions = transactions.filter((transaction) => transaction.status === status);
+    const bucketVolume = bucketTransactions.reduce((total, transaction) => total + transaction.volume, 0);
+
+    return {
+      status,
+      count: bucketTransactions.length,
+      volumeLabel:
+        bucketVolume > 0
+          ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(bucketVolume)
+          : "$0",
+      transactions: bucketTransactions
+    };
+  });
 }
 
 export function getAgentDashboardSnapshot(userId = "member-jane"): AgentDashboardSnapshot {
@@ -532,7 +724,17 @@ export function getOfficeDashboardSnapshot(userId = "member-simon"): OfficeDashb
     listings: listListings("office"),
     events,
     resources,
-    workflowNotes: officeWorkflowNotes
+    workflowNotes: officeWorkflowNotes,
+    goal: {
+      target: "$10,000",
+      progressPercent: 0,
+      currentValue: "$0",
+      timeLeft: "11m · 15d"
+    },
+    weeklyUpdates: officeWeeklyUpdates,
+    usefulLinks: officeUsefulLinks,
+    trainingLinks: officeTrainingLinks,
+    recentTransactions
   };
 }
 
