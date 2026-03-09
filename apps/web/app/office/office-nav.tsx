@@ -60,7 +60,7 @@ export function OfficeNav() {
             className="office-logo-image"
             height={1404}
             priority
-            src="/acre-logo-nyr.svg"
+            src="/acre-logo-nyr.png"
             width={1175}
           />
         </div>
