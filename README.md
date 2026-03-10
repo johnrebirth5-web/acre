@@ -25,6 +25,7 @@
   - `Activity`
   - `Library`
   - `Accounting`
+  - `Settings > Company`
 - `Dashboard` 当前已实现一版高保真静态结构：
   - `Goal Tracking`
   - `Weekly Updates`
@@ -32,7 +33,8 @@
   - `Back Office Agent Training Links`
   - `Recent Transactions`
 - `Pipeline` 当前已实现一版静态漏斗页，按 `Opportunity / Active / Pending / Closed / Cancelled` 分栏展示
-- `Transactions` 当前已实现一版静态列表页，包含搜索框、状态过滤和事务表格
+- `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
+- `Create Transaction` 当前已实现为 `Transactions` 页面内的静态 modal，结构按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
 - 基础页面路由：
   - `/` -> `/office/dashboard`
   - `/agent` -> `/agent/dashboard`
@@ -48,6 +50,7 @@
   - `/office/contacts`
   - `/office/reports`
   - `/office/activity`
+  - `/office/company`
   - `/office/library`
   - `/office/accounting`
 - 一组只读 API：
@@ -70,7 +73,7 @@
 - 未实现任何写操作接口，当前 API 全是 `GET`
 - 未实现 Prisma Client 初始化、migration 流程、seed、真实 CRUD
 - 未实现测试体系
-- 未实现 Vercel 项目绑定和生产环境部署
+- Vercel 项目已绑定 GitHub 仓库，`main` 分支 push 会自动触发生产部署
 - 未实现对象存储、异步任务、AI 工作流、文件上传、OCR、第三方集成
 
 这几项在文档里都会明确以“未实现 / 暂定方案”处理，不应误认为已经完成。

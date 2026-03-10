@@ -63,7 +63,7 @@
 当前真实接入状态：
 
 - `GitHub`：已接入，仓库已推送
-- `Vercel`：未实现 / 计划中
+- `Vercel`：已接入，当前 `main` 分支 push 会自动触发生产部署
 - `PostgreSQL` 实例：未接入运行时
 - 对象存储：未实现
 - OCR / AI / 外部地产系统集成：未实现
@@ -182,7 +182,8 @@
 1. `/office/dashboard` 调 `getOfficeDashboardSnapshot`
 2. `/office/pipeline` 调 `getPipelineBuckets`
 3. `/office/transactions` 调 `listTransactions`
-4. 页面直接把这些静态 DTO 渲染成后台 UI
+4. `/office/transactions` 内的客户端 modal 负责显示 `Create transaction`
+5. 页面直接把这些静态 DTO 渲染成后台 UI
 
 ### 未来预期数据流
 
@@ -250,6 +251,19 @@
 - `Accounting`
 
 其中真正最需要优先落成真实数据的，是 `Transactions` 以及它关联出来的 `Pipeline`、`Contacts`、`Reports`。
+
+### 3.6 Company referral / commission rule 是当前已确认的真实业务规则
+
+来自本地 PDF [____CRM_____Agent__.pdf](../____CRM_____Agent__.pdf) 的已确认规则：
+
+- 创建交易时要支持 `Company Referral`
+- 需要有 `Company Referral Employee's Name`
+- 要支持 `Add agent / commission`
+- 客服推单默认 `20%`
+- 代运营成单默认 `10%`
+- 特定来源还要求额外添加特定参与方，例如 `Guangzhou Huihe`、`Feitong Zhao`
+
+这意味着 `Create Transaction` 以后不能只是基础交易表单，还必须包含 referral source 和 commission participant 的业务层逻辑。
 
 ### 4. CRM / Follow-up / Notifications 是 agent 工作流核心
 

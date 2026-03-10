@@ -144,6 +144,7 @@ export type TransactionRecord = {
   representing: string;
   status: TransactionStatus;
   volume: number;
+  isFlagged?: boolean;
 };
 
 export type PipelineBucket = {
@@ -151,6 +152,54 @@ export type PipelineBucket = {
   count: number;
   volumeLabel: string;
   transactions: TransactionRecord[];
+};
+
+export type CompanySettingsSnapshot = {
+  accountNumber: string;
+  packagePlan: string;
+  companyName: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phone: string;
+  fax: string;
+  officeName: string;
+  officeCode: string;
+  esignCertificateOnCompletion: boolean;
+};
+
+export type CommissionParticipantDraft = {
+  id: string;
+  name: string;
+  role: string;
+  splitLabel: string;
+  notes?: string;
+};
+
+export type CreateTransactionDraft = {
+  transactionType: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  contractDate: string;
+  salePrice: string;
+  buyerExpirationDate: string;
+  listingDate: string;
+  listingExpirationDate: string;
+  closingDate: string;
+  agentName: string;
+  teamLeader: string;
+  licensedAgentName: string;
+  companyReferral: "Yes" | "No";
+  companyReferralEmployeeName: string;
+  brokerageName: string;
+  sourceNotes: string;
+  commissionPercent: string;
+  referralPercent: string;
+  participants: CommissionParticipantDraft[];
+  referralRules: string[];
 };
 
 export type AgentDashboardSnapshot = {
@@ -551,74 +600,275 @@ export const officeTrainingLinks: OfficeLink[] = [
 
 export const transactions: TransactionRecord[] = [
   {
-    id: "tx-shaikh-rental",
-    address: "J. SHAIKH Rental",
-    importantDate: "Feb 18, 2026",
-    price: "$0",
-    owner: "Naomi Chen",
-    representing: "Tenant",
+    id: "tx-600-frank",
+    address: "600 Frank E Rodgers Blvd S, Harrison, NJ 07029",
+    importantDate: "",
+    price: "$ 2,470",
+    owner: "Siqi Fang",
+    representing: "buyer",
+    status: "Active",
+    volume: 2470
+  },
+  {
+    id: "tx-70-christopher",
+    address: "70 Christopher Columbus Dr, Jersey City, NJ 07302",
+    importantDate: "",
+    price: "$ 3,585",
+    owner: "Siqi Fang",
+    representing: "buyer",
+    status: "Active",
+    volume: 3585
+  },
+  {
+    id: "tx-350-west-50",
+    address: "350 West 50th Street, New York, NY 10019",
+    importantDate: "",
+    price: "$ 3,500",
+    owner: "Ziling (Lynn) Liu",
+    representing: "buyer",
+    status: "Active",
+    volume: 3500
+  },
+  {
+    id: "tx-61-oak",
+    address: "61 Oak Ave, Eastchester, NY",
+    importantDate: "",
+    price: "$ 800,000",
+    owner: "I-chuan Wang",
+    representing: "buyer",
+    status: "Active",
+    volume: 800000
+  },
+  {
+    id: "tx-3820-parson",
+    address: "3820 Parson Blvd, flushing, NY 11354",
+    importantDate: "expires: Dec 26, 2025",
+    price: "$ 625,000",
+    owner: "Queenie Cao",
+    representing: "buyer",
+    status: "Active",
+    volume: 625000,
+    isFlagged: true
+  },
+  {
+    id: "tx-171-bagley",
+    address: "171-06 Bagley ave, Flushing, NY",
+    importantDate: "",
+    price: "$ 1,159,000",
+    owner: "I-chuan Wang",
+    representing: "buyer",
+    status: "Active",
+    volume: 1159000
+  },
+  {
+    id: "tx-280-east-2",
+    address: "280 East 2 nd st #1110, New York, NY 10011",
+    importantDate: "",
+    price: "$ 3,395",
+    owner: "I-chuan Wang",
+    representing: "buyer",
+    status: "Active",
+    volume: 3395
+  },
+  {
+    id: "tx-2-north-6",
+    address: "2 North 6th Place, Brooklyn, NY 11249",
+    importantDate: "",
+    price: "$ 4,800",
+    owner: "Alice Tang",
+    representing: "seller",
+    status: "Active",
+    volume: 4800
+  },
+  {
+    id: "tx-susie-shrader",
+    address: "Susie Shrader Rental",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Alice Tang",
+    representing: "buyer",
+    status: "Active",
+    volume: 0
+  },
+  {
+    id: "tx-50-dekalb",
+    address: "50 Dekalb Avenue #N2, White Plains, NY 10605",
+    importantDate: "expires: Jul 27, 2026",
+    price: "$ 500,000",
+    owner: "I-chuan Wang",
+    representing: "buyer",
+    status: "Active",
+    volume: 500000
+  },
+  {
+    id: "tx-63-underhill",
+    address: "63 Underhill Rd, Scarsdale, NY 10583",
+    importantDate: "",
+    price: "$ 1,600,000",
+    owner: "I-chuan Wang",
+    representing: "buyer",
+    status: "Active",
+    volume: 1600000
+  },
+  {
+    id: "tx-16-richardson",
+    address: "16 Richardson Pl, Eastchester, NY 10709",
+    importantDate: "",
+    price: "$ 779,000",
+    owner: "I-chuan Wang",
+    representing: "buyer",
+    status: "Active",
+    volume: 779000
+  },
+  {
+    id: "tx-hossain-rental",
+    address: "M Hossain Rental",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Alice Tang",
+    representing: "buyer",
+    status: "Active",
+    volume: 0
+  },
+  {
+    id: "tx-corrieri-rental",
+    address: "A. Corrieri Rental",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Alice Tang",
+    representing: "buyer",
+    status: "Active",
+    volume: 0
+  },
+  {
+    id: "tx-128-2nd-daichang",
+    address: "128 2nd Avenue(大肠), Manhattan, NY 10003",
+    importantDate: "",
+    price: "$ 450,000",
+    owner: "Wanli(Olivia) Gao",
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 450000
+  },
+  {
+    id: "tx-128-2nd-rental",
+    address: "128 2nd Avenue, Manhattan, NY 10003",
+    importantDate: "",
+    price: "$ 4,200",
+    owner: "Wanli(Olivia) Gao",
+    representing: "tenant",
+    status: "Opportunity",
+    volume: 4200
+  },
+  {
+    id: "tx-william-rental",
+    address: "William H. Rental",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Alice Tang",
+    representing: "buyer",
     status: "Opportunity",
     volume: 0
   },
   {
-    id: "tx-riverline",
-    address: "Riverline West 12B",
-    importantDate: "Mar 22, 2026",
-    price: "$865,000",
-    owner: "Simon Park",
-    representing: "Buyer",
-    status: "Active",
-    volume: 865000
+    id: "tx-128-2nd-ph",
+    address: "128 2ND Avenue #PH, Manhattan, NY 10003",
+    importantDate: "",
+    price: "$ 1,250,000",
+    owner: "Wanli(Olivia) Gao",
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 1250000
   },
   {
-    id: "tx-orchard",
-    address: "The Orchard 8A",
-    importantDate: "Apr 04, 2026",
-    price: "$1,420,000",
+    id: "tx-graham-court",
+    address: "Graham Court 4F, Brooklyn, NY 11206",
+    importantDate: "",
+    price: "$ 925,000",
     owner: "Jane Wu",
-    representing: "Buyer",
-    status: "Pending",
-    volume: 1420000
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 925000
   },
   {
-    id: "tx-harbor",
-    address: "Harbor Point PH2",
-    importantDate: "Jan 14, 2026",
-    price: "$2,340,000",
+    id: "tx-127-clarkson",
+    address: "127 Clarkson Ave, Brooklyn, NY 11226",
+    importantDate: "",
+    price: "$ 3,250",
     owner: "Simon Park",
-    representing: "Seller",
-    status: "Closed",
-    volume: 2340000
+    representing: "tenant",
+    status: "Opportunity",
+    volume: 3250
   },
   {
-    id: "tx-bergen",
-    address: "Bergen Loft 4C",
-    importantDate: "Feb 03, 2026",
-    price: "$710,000",
+    id: "tx-saaj-rental",
+    address: "Saaj Rental",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Alice Tang",
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 0
+  },
+  {
+    id: "tx-41-09-41st",
+    address: "41-09 41st St, Sunnyside, NY 11104",
+    importantDate: "",
+    price: "$ 515,000",
     owner: "Naomi Chen",
-    representing: "Buyer",
-    status: "Cancelled",
-    volume: 710000
+    representing: "seller",
+    status: "Opportunity",
+    volume: 515000
   },
   {
-    id: "tx-stanhope",
-    address: "196 Stanhope St 3R",
-    importantDate: "Mar 09, 2026",
-    price: "$4,300 / mo",
-    owner: "Jane Wu",
-    representing: "Landlord",
-    status: "Active",
-    volume: 51600
+    id: "tx-45-10-court-square",
+    address: "45-10 Court Square W, Long Island City, NY 11101",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Simon Park",
+    representing: "seller",
+    status: "Opportunity",
+    volume: 0
   },
   {
-    id: "tx-aurelia",
-    address: "Aurelia Tower 19F",
-    importantDate: "Mar 27, 2026",
-    price: "$1,080,000",
+    id: "tx-phoebe-rental",
+    address: "Phoebe Lee Rental",
+    importantDate: "",
+    price: "$ 0",
+    owner: "Alice Tang",
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 0
+  },
+  {
+    id: "tx-127-01-89th",
+    address: "127-01 89th Ave, Richmond Hill, NY 11418",
+    importantDate: "",
+    price: "$ 699,000",
+    owner: "Queenie Cao",
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 699000
+  },
+  {
+    id: "tx-10-city-point",
+    address: "10 City Point #25A, Brooklyn, NY 11201",
+    importantDate: "",
+    price: "$ 1,020,000",
     owner: "Naomi Chen",
-    representing: "Buyer",
-    status: "Pending",
-    volume: 1080000
+    representing: "buyer",
+    status: "Opportunity",
+    volume: 1020000
+  },
+  {
+    id: "tx-215-park",
+    address: "215 Park Row #6C, New York, NY 10038",
+    importantDate: "",
+    price: "$ 2,950",
+    owner: "Simon Park",
+    representing: "tenant",
+    status: "Opportunity",
+    volume: 2950
   }
 ];
 
@@ -629,6 +879,56 @@ export const recentTransactions: TransactionSnapshot[] = transactions.slice(0, 3
   stage: transaction.status.toLowerCase(),
   owner: transaction.owner
 }));
+
+export const companySettings: CompanySettingsSnapshot = {
+  accountNumber: "17978",
+  packagePlan: "Enterprise",
+  companyName: "Acre NY Realty Inc",
+  streetAddress: "45-10 Court Square W, FL 1",
+  city: "Long Island",
+  state: "NY",
+  zipCode: "11101",
+  phone: "201-676-0856",
+  fax: "",
+  officeName: "",
+  officeCode: "10311209103",
+  esignCertificateOnCompletion: true
+};
+
+export const createTransactionDraft: CreateTransactionDraft = {
+  transactionType: "Residential resale",
+  address: "100-50 63rd Rd",
+  city: "Flushing",
+  state: "NY",
+  zipCode: "11374",
+  contractDate: "2026-03-10",
+  salePrice: "1260000",
+  buyerExpirationDate: "",
+  listingDate: "",
+  listingExpirationDate: "",
+  closingDate: "2026-05-30",
+  agentName: "Jane Wu",
+  teamLeader: "Simon Park",
+  licensedAgentName: "Jane Wu",
+  companyReferral: "Yes",
+  companyReferralEmployeeName: "Acre小助手",
+  brokerageName: "Acre NY Realty Inc",
+  sourceNotes: "客服推单场景示例。广州客服或美国客服场景见下方规则说明。",
+  commissionPercent: "3.0",
+  referralPercent: "20",
+  participants: [
+    { id: "p-agent", name: "Jane Wu", role: "Primary agent", splitLabel: "80%" },
+    { id: "p-referral", name: "Acre小助手", role: "Company referral", splitLabel: "20%", notes: "客服推单默认 20%" }
+  ],
+  referralRules: [
+    "客服推单或代运营成单时，Company Referral 必须选择 Yes。",
+    "客服推单时，Company Referral Employee’s Name 填客服姓名或客服号名称，例如 暖宝 / 小简 / Acre小助手 / Acre小秘书。",
+    "代运营成单时，Company Referral Employee’s Name 填 代运营 - 账号名称，例如 代运营 - 查理NY地产资讯。",
+    "广州客服推单或代运营成单，需要额外添加 Guangzhou Huihe。",
+    "美国客服推单，需要额外添加 Feitong Zhao。",
+    "客服推单默认 20%，代运营成单默认 10%。"
+  ]
+};
 
 export function getCurrentOrganization() {
   return organization;
@@ -668,6 +968,14 @@ export function listEvents() {
 
 export function listTransactions() {
   return transactions;
+}
+
+export function getCompanySettings() {
+  return companySettings;
+}
+
+export function getCreateTransactionDraft() {
+  return createTransactionDraft;
 }
 
 export function getPipelineBuckets(): PipelineBucket[] {
