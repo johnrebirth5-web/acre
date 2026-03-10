@@ -253,6 +253,28 @@ Trade-off：
 
 - 再决定是否升级到更完整的 auth provider、session store、数据级权限
 
+### 5. `Activity` 当前只展示真实运营项，不伪造完整 audit log
+
+原因：
+
+- 当前数据库里已经有 `Event`、`Notification`、`FollowUpTask`、`Transaction`
+- 但还没有一套可靠、持续写入的 transaction 审计历史
+- 如果现在把 `Activity` 包装成“完整审计流”，会误导后续维护者
+
+影响：
+
+- `Activity` 页面当前只显示：
+  - upcoming events
+  - recent notifications
+  - follow-up needs
+  - recent operational items（由 transaction `updatedAt` 派生）
+- 页面文案会明确说明这不是完整 audit log
+
+Trade-off：
+
+- 当前 activity feed 比理想中的 Brokermint activity stream 更窄
+- 但它是真实、可解释、可维护的，不会把还不存在的数据能力伪装成已完成
+
 ## 后续接手时最需要先理解的几个决策
 
 如果你只读这一段，也要先理解下面四点：

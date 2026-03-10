@@ -406,6 +406,176 @@ async function main() {
     });
   }
 
+  const seededEvents = [
+    {
+      id: "seed-event-weekly-meeting",
+      createdByEmail: "simon@acre.com",
+      title: "Acre Weekly Meeting",
+      description: "Weekly office ops sync covering pending transactions and marketing priorities.",
+      visibility: "office_only",
+      startsAt: new Date("2026-03-12T15:00:00.000Z"),
+      endsAt: new Date("2026-03-12T15:30:00.000Z"),
+      location: "Zoom",
+      meetingUrl: "https://us06web.zoom.us/j/88901672776",
+      officeScoped: true
+    },
+    {
+      id: "seed-event-contract-workshop",
+      createdByEmail: "naomi@acre.com",
+      title: "Contract review workshop",
+      description: "Walk through current pending deals and contract pain points with the office team.",
+      visibility: "all_agents",
+      startsAt: new Date("2026-03-14T18:00:00.000Z"),
+      endsAt: new Date("2026-03-14T19:00:00.000Z"),
+      location: "45-10 Court Square W, LIC",
+      meetingUrl: null,
+      officeScoped: false
+    }
+  ];
+
+  for (const event of seededEvents) {
+    const createdByMembership = membershipByEmail.get(event.createdByEmail) ?? null;
+
+    await prisma.event.upsert({
+      where: { id: event.id },
+      update: {
+        organizationId: organization.id,
+        officeId: event.officeScoped ? office.id : null,
+        createdByMemberId: createdByMembership?.id ?? null,
+        title: event.title,
+        description: event.description,
+        visibility: event.visibility,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        location: event.location,
+        meetingUrl: event.meetingUrl
+      },
+      create: {
+        id: event.id,
+        organizationId: organization.id,
+        officeId: event.officeScoped ? office.id : null,
+        createdByMemberId: createdByMembership?.id ?? null,
+        title: event.title,
+        description: event.description,
+        visibility: event.visibility,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        location: event.location,
+        meetingUrl: event.meetingUrl
+      }
+    });
+  }
+
+  const seededEventRsvps = [
+    {
+      eventId: "seed-event-weekly-meeting",
+      membershipEmail: "jane@acre.com",
+      status: "going"
+    },
+    {
+      eventId: "seed-event-weekly-meeting",
+      membershipEmail: "naomi@acre.com",
+      status: "going"
+    },
+    {
+      eventId: "seed-event-contract-workshop",
+      membershipEmail: "simon@acre.com",
+      status: "maybe"
+    }
+  ];
+
+  for (const rsvp of seededEventRsvps) {
+    const membership = membershipByEmail.get(rsvp.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.eventRsvp.upsert({
+      where: {
+        eventId_membershipId: {
+          eventId: rsvp.eventId,
+          membershipId: membership.id
+        }
+      },
+      update: {
+        status: rsvp.status
+      },
+      create: {
+        eventId: rsvp.eventId,
+        membershipId: membership.id,
+        status: rsvp.status
+      }
+    });
+  }
+
+  const seededNotifications = [
+    {
+      id: "seed-notification-followup-evelyn",
+      membershipEmail: "jane@acre.com",
+      followUpTaskId: "seed-task-evelyn",
+      eventId: null,
+      type: "follow_up",
+      title: "Follow up due for Evelyn Zhao",
+      body: "LIC investor follow-up is due today. Review the contact note before calling.",
+      actionUrl: "/office/contacts/seed-client-evelyn",
+      readAt: null
+    },
+    {
+      id: "seed-notification-weekly-meeting",
+      membershipEmail: null,
+      followUpTaskId: null,
+      eventId: "seed-event-weekly-meeting",
+      type: "event",
+      title: "Weekly office meeting this Thursday",
+      body: "Acre Weekly Meeting starts at 10:00 AM. Review pending transaction blockers before joining.",
+      actionUrl: "/office/activity",
+      readAt: null
+    },
+    {
+      id: "seed-notification-contract-workshop",
+      membershipEmail: "simon@acre.com",
+      followUpTaskId: null,
+      eventId: "seed-event-contract-workshop",
+      type: "system",
+      title: "Contract review workshop reminder",
+      body: "Bring open pending deals and current finance questions to the workshop.",
+      actionUrl: "/office/reports",
+      readAt: new Date("2026-03-09T18:00:00.000Z")
+    }
+  ];
+
+  for (const notification of seededNotifications) {
+    const membership = notification.membershipEmail ? membershipByEmail.get(notification.membershipEmail) ?? null : null;
+
+    await prisma.notification.upsert({
+      where: { id: notification.id },
+      update: {
+        organizationId: organization.id,
+        membershipId: membership?.id ?? null,
+        followUpTaskId: notification.followUpTaskId,
+        eventId: notification.eventId,
+        type: notification.type,
+        title: notification.title,
+        body: notification.body,
+        actionUrl: notification.actionUrl,
+        readAt: notification.readAt
+      },
+      create: {
+        id: notification.id,
+        organizationId: organization.id,
+        membershipId: membership?.id ?? null,
+        followUpTaskId: notification.followUpTaskId,
+        eventId: notification.eventId,
+        type: notification.type,
+        title: notification.title,
+        body: notification.body,
+        actionUrl: notification.actionUrl,
+        readAt: notification.readAt
+      }
+    });
+  }
+
   await prisma.transaction.update({
     where: { id: "seed-tx-graham-court" },
     data: {
@@ -536,7 +706,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, and ${seededTransactionTasks.length} transaction tasks.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, and ${seededTransactionTasks.length} transaction tasks.`
   );
 }
 

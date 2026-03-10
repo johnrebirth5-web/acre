@@ -908,6 +908,17 @@ select {
   gap: 8px;
 }
 
+.office-queue-meta a,
+.office-empty-copy {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.office-queue-meta a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .office-note-item {
   grid-template-columns: 44px minmax(0, 1fr);
   align-items: start;

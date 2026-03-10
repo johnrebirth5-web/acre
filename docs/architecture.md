@@ -8,7 +8,7 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Pipeline`、`Office Transactions`、`Office Contacts` 和 `Office Reports` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Reports` 和 `Office Activity` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
@@ -48,6 +48,7 @@
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
   - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update
+  - `Activity`：server-side 数据读取 upcoming events / notifications / follow-up pressure / recent operational items
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
@@ -178,6 +179,7 @@
 - `getPrismaClient`
 - `getSeededWorkspaceSnapshot`
 - `getOfficeDashboardBusinessSnapshot`
+- `getOfficeActivitySnapshot`
 - `getOfficePipelineBuckets`
 - `listTransactions`
 - `getTransactionById`
@@ -214,10 +216,11 @@
 当前 `Back Office` 页面读取路径大致是：
 
 1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
-2. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineBuckets`
-3. `/office/transactions` 调 `@acre/db` 的 transaction service
-4. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
-5. `/office/transactions/:transactionId` 调 `getTransactionById`
+2. `/office/activity` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeActivitySnapshot`
+3. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineBuckets`
+4. `/office/transactions` 调 `@acre/db` 的 transaction service
+5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
+6. `/office/transactions/:transactionId` 调 `getTransactionById`
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
 8. detail 页面通过 transaction contact routes 做 link / unlink / set primary

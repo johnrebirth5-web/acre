@@ -22,6 +22,7 @@ export const databaseModules = [
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
+export { getOfficeActivitySnapshot } from "./activity";
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
@@ -44,6 +45,14 @@ export {
 } from "./transaction-tasks";
 export { createTransaction, getTransactionById, listTransactions, updateTransactionFinance, updateTransactionStatus } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
+export type {
+  GetOfficeActivitySnapshotInput,
+  OfficeActivityEvent,
+  OfficeActivityFollowUpItem,
+  OfficeActivityNotification,
+  OfficeActivityOperationalItem,
+  OfficeActivitySnapshot
+} from "./activity";
 export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootstrap";
 export type { OfficeDashboardBusinessSnapshot, OfficeDashboardChartPoint, OfficeDashboardRecentTransaction, OfficeDashboardStatusMetric } from "./dashboard";
 export type {

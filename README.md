@@ -66,6 +66,12 @@
   - 支持 contacts needing follow-up
   - 支持最小 date range / owner 过滤
   - 支持按当前过滤条件导出真实 transaction CSV
+- `Activity` 现在也已接入真实数据库：
+  - 支持 upcoming events
+  - 支持 recent notifications
+  - 支持 follow-up needs
+  - 支持基于 transaction 更新时间的 recent operational items
+  - 明确不是完整 audit log，只显示当前真实可追溯的运营数据
 - `Create Transaction` 保持在 `Transactions` 页面内的 modal 结构，按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
 - 基础页面路由：
   - `/` -> 登录后跳对应 workspace，未登录跳 `/login`
