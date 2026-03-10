@@ -1,7 +1,13 @@
-import { getPipelineBuckets } from "@acre/backoffice";
+import Link from "next/link";
+import { getOfficePipelineBuckets } from "@acre/db";
+import { requireOfficeSession } from "../../../lib/auth-session";
 
-export default function OfficePipelinePage() {
-  const buckets = getPipelineBuckets();
+export default async function OfficePipelinePage() {
+  const context = await requireOfficeSession();
+  const buckets = await getOfficePipelineBuckets({
+    organizationId: context.currentOrganization.id,
+    officeId: context.currentOffice?.id
+  });
 
   return (
     <div className="bm-page">
@@ -28,13 +34,14 @@ export default function OfficePipelinePage() {
             <div className="bm-pipeline-list">
               {bucket.transactions.length > 0 ? (
                 bucket.transactions.map((transaction) => (
-                  <div className="bm-pipeline-item" key={transaction.id}>
+                  <Link className="bm-pipeline-item" href={`/office/transactions/${transaction.id}`} key={transaction.id}>
                     <strong>{transaction.address}</strong>
                     <span>{transaction.price}</span>
                     <p>
                       {transaction.owner} · {transaction.representing}
                     </p>
-                  </div>
+                    {transaction.importantDate ? <p>{transaction.importantDate}</p> : null}
+                  </Link>
                 ))
               ) : (
                 <div className="bm-pipeline-empty">No transactions in this stage.</div>

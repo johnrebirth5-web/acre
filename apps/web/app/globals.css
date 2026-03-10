@@ -2540,6 +2540,17 @@ select {
   background: #fafafa;
 }
 
+.bm-pipeline-item {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.bm-pipeline-item:hover {
+  border-color: #d8dfe9;
+  background: #f6f9fc;
+}
+
 .bm-pipeline-item strong {
   display: block;
   color: #0f62db;
