@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTransactionById } from "@acre/db";
 import { notFound } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
+import { TransactionContactsCard } from "./contacts-card";
 import { TransactionStatusForm } from "./status-form";
 
 type TransactionDetailPageProps = {
@@ -92,6 +93,12 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
         </div>
         <TransactionStatusForm currentStatus={transaction.status} transactionId={transaction.id} />
       </section>
+
+      <TransactionContactsCard
+        availableContacts={transaction.availableContacts}
+        contacts={transaction.contacts}
+        transactionId={transaction.id}
+      />
 
       <section className="bm-detail-card">
         <div className="bm-card-head">

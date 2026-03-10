@@ -226,6 +226,7 @@ Trade-off：
   - transaction list/detail/create/status update 已经切到 Prisma
   - contact list/detail/create/edit/follow-up task / transaction link 已经切到 Prisma
   - transaction/contact relation 现在以 `TransactionContact` 为 source of truth，`primaryClientId` 仅保留兼容同步
+  - transaction detail 现在已经开始消费 `TransactionContact`，支持最小 linked contacts 管理
   - reports page 的最小聚合报表已切到 Prisma
   - 其他模块继续保留 mock
 

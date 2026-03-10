@@ -29,6 +29,8 @@ export { getOfficePipelineBuckets } from "./pipeline";
 export { getOfficeReportsSnapshot } from "./reports";
 export {
   getDefaultTransactionContactRole,
+  getTransactionContactLink,
+  listAvailableContactsForTransaction,
   listTransactionContacts,
   setPrimaryTransactionContact,
   unlinkContactFromTransaction
@@ -50,7 +52,7 @@ export type {
 } from "./contacts";
 export type { GetOfficePipelineBucketsInput, OfficePipelineBucket, OfficePipelineItem, OfficePipelineStatus } from "./pipeline";
 export type { GetOfficeReportsSnapshotInput, OfficeReportOwnerMetric, OfficeReportOwnerOption, OfficeReportsFilters, OfficeReportsSnapshot } from "./reports";
-export type { LinkTransactionContactInput, OfficeTransactionContact } from "./transaction-contacts";
+export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
 export type {
   CreateTransactionInput,
   OfficeTransactionDetail,

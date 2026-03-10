@@ -46,6 +46,7 @@
   - 支持搜索和状态筛选
   - `Create Transaction` modal 会真实写入数据库
   - 已有 transaction detail 页面
+  - transaction detail 现在会渲染真实 linked contacts，并支持 link / unlink / set primary
   - 已有 status update 写路径
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
@@ -88,6 +89,8 @@
   - `/api/office/dashboard`
   - `/api/office/transactions`
   - `/api/office/transactions/:transactionId`
+  - `/api/office/transactions/:transactionId/contacts`
+  - `/api/office/transactions/:transactionId/contacts/:contactLinkId`
   - `/api/office/contacts`
   - `/api/office/contacts/:contactId`
   - `/api/office/contacts/:contactId/follow-up-tasks`

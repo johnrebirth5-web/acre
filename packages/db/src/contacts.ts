@@ -1,6 +1,6 @@
 import { Prisma, TaskStatus, TransactionContactRole } from "@prisma/client";
 import { prisma } from "./client";
-import { linkContactToTransaction as linkTransactionContact } from "./transaction-contacts";
+import { type LinkTransactionContactInput, linkContactToTransaction as linkTransactionContact } from "./transaction-contacts";
 
 export type OfficeContactRecord = {
   id: string;
@@ -470,6 +470,11 @@ export async function createFollowUpTask(input: CreateFollowUpTaskInput): Promis
   };
 }
 
-export async function linkContactToTransaction(organizationId: string, contactId: string, transactionId: string): Promise<boolean> {
-  return linkTransactionContact(organizationId, contactId, transactionId);
+export async function linkContactToTransaction(
+  organizationId: string,
+  contactId: string,
+  transactionId: string,
+  options?: LinkTransactionContactInput
+): Promise<boolean> {
+  return linkTransactionContact(organizationId, contactId, transactionId, options);
 }

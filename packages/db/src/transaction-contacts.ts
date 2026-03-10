@@ -13,6 +13,14 @@ export type OfficeTransactionContact = {
   notes: string;
 };
 
+export type OfficeTransactionContactOption = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  label: string;
+};
+
 export type LinkTransactionContactInput = {
   role?: TransactionContactRole;
   isPrimary?: boolean;
@@ -156,6 +164,58 @@ export async function listTransactionContacts(organizationId: string, transactio
   });
 
   return transactionContacts.map(mapTransactionContactRecord);
+}
+
+export async function listAvailableContactsForTransaction(
+  organizationId: string,
+  transactionId: string
+): Promise<OfficeTransactionContactOption[]> {
+  const clients = await prisma.client.findMany({
+    where: {
+      organizationId,
+      transactionContacts: {
+        none: {
+          transactionId
+        }
+      }
+    },
+    orderBy: [{ fullName: "asc" }],
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true
+    }
+  });
+
+  return clients.map((client) => ({
+    id: client.id,
+    fullName: client.fullName,
+    email: client.email ?? "",
+    phone: client.phone ?? "",
+    label: client.email ? `${client.fullName} · ${client.email}` : client.fullName
+  }));
+}
+
+export async function getTransactionContactLink(
+  organizationId: string,
+  transactionId: string,
+  contactLinkId: string
+): Promise<{ id: string; clientId: string; isPrimary: boolean } | null> {
+  const relation = await prisma.transactionContact.findFirst({
+    where: {
+      id: contactLinkId,
+      organizationId,
+      transactionId
+    },
+    select: {
+      id: true,
+      clientId: true,
+      isPrimary: true
+    }
+  });
+
+  return relation;
 }
 
 export async function linkContactToTransaction(

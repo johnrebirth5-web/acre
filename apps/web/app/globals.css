@@ -2194,6 +2194,78 @@ select {
   font-size: 0.74rem;
 }
 
+.bm-transaction-contact-list {
+  display: grid;
+  gap: 12px;
+}
+
+.bm-transaction-contact-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e2e2e2;
+  background: #fafafa;
+}
+
+.bm-transaction-contact-main {
+  display: grid;
+  gap: 6px;
+}
+
+.bm-transaction-contact-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bm-transaction-contact-link {
+  color: #0f62db;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bm-transaction-contact-link:hover {
+  text-decoration: underline;
+}
+
+.bm-transaction-contact-main p {
+  margin: 0;
+  color: #666666;
+  font-size: 0.74rem;
+}
+
+.bm-transaction-contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bm-transaction-contact-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.bm-transaction-contact-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #555555;
+  font-size: 0.74rem;
+}
+
+.bm-status-pill-primary {
+  background: #e7f0ff;
+  color: #173c8a;
+}
+
 .bm-contacts-toolbar {
   display: flex;
   align-items: center;
