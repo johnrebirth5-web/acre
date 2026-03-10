@@ -69,61 +69,63 @@ export function ContactsClient({ contacts, totalCount }: ContactsClientProps) {
 
   return (
     <>
-      <section className="office-page-header">
-        <div>
-          <span className="office-eyebrow">Contacts</span>
-          <h2>Contacts</h2>
-          <p>Back-office contacts now use the real Client and FollowUpTask tables with organization-scoped reads and writes.</p>
-        </div>
-      </section>
-
-      <Panel title="Contacts table" subtitle={`${totalCount} contacts in the current organization.`}>
-        <div className="bm-contacts-toolbar">
-          <input
-            aria-label="Search contacts"
-            className="bm-contacts-search"
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search name, email, phone, area..."
-            value={searchQuery}
-          />
-          <select className="bm-contacts-filter" onChange={(event) => setStageFilter(event.target.value as (typeof stageOptions)[number])} value={stageFilter}>
-            {stageOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <button className="bm-create-button" onClick={() => setIsModalOpen(true)} type="button">
-            New contact
-          </button>
-        </div>
-
-        <div className="office-table">
-          <div className="office-table-header office-table-row office-table-row-wide bm-contacts-table-header">
-            <span>Name</span>
-            <span>Stage</span>
-            <span>Intent</span>
-            <span>Areas</span>
-            <span>Last contact</span>
-            <span>Next follow-up</span>
+      <div className="bm-page">
+        <section className="office-page-header">
+          <div>
+            <span className="office-eyebrow">Contacts</span>
+            <h2>Contacts</h2>
+            <p>Back-office contacts now use the real Client and FollowUpTask tables with organization-scoped reads and writes.</p>
           </div>
-          {filteredContacts.map((contact) => (
-            <div className="office-table-row office-table-row-wide bm-contacts-table-row" key={contact.id}>
-              <div className="office-table-primary">
-                <strong>
-                  <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
-                </strong>
-                <p>{contact.email || contact.phone || contact.source}</p>
-              </div>
-              <span>{contact.stage}</span>
-              <span>{contact.intent}</span>
-              <span>{contact.areas.join(", ") || "—"}</span>
-              <span>{contact.lastContactLabel}</span>
-              <span>{contact.nextFollowUpLabel}</span>
+        </section>
+
+        <Panel title="Contacts table" subtitle={`${totalCount} contacts in the current organization.`}>
+          <div className="bm-contacts-toolbar">
+            <input
+              aria-label="Search contacts"
+              className="bm-contacts-search"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search name, email, phone, area..."
+              value={searchQuery}
+            />
+            <select className="bm-contacts-filter" onChange={(event) => setStageFilter(event.target.value as (typeof stageOptions)[number])} value={stageFilter}>
+              {stageOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <button className="bm-create-button" onClick={() => setIsModalOpen(true)} type="button">
+              New contact
+            </button>
+          </div>
+
+          <div className="office-table">
+            <div className="office-table-header office-table-row office-table-row-wide bm-contacts-table-header">
+              <span>Name</span>
+              <span>Stage</span>
+              <span>Intent</span>
+              <span>Areas</span>
+              <span>Last contact</span>
+              <span>Next follow-up</span>
             </div>
-          ))}
-        </div>
-      </Panel>
+            {filteredContacts.map((contact) => (
+              <div className="office-table-row office-table-row-wide bm-contacts-table-row" key={contact.id}>
+                <div className="office-table-primary">
+                  <strong>
+                    <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
+                  </strong>
+                  <p>{contact.email || contact.phone || contact.source}</p>
+                </div>
+                <span>{contact.stage}</span>
+                <span>{contact.intent}</span>
+                <span>{contact.areas.join(", ") || "—"}</span>
+                <span>{contact.lastContactLabel}</span>
+                <span>{contact.nextFollowUpLabel}</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </div>
 
       {isModalOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsModalOpen(false)}>
