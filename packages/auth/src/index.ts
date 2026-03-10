@@ -87,6 +87,14 @@ export function can(role: UserRole, permission: AppPermission): boolean {
   return permissionMap[role].includes(permission);
 }
 
+export function isOfficeRole(role: UserRole): boolean {
+  return role === "office_manager" || role === "office_admin";
+}
+
+export function getDefaultAppPath(role: UserRole): string {
+  return isOfficeRole(role) ? "/office/dashboard" : "/agent/dashboard";
+}
+
 export function summarizeAccess(role: UserRole) {
   const permissions = getPermissionsForRole(role);
 

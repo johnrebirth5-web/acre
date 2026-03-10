@@ -1,83 +1,99 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { TransactionRecord } from "@acre/backoffice";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
+import type { OfficeTransactionRecord, OfficeTransactionSummary } from "@acre/db";
 
 type TransactionsClientProps = {
-  transactions: TransactionRecord[];
+  transactions: OfficeTransactionRecord[];
+  summary: OfficeTransactionSummary;
 };
 
 type InlineSelectProps = {
   label: string;
+  name: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
 };
 
-const topTypeOptions = ["Sales", "Sales (listing)", "Rental/Leasing", "Rental (listing)", "Commercial Sales", "Other", "Commercial Lease"];
-const topStatusOptions = ["Opportunity", "Active", "Pending"];
-const topRepresentingOptions = ["Buyer", "Seller", "Both"];
+type ModalField = {
+  label: string;
+  name: string;
+  type?: "text" | "date" | "email";
+  className?: string;
+};
 
-const topFields = [
-  { label: "Address" },
-  { label: "City" },
-  { label: "State", className: "is-compact" },
-  { label: "Zip", className: "is-compact" },
-  { label: "Transaction name", className: "is-span-4" },
-  { label: "Price" },
-  { label: "Buyer agreement date" },
-  { label: "Buyer expiration date" },
-  { label: "Acceptance date" },
-  { label: "Listing date" },
-  { label: "Listing expiration date" },
-  { label: "Closing date" }
+type AdditionalField = {
+  label: string;
+  name: string;
+  type: "input" | "select";
+  inputType?: "text" | "email";
+  options?: string[];
+};
+
+const topTypeOptions = ["Sales", "Sales (listing)", "Rental/Leasing", "Rental (listing)", "Commercial Sales", "Other", "Commercial Lease"];
+const topStatusOptions = ["Opportunity", "Active", "Pending", "Closed", "Cancelled"];
+const topRepresentingOptions = ["Buyer", "Seller", "Both"];
+const listStatusOptions = ["All", "Opportunity", "Active", "Pending", "Closed", "Cancelled"] as const;
+
+const primaryFields: ModalField[] = [
+  { label: "Address", name: "address" },
+  { label: "City", name: "city" },
+  { label: "State", name: "state", className: "is-compact" },
+  { label: "Zip", name: "zipCode", className: "is-compact" },
+  { label: "Transaction name", name: "transactionName", className: "is-span-4" },
+  { label: "Price", name: "price" },
+  { label: "Buyer agreement date", name: "buyerAgreementDate", type: "date" },
+  { label: "Buyer expiration date", name: "buyerExpirationDate", type: "date" },
+  { label: "Acceptance date", name: "acceptanceDate", type: "date" },
+  { label: "Listing date", name: "listingDate", type: "date" },
+  { label: "Listing expiration date", name: "listingExpirationDate", type: "date" },
+  { label: "Closing date", name: "closingDate", type: "date" }
 ];
 
-const additionalFields = [
-  { label: "Agent Name", type: "input" },
-  { label: "Team Leader", type: "select", options: ["Simon Park", "Naomi Chen", "Alice Tang"] },
-  { label: "Licensed Agent Name", type: "input" },
-  { label: "Invoice Number", type: "input" },
-  { label: "Buyer/Tenant", type: "input" },
-  { label: "Building Name", type: "input" },
-  { label: "Address", type: "input" },
-  { label: `Unit # (If it's a house, fill out "house")`, type: "input" },
-  { label: "Layout", type: "input" },
-  { label: "City", type: "input" },
-  { label: "State", type: "input" },
-  { label: "Zip Code", type: "input" },
-  { label: "Move-In Date/Closing Date", type: "input" },
-  { label: "Commission Type", type: "select", options: ["Gross", "Net", "Custom"] },
-  { label: "Leasing Contact", type: "input" },
-  { label: "Invoice Bill To", type: "input" },
-  { label: "Currency Type", type: "select", options: ["USD", "CNY"] },
-  { label: "Commission($)", type: "input" },
-  { label: "Your Commission Rate", type: "input" },
-  { label: "Rebate", type: "input" },
-  { label: "Reimbursement", type: "input" },
-  { label: "Co-Agent Legal Name", type: "input" },
-  { label: "Commission Breakdown", type: "input" },
-  { label: "Company Referral", type: "select", options: ["Yes", "No"] },
-  { label: "Outside Referral", type: "select", options: ["Yes", "No"] },
-  { label: "Referral Fee", type: "input" },
-  { label: "External Partners", type: "input" },
-  { label: "Company Referral Employee's Name", type: "input" },
-  { label: "Client's Email", type: "input" },
-  { label: "Upload Invoice to VendorCafe", type: "select", options: ["Yes", "No"] },
-  { label: "Note(Rebate, Referral, Others)", type: "input" },
-  { label: "Status of Commission Received(For Admin)", type: "select", options: ["No", "Yes", "Partial"] },
-  {
-    label: "Commission Confirmation(For Agent, we'll process the payment once you select yes)",
-    type: "select",
-    options: ["Yes", "No"]
-  }
-] as const;
+const additionalFields: AdditionalField[] = [
+  { label: "Agent Name", name: "agentName", type: "input" },
+  { label: "Team Leader", name: "teamLeader", type: "select", options: ["Simon Park", "Naomi Chen", "Alice Tang"] },
+  { label: "Licensed Agent Name", name: "licensedAgentName", type: "input" },
+  { label: "Invoice Number", name: "invoiceNumber", type: "input" },
+  { label: "Buyer/Tenant", name: "buyerTenant", type: "input" },
+  { label: "Building Name", name: "buildingName", type: "input" },
+  { label: "Address", name: "additionalAddress", type: "input" },
+  { label: `Unit # (If it's a house, fill out "house")`, name: "unitNumber", type: "input" },
+  { label: "Layout", name: "layout", type: "input" },
+  { label: "City", name: "additionalCity", type: "input" },
+  { label: "State", name: "additionalState", type: "input" },
+  { label: "Zip Code", name: "additionalZipCode", type: "input" },
+  { label: "Move-In Date/Closing Date", name: "moveInDateClosingDate", type: "input" },
+  { label: "Commission Type", name: "commissionType", type: "select", options: ["Gross", "Net", "Custom"] },
+  { label: "Leasing Contact", name: "leasingContact", type: "input" },
+  { label: "Invoice Bill To", name: "invoiceBillTo", type: "input" },
+  { label: "Currency Type", name: "currencyType", type: "select", options: ["USD", "CNY"] },
+  { label: "Commission($)", name: "commissionAmount", type: "input" },
+  { label: "Your Commission Rate", name: "yourCommissionRate", type: "input" },
+  { label: "Rebate", name: "rebate", type: "input" },
+  { label: "Reimbursement", name: "reimbursement", type: "input" },
+  { label: "Co-Agent Legal Name", name: "coAgentLegalName", type: "input" },
+  { label: "Commission Breakdown", name: "commissionBreakdown", type: "input" },
+  { label: "Company Referral", name: "companyReferral", type: "select", options: ["Yes", "No"] },
+  { label: "Outside Referral", name: "outsideReferral", type: "select", options: ["Yes", "No"] },
+  { label: "Referral Fee", name: "referralFee", type: "input" },
+  { label: "External Partners", name: "externalPartners", type: "input" },
+  { label: "Company Referral Employee's Name", name: "companyReferralEmployeeName", type: "input" },
+  { label: "Client's Email", name: "clientEmail", type: "input", inputType: "email" },
+  { label: "Upload Invoice to VendorCafe", name: "uploadInvoiceToVendorCafe", type: "select", options: ["Yes", "No"] },
+  { label: "Note(Rebate, Referral, Others)", name: "note", type: "input" },
+  { label: "Status of Commission Received(For Admin)", name: "commissionReceivedStatus", type: "select", options: ["No", "Yes", "Partial"] },
+  { label: "Commission Confirmation(For Agent, we'll process the payment once you select yes)", name: "commissionConfirmation", type: "select", options: ["Yes", "No"] }
+];
 
-function InlineSelect({ label, value, onChange, options }: InlineSelectProps) {
+function InlineSelect({ label, name, value, onChange, options }: InlineSelectProps) {
   return (
     <label className="bm-modal-inline-select">
       <span>{label}:</span>
-      <select className={value ? "" : "is-empty"} onChange={(event) => onChange(event.target.value)} value={value}>
+      <select className={value ? "" : "is-empty"} name={name} onChange={(event) => onChange(event.target.value)} value={value}>
         <option value="">select</option>
         {options.map((option) => (
           <option key={option} value={option}>
@@ -89,11 +105,17 @@ function InlineSelect({ label, value, onChange, options }: InlineSelectProps) {
   );
 }
 
-export function TransactionsClient({ transactions }: TransactionsClientProps) {
+export function TransactionsClient({ transactions, summary }: TransactionsClientProps) {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState("");
   const [transactionStatus, setTransactionStatus] = useState("");
   const [representing, setRepresenting] = useState("");
+  const [statusFilter, setStatusFilter] = useState<(typeof listStatusOptions)[number]>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [formVersion, setFormVersion] = useState(0);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -107,20 +129,75 @@ export function TransactionsClient({ transactions }: TransactionsClientProps) {
     };
   }, [isModalOpen]);
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredTransactions = transactions.filter((transaction) => {
+    if (statusFilter !== "All" && transaction.status !== statusFilter) {
+      return false;
+    }
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const haystack = [transaction.address, transaction.owner, transaction.representing, transaction.status].join(" ").toLowerCase();
+
+    return haystack.includes(normalizedSearch);
+  });
+
+  async function handleCreateTransaction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch("/api/office/transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to create transaction.");
+      }
+
+      setIsModalOpen(false);
+      setFormVersion((current) => current + 1);
+      setTransactionType("");
+      setTransactionStatus("");
+      setRepresenting("");
+      router.refresh();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to create transaction.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <>
       <div className="bm-transactions-page">
         <section className="bm-transactions-toolbar">
           <div className="bm-transactions-summary">
             <h2>
-              <strong>127</strong> TRANSACTIONS <span>?</span>
+              <strong>{summary.totalCount}</strong> TRANSACTIONS <span>?</span>
             </h2>
-            <p>$ 0 MY NET INCOME</p>
+            <p>{summary.totalNetIncome} MY NET INCOME</p>
           </div>
 
           <div className="bm-transactions-actions">
             <div className="bm-transactions-search">
-              <input aria-label="Search transactions" placeholder="Search address, contact, mls # ..." />
+              <input
+                aria-label="Search transactions"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search address, contact, mls # ..."
+                value={searchQuery}
+              />
             </div>
 
             <button className="bm-create-button bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
@@ -133,9 +210,13 @@ export function TransactionsClient({ transactions }: TransactionsClientProps) {
           <div className="bm-transactions-list-head">
             <div className="bm-transactions-current-view">
               <span>current view:</span>
-              <button type="button">
-                Active <i>▾</i>
-              </button>
+              <select aria-label="Filter transactions by status" onChange={(event) => setStatusFilter(event.target.value as (typeof listStatusOptions)[number])} value={statusFilter}>
+                {listStatusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="bm-transactions-columns">
@@ -152,10 +233,12 @@ export function TransactionsClient({ transactions }: TransactionsClientProps) {
           </div>
 
           <div className="bm-transactions-rows">
-            {transactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <article className="bm-transactions-row" key={transaction.id}>
                 <span className={`bm-transaction-home-icon${transaction.isFlagged ? " is-flagged" : ""}`}>⌂</span>
-                <strong className={transaction.isFlagged ? "is-flagged" : ""}>{transaction.address}</strong>
+                <strong className={transaction.isFlagged ? "is-flagged" : ""}>
+                  <Link href={`/office/transactions/${transaction.id}`}>{transaction.address}</Link>
+                </strong>
                 <span>{transaction.price}</span>
                 <span>{transaction.owner}</span>
                 <span>{transaction.representing}</span>
@@ -166,7 +249,9 @@ export function TransactionsClient({ transactions }: TransactionsClientProps) {
           </div>
 
           <footer className="bm-transactions-footer">
-            <span>1-25 of 127</span>
+            <span>
+              {filteredTransactions.length === 0 ? "0" : `1-${filteredTransactions.length}`} of {summary.totalCount}
+            </span>
             <div className="bm-transactions-pager">
               <button type="button">«</button>
               <button type="button">»</button>
@@ -185,18 +270,18 @@ export function TransactionsClient({ transactions }: TransactionsClientProps) {
               </button>
             </header>
 
-            <div className="bm-transaction-modal-body">
+            <form className="bm-transaction-modal-body" key={formVersion} onSubmit={handleCreateTransaction}>
               <div className="bm-transaction-modal-top-selects">
-                <InlineSelect label="Type" onChange={setTransactionType} options={topTypeOptions} value={transactionType} />
-                <InlineSelect label="Status" onChange={setTransactionStatus} options={topStatusOptions} value={transactionStatus} />
-                <InlineSelect label="Representing" onChange={setRepresenting} options={topRepresentingOptions} value={representing} />
+                <InlineSelect label="Type" name="transactionType" onChange={setTransactionType} options={topTypeOptions} value={transactionType} />
+                <InlineSelect label="Status" name="transactionStatus" onChange={setTransactionStatus} options={topStatusOptions} value={transactionStatus} />
+                <InlineSelect label="Representing" name="representing" onChange={setRepresenting} options={topRepresentingOptions} value={representing} />
               </div>
 
               <div className="bm-transaction-modal-grid bm-transaction-modal-grid-primary">
-                {topFields.map((field) => (
-                  <label className={`bm-transaction-modal-field ${field.className ?? ""}`.trim()} key={field.label}>
+                {primaryFields.map((field) => (
+                  <label className={`bm-transaction-modal-field ${field.className ?? ""}`.trim()} key={field.name}>
                     <span>{field.label}</span>
-                    <input type="text" />
+                    <input name={field.name} type={field.type ?? "text"} />
                   </label>
                 ))}
               </div>
@@ -209,32 +294,35 @@ export function TransactionsClient({ transactions }: TransactionsClientProps) {
 
                 <div className="bm-transaction-modal-grid bm-transaction-modal-grid-additional">
                   {additionalFields.map((field) => (
-                    <label className="bm-transaction-modal-field" key={field.label}>
+                    <label className="bm-transaction-modal-field" key={field.name}>
                       <span>{field.label}</span>
                       {field.type === "select" ? (
-                        <select defaultValue="">
+                        <select defaultValue="" name={field.name}>
                           <option value="">Select...</option>
-                          {field.options.map((option) => (
+                          {field.options?.map((option) => (
                             <option key={option} value={option}>
                               {option}
                             </option>
                           ))}
                         </select>
                       ) : (
-                        <input type="text" />
+                        <input name={field.name} type={field.inputType ?? "text"} />
                       )}
                     </label>
                   ))}
                 </div>
               </section>
-            </div>
 
-            <footer className="bm-transaction-modal-footer">
-              <span>step 1 of 4</span>
-              <button className="bm-transaction-next" type="button">
-                Next →
-              </button>
-            </footer>
+              <footer className="bm-transaction-modal-footer">
+                <span>step 1 of 4</span>
+                <div className="bm-transaction-modal-actions">
+                  {submitError ? <p className="bm-transaction-submit-error">{submitError}</p> : null}
+                  <button className="bm-transaction-next" disabled={isSubmitting} type="submit">
+                    {isSubmitting ? "Saving..." : "Next →"}
+                  </button>
+                </div>
+              </footer>
+            </form>
           </section>
         </div>
       ) : null}

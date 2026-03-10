@@ -2,16 +2,18 @@
 
 ## 概览
 
-当前项目是一个 `monorepo`，目标是承载 `Acre Agent OS`。它目前是一个“前端可运行、后端骨架已落、数据库 schema 已定义、真实持久化尚未接通”的阶段。
+当前项目是一个 `monorepo`，目标是承载 `Acre Agent OS`。它目前是一个“前端可运行、后端骨架已落、数据库 runtime 已经初始化，但主页面和主 API 仍以 mock 数据为主”的阶段。
 
 更准确地说：
 
 - 前端已经可运行
 - API 已经存在
-- API 当前返回的是 `@acre/backoffice` 的内存数据
-- 数据库 schema 已定义，但数据库还没有进入请求链路
-- 权限模型存在，但还没有和真实登录态绑定
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，但目前仍然是静态示例数据驱动
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Transactions`、`Office Contacts` 和 `Office Reports` 已经切到 Prisma
+- 数据库 schema、Prisma client、migration、seed 已接入
+- 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
+- 权限模型存在，且当前已经接入一个最小本地 session
+- 但还没有复杂权限管理或数据级权限
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 
 ## 技术栈
 
@@ -38,25 +40,32 @@
 - `Next.js Route Handlers` 作为当前 API 层
 - `@acre/backoffice` 作为领域服务层
 - `@acre/auth` 作为权限定义层
+- `apps/web/lib/auth-session.ts` 作为当前本地 session 层
 
 说明：
 
-- 当前 API 只有 `GET`
-- 当前没有真实鉴权
-- 当前没有 service-to-db 的数据访问层
+- 当前 API 已包含最小读写路径：
+  - `Transactions`：list / detail / create / status update
+  - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
+- 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
+- 当前已有最小本地登录 / 登出 / cookie session
+- 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
+- 当前 dashboard 业务指标也已有最小查询 service
 - 当前没有 worker、queue、cron
 
 ### 数据库
 
 - `PostgreSQL`
 - `Prisma schema` 已定义在 [packages/db/prisma/schema.prisma](../packages/db/prisma/schema.prisma)
+- `Prisma client` 入口在 [packages/db/src/client.ts](../packages/db/src/client.ts)
+- 最小数据库读取 utility 在 [packages/db/src/bootstrap.ts](../packages/db/src/bootstrap.ts)
 
 说明：
 
-- 目前只有 schema，没有 runtime Prisma client 接入
-- 没有 migration 文件
-- 没有 seed
-- 没有 repository/service persistence 实现
+- 已有 runtime Prisma client 接入
+- 已有初始 migration 基线
+- 已有 seed workflow
+- 当前已经有数据库 probe read path、本地 auth 查询路径，以及 transaction/contact persistence；主页面和大多数主 API 仍未切到数据库
 
 ### 第三方服务
 
@@ -64,7 +73,7 @@
 
 - `GitHub`：已接入，仓库已推送
 - `Vercel`：已接入，当前 `main` 分支 push 会自动触发生产部署
-- `PostgreSQL` 实例：未接入运行时
+- `PostgreSQL / Prisma runtime`：代码已接入，本机已验证 local migrate + seed + query，但主页面和主 API 尚未切换到数据库
 - 对象存储：未实现
 - OCR / AI / 外部地产系统集成：未实现
 
@@ -129,9 +138,7 @@
 
 未实现：
 
-- 真实登录态
-- 基于 session 的权限校验
-- route guard
+- 复杂权限管理
 - 数据级权限
 
 ### `packages/db`
@@ -139,6 +146,9 @@
 职责：
 
 - 定义数据库 schema
+- 提供可复用 Prisma client
+- 提供 migration / seed workflow
+- 提供最小数据库读取 utility
 - 明确未来持久化边界
 
 当前覆盖的核心实体：
@@ -159,31 +169,70 @@
 - `Vendor`
 - `AuditLog`
 
+当前已提供的数据库运行时入口：
+
+- `prisma`
+- `getPrismaClient`
+- `getSeededWorkspaceSnapshot`
+- `getOfficeDashboardBusinessSnapshot`
+- `listTransactions`
+- `getTransactionById`
+- `createTransaction`
+- `updateTransactionStatus`
+- `listContacts`
+- `getContactById`
+- `createContact`
+- `updateContact`
+- `createFollowUpTask`
+- `linkContactToTransaction`
+- `getOfficeReportsSnapshot`
+
 ## 关键数据流
 
 ### 当前数据流
 
-现在的真实请求链路是：
+现在的主要请求链路是：
 
-1. 页面或 API route 被请求
-2. 页面/API 调用 `@acre/backoffice`
-3. `@acre/backoffice` 返回内存中的示例对象
-4. 页面渲染或 API 返回 JSON
+1. 请求进入 `apps/web`
+2. 如果是 `/office/*`，layout 先解析本地 session
+3. 页面/API 调用 `@acre/backoffice` 或 `@acre/db`
+4. service 返回 DTO
+5. 页面渲染或 API 返回 JSON
 
-也就是说，当前没有：
+也就是说，当前主业务页面还没有：
 
-- 数据库查询
-- 登录态解析
 - 远程 API 调用
 - 缓存层
 
 当前 `Back Office` 页面读取路径大致是：
 
-1. `/office/dashboard` 调 `getOfficeDashboardSnapshot`
+1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
 2. `/office/pipeline` 调 `getPipelineBuckets`
-3. `/office/transactions` 调 `listTransactions`
-4. `/office/transactions` 内的客户端 modal 负责显示 `Create transaction`
-5. 页面直接把这些静态 DTO 渲染成后台 UI
+3. `/office/transactions` 调 `@acre/db` 的 transaction service
+4. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
+5. `/office/transactions/:transactionId` 调 `getTransactionById`
+6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
+7. `/office/contacts` 调 `@acre/db` 的 contact service
+8. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
+9. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
+10. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+11. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+
+当前唯一已经走数据库的最小读路径是：
+
+1. `/api/db/seeded-context`
+2. route 调 `@acre/db` 的 `getSeededWorkspaceSnapshot`
+3. utility 通过 Prisma 查询 organization / office / memberships / users
+4. 返回 seed 后的数据库快照 JSON
+
+当前本地 auth 的主要链路是：
+
+1. 用户在 `/login` 提交 seeded email
+2. `/api/auth/login` 通过 `@acre/db` 查 active membership
+3. 服务端写入 signed cookie session
+4. `/office/*` layout 读取 session，并在服务端拿到 current user / membership / organization / office
+5. 未登录用户重定向到 `/login`
+6. `/api/office/dashboard` 读取当前 session context，而不是硬编码角色
 
 ### 未来预期数据流
 
@@ -192,10 +241,10 @@
 1. 请求进入 `apps/web`
 2. session / auth middleware 解析当前用户和组织
 3. route handler 调用领域 service
-4. 领域 service 通过 Prisma 访问 PostgreSQL
+4. 领域 service 通过 `@acre/db` 的 Prisma runtime 访问 PostgreSQL
 5. 返回 DTO 给页面或 API
 
-这个链路还没有完成。
+这个链路只完成了最小数据库 probe，主页面和主 API 还没有全部切换。
 
 ## 核心业务逻辑
 
@@ -250,7 +299,7 @@
 - `Library`
 - `Accounting`
 
-其中真正最需要优先落成真实数据的，是 `Transactions` 以及它关联出来的 `Pipeline`、`Contacts`、`Reports`。
+其中真正最需要优先落成真实数据的，是 `Transactions`、`Contacts` 以及它们关联出来的 `Pipeline`、`Reports`。
 
 ### 3.6 Company referral / commission rule 是当前已确认的真实业务规则
 
@@ -265,15 +314,22 @@
 
 这意味着 `Create Transaction` 以后不能只是基础交易表单，还必须包含 referral source 和 commission participant 的业务层逻辑。
 
-### 4. CRM / Follow-up / Notifications 是 agent 工作流核心
+### 4. CRM / Follow-up / Notifications 是 agent 和 office 的连续工作流
 
-CRM 当前只是 mock 页面，但从 schema 看已经有明确方向：
+CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体仍远未完整。从 schema 看已经有明确方向：
 
 - client
 - follow_up_task
 - notification
 
-这三者未来会形成一个连续工作流，不应分散为互相独立的小模块。
+当前已经落地的最小闭环包括：
+
+- contact list / create / edit
+- contact detail
+- follow-up task create / list
+- primary client -> transaction link
+
+更高级的 CRM 自动化、提醒编排、批量任务、线索分配仍未实现。
 
 ## 最容易改出问题的地方
 
@@ -311,13 +367,13 @@ CRM 当前只是 mock 页面，但从 schema 看已经有明确方向：
 
 - 明确区分内部模型、外部展示模型、营销输出模型
 
-### 4. 数据库 schema 已有，但运行时还没有
+### 4. 数据库 runtime 已有，但主读取链路还没有切换
 
-后续第一位接手者最容易误判“既然有 Prisma schema，就已经有数据库逻辑”。实际上现在没有。
+后续第一位接手者最容易误判“既然有 Prisma client 和 seed，就说明页面已经接数据库”。实际上现在只有 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 这几条线已经接数据库，其他主页面大多还没有。
 
 建议：
 
-- 先补 `Prisma client + migration + seed`
+- 先通过最小 query utility 明确 DTO 形状
 - 再逐步替换 `@acre/backoffice` 的内存数据
 
 ## 后续扩展推荐入口
@@ -326,7 +382,7 @@ CRM 当前只是 mock 页面，但从 schema 看已经有明确方向：
 
 1. `auth/session`
 2. `organization + office context`
-3. `Prisma runtime`
+3. 把更多读取路径接到 `@acre/db`
 4. `listings CRUD`
 5. `clients + follow_up_tasks`
 6. `notifications + events`

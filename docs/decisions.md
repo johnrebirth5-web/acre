@@ -102,7 +102,7 @@ Trade-off：
 
 未实现：
 
-- session
+- 复杂 session 体系
 - middleware
 - 数据级权限
 
@@ -173,16 +173,14 @@ Trade-off：
 
 这些限制是当前真实存在的，不应忽略：
 
-- 没有真实 auth
-- 没有真实数据库读写
-- 没有写 API
+- 只有最小本地 auth/session，没有第三方 provider、没有复杂权限管理
+- 主页面和主 API 还没有切到真实数据库读写
+- 写 API 当前只覆盖 `Transactions` 和 `Contacts` 的最小闭环
 - 没有测试
-- 没有 migration
-- 没有 seed
 - 没有异常监控
-- 没有生产部署
+- 已有 Vercel 生产部署实例，但还没有完整生产业务能力
 - `@acre/backoffice` 目前同时承担“领域模型”和“临时数据源”两种职责
-- 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但仍然是静态示例数据和简化交互，不应误判为已复刻完成
+- 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但除 `Dashboard` 业务指标、`Transactions`、`Contacts`、`Reports` 外，大部分仍是静态示例数据和简化交互，不应误判为已复刻完成
 
 ## 明确的临时方案
 
@@ -210,24 +208,53 @@ Trade-off：
 
 - 再补写操作和 mutation 规则
 
-### 3. Prisma 只有 schema
+### 3. Prisma 先以最小 runtime 进入仓库
 
 目的：
 
 - 先定义数据边界
+- 建立 generate / migrate / seed 的基础工作流
+- 先证明 seed 后的数据可以被服务端查询
+- 不在这一轮就把所有页面和 API 从 mock 切到数据库
 
 未来：
 
-- 再补 migration、seed、client、真实连接
+- 再把真实数据库读取逐步替换进领域 service 和页面/API
+- 当前这条迁移已经从 `Transactions` 和 `Contacts` 开始落地：
+  - dashboard 业务指标 / recent transactions / access summary 已切到 Prisma + session context
+  - transaction list/detail/create/status update 已经切到 Prisma
+  - contact list/detail/create/edit/follow-up task / transaction link 已经切到 Prisma
+  - reports page 的最小聚合报表已切到 Prisma
+  - 其他模块继续保留 mock
+
+### 4. Auth 先采用本地 seeded-user + signed-cookie 方案
+
+目的：
+
+- 尽快让 `/office/*` 具备最小服务端保护
+- 复用已存在的 seeded users / memberships
+- 不在这个阶段引入第三方 auth provider
+
+当前形态：
+
+- `/login` 使用 seeded email 登录
+- server-side signed cookie session
+- `/office/*` 通过 layout 做服务端拦截
+- office dashboard API 改为读取真实 session context
+
+未来：
+
+- 再决定是否升级到更完整的 auth provider、session store、数据级权限
 
 ## 后续接手时最需要先理解的几个决策
 
 如果你只读这一段，也要先理解下面四点：
 
-1. 当前系统不是“全栈已完成”，而是“前端 + API + schema 骨架已完成”
-2. 当前 API 和页面的数据都来自 `@acre/backoffice` 的内存数据
-3. `packages/db` 定义的是未来数据库方向，不代表数据库已经接入
-4. 后续功能开发应优先保持模块边界，不要把 auth、db、页面逻辑重新混在一起
+1. 当前系统不是“全栈已完成”，而是“前端 + API + schema + 最小 Prisma runtime + 最小本地 auth + 部分模块数据库落地”已完成
+2. 当前主 API 和页面的数据仍主要来自 `@acre/backoffice` 的内存数据，但 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 已是例外
+3. `packages/db` 现在已经能 generate / migrate / seed / query，但这不代表所有页面都已经完成数据库迁移
+4. 当前 auth 只是本地开发方案，不应误判为生产 auth 设计
+5. 后续功能开发应优先保持模块边界，不要把 auth、db、页面逻辑重新混在一起
 
 ## 文档维护约定
 

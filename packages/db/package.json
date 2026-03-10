@@ -8,9 +8,13 @@
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:migrate": "sh -ac 'set -a; [ -f ../../.env.local ] && . ../../.env.local; [ -f ../../.env ] && . ../../.env; set +a; prisma migrate dev --schema prisma/schema.prisma \"$@\"' --",
+    "db:seed": "npm run db:generate && sh -ac 'set -a; [ -f ../../.env.local ] && . ../../.env.local; [ -f ../../.env ] && . ../../.env; set +a; node prisma/seed.mjs'",
     "db:validate": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/acre prisma validate --schema prisma/schema.prisma"
   },
   "dependencies": {
+    "@acre/auth": "0.1.0",
     "@prisma/client": "^6.5.0"
   },
   "devDependencies": {

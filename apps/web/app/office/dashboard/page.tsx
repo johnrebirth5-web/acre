@@ -1,7 +1,37 @@
-import { getOfficeDashboardSnapshot } from "@acre/backoffice";
+import Link from "next/link";
+import { officeTrainingLinks, officeUsefulLinks, officeWeeklyUpdates } from "@acre/backoffice";
+import { getOfficeDashboardBusinessSnapshot } from "@acre/db";
+import { getSessionAccess, requireOfficeSession } from "../../../lib/auth-session";
 
-export default function OfficeDashboardPage() {
-  const snapshot = getOfficeDashboardSnapshot();
+function buildChartPath(values: number[], width: number, height: number, maxValue: number) {
+  if (values.length === 0) {
+    return "";
+  }
+
+  const stepX = values.length > 1 ? width / (values.length - 1) : width;
+
+  return values
+    .map((value, index) => {
+      const x = index * stepX;
+      const y = height - (maxValue === 0 ? 0 : (value / maxValue) * height);
+
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+}
+
+export default async function OfficeDashboardPage() {
+  const context = await requireOfficeSession();
+  const access = getSessionAccess(context);
+  const snapshot = await getOfficeDashboardBusinessSnapshot({
+    organizationId: context.currentOrganization.id,
+    officeId: context.currentOffice?.id
+  });
+
+  const chartWidth = 1000;
+  const chartHeight = 220;
+  const chartValues = snapshot.chart.points.map((point) => point.value);
+  const chartPath = buildChartPath(chartValues, chartWidth, chartHeight, snapshot.chart.maxValue);
 
   return (
     <div className="bm-dashboard">
@@ -11,25 +41,49 @@ export default function OfficeDashboardPage() {
             <h2>GOAL TRACKING</h2>
             <span>✎</span>
           </div>
+
+          <div className="bm-dashboard-summary">
+            <div className="bm-dashboard-access">
+              <strong>
+                {context.currentUser.firstName} {context.currentUser.lastName}
+              </strong>
+              <span>
+                {access.label} · {access.permissionCount} permissions · {context.currentOffice?.name ?? context.currentOrganization.name}
+              </span>
+            </div>
+
+            <div className="bm-dashboard-status-strip">
+              {snapshot.transactionCountsByStatus.map((metric) => (
+                <div className="bm-dashboard-status-chip" key={metric.status}>
+                  <span>{metric.status}</span>
+                  <strong>{metric.count}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="bm-goal-chart">
             <div className="bm-chart-grid">
               <div className="bm-chart-axis">
-                {["$10,000", "$9k", "$8k", "$7k", "$6k", "$5k", "$4k", "$3k", "$2k", "$1k", "$0"].map((label) => (
+                {snapshot.chart.axisLabels.map((label) => (
                   <span key={label}>{label}</span>
                 ))}
               </div>
               <div className="bm-chart-line-shell">
-                <div className="bm-chart-line" />
-                <div className="bm-chart-dots">
-                  <span />
-                  <span />
-                </div>
+                <svg aria-hidden="true" className="bm-chart-series" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
+                  <path d={chartPath} />
+                  {snapshot.chart.points.map((point, index) => {
+                    const x = snapshot.chart.points.length > 1 ? (index / (snapshot.chart.points.length - 1)) * chartWidth : chartWidth / 2;
+                    const y = chartHeight - (snapshot.chart.maxValue === 0 ? 0 : (point.value / snapshot.chart.maxValue) * chartHeight);
+
+                    return <circle cx={x} cy={y} key={point.label} r="5" />;
+                  })}
+                </svg>
+
                 <div className="bm-chart-months">
-                  {["Feb 2026", "Mar 2026", "Apr 2026", "May 2026", "Jun 2026", "Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026", "Nov 2026", "Dec 2026", "Jan 2027", "Feb 2027"].map(
-                    (month) => (
-                      <span key={month}>{month}</span>
-                    )
-                  )}
+                  {snapshot.chart.points.map((point) => (
+                    <span key={point.label}>{point.label}</span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -38,20 +92,21 @@ export default function OfficeDashboardPage() {
               <div className="bm-goal-ring">
                 <div className="bm-goal-ring-inner">
                   <strong>{snapshot.goal.progressPercent}%</strong>
-                  <span>{snapshot.goal.currentValue}</span>
+                  <span>{snapshot.goal.currentValueLabel}</span>
                 </div>
               </div>
               <div className="bm-goal-foot">
-                <span>GOAL:</span>
+                <span>{snapshot.goal.targetLabel}:</span>
                 <strong>{snapshot.goal.target}</strong>
               </div>
               <div className="bm-time-left">
-                <span>Time left:</span>
-                <strong>{snapshot.goal.timeLeft}</strong>
+                <span>{snapshot.goal.secondaryLabel}:</span>
+                <strong>{snapshot.goal.secondaryValue}</strong>
               </div>
               <div className="bm-time-bar">
-                <div className="bm-time-bar-fill" />
+                <div className="bm-time-bar-fill" style={{ width: `${snapshot.goal.progressPercent}%` }} />
               </div>
+              <p className="bm-goal-caption">{snapshot.goal.currentValue}</p>
             </aside>
           </div>
         </div>
@@ -64,7 +119,7 @@ export default function OfficeDashboardPage() {
             <span>✎</span>
           </div>
           <div className="bm-update-list">
-            {snapshot.weeklyUpdates.map((update) => (
+            {officeWeeklyUpdates.map((update) => (
               <article className="bm-update-item" key={update.id}>
                 <strong>
                   {update.timeLabel} {update.title}
@@ -89,7 +144,7 @@ export default function OfficeDashboardPage() {
             <span>✎</span>
           </div>
           <div className="bm-link-list">
-            {snapshot.usefulLinks.map((link) => (
+            {officeUsefulLinks.map((link) => (
               <article className="bm-link-row" key={link.id}>
                 <span className="bm-link-icon">⛓</span>
                 <a className="bm-link-label" href="#">
@@ -106,7 +161,7 @@ export default function OfficeDashboardPage() {
             <span>✎</span>
           </div>
           <div className="bm-link-list">
-            {snapshot.trainingLinks.map((link) => (
+            {officeTrainingLinks.map((link) => (
               <article className="bm-link-row" key={link.id}>
                 <span className="bm-link-icon">⛓</span>
                 <a className="bm-link-label" href="#">
@@ -135,7 +190,9 @@ export default function OfficeDashboardPage() {
           {snapshot.recentTransactions.map((transaction) => (
             <div className="bm-transaction-row" key={transaction.id}>
               <div className="bm-transaction-home">⌂</div>
-              <strong>{transaction.label}</strong>
+              <strong>
+                <Link href={`/office/transactions/${transaction.id}`}>{transaction.label}</Link>
+              </strong>
               <span>{transaction.amount}</span>
               <span className={`bm-status-pill bm-status-${transaction.stage}`}>{transaction.stage}</span>
               <span>{transaction.owner}</span>

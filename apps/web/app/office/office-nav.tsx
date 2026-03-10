@@ -48,7 +48,11 @@ const navGroups: NavGroup[] = [
   }
 ];
 
-export function OfficeNav() {
+type OfficeNavProps = {
+  currentOfficeName: string;
+};
+
+export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
   const pathname = usePathname();
 
   return (
@@ -66,7 +70,7 @@ export function OfficeNav() {
         </div>
 
         <div className="office-company-switcher">
-          <strong>ACRE NY REALTY INC</strong>
+          <strong>{currentOfficeName.toUpperCase()}</strong>
           <span>▾</span>
         </div>
 
@@ -88,9 +92,17 @@ export function OfficeNav() {
                       {item.label}
                     </Link>
                   ) : (
-                    <span className="office-bm-link office-bm-link-muted" key={item.label}>
-                      {item.label}
-                    </span>
+                    item.label === "Sign out" ? (
+                      <form action="/api/auth/logout" className="office-bm-logout-form" key={item.label} method="post">
+                        <button className="office-bm-link office-bm-link-button" type="submit">
+                          {item.label}
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="office-bm-link office-bm-link-muted" key={item.label}>
+                        {item.label}
+                      </span>
+                    )
                   )
                 )}
               </div>

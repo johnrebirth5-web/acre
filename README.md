@@ -26,19 +26,42 @@
   - `Library`
   - `Accounting`
   - `Settings > Company`
-- `Dashboard` 当前已实现一版高保真静态结构：
+- `Dashboard` 当前保留原有高保真布局，但业务指标已改为真实数据库查询：
   - `Goal Tracking`
+  - 当前登录用户 / 角色 / office access 摘要
+  - transaction counts by status
+  - contacts needing follow-up
   - `Weekly Updates`
   - `Acre Useful Links`
   - `Back Office Agent Training Links`
-  - `Recent Transactions`
+  - `Recent Transactions`（真实数据库）
 - `Pipeline` 当前已实现一版静态漏斗页，按 `Opportunity / Active / Pending / Closed / Cancelled` 分栏展示
 - `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
-- `Create Transaction` 当前已实现为 `Transactions` 页面内的静态 modal，结构按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
+- `Transactions` 现在是当前第一个接入真实数据库的 `Office` 模块：
+  - 列表页使用 PostgreSQL / Prisma 读取真实 transaction 数据
+  - 支持搜索和状态筛选
+  - `Create Transaction` modal 会真实写入数据库
+  - 已有 transaction detail 页面
+  - 已有 status update 写路径
+- `Contacts` 现在也已接入真实数据库：
+  - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
+  - 支持搜索、创建、编辑和基础 stage 筛选
+  - 已有 contact detail 页面
+  - 支持为 contact 创建 follow-up task
+  - 支持把 contact 作为 primary client 关联到 transaction
+- `Reports` 现在也已接入真实数据库：
+  - 支持 total transactions
+  - 支持 transactions by status
+  - 支持 transactions by owner / agent
+  - 支持 transactions over time
+  - 支持 contacts needing follow-up
+  - 支持最小 date range / owner 过滤
+- `Create Transaction` 保持在 `Transactions` 页面内的 modal 结构，按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
 - 基础页面路由：
-  - `/` -> `/office/dashboard`
+  - `/` -> 登录后跳对应 workspace，未登录跳 `/login`
   - `/agent` -> `/agent/dashboard`
   - `/office` -> `/office/dashboard`
+  - `/login`
   - `/agent/dashboard`
   - `/agent/listings`
   - `/agent/clients`
@@ -55,23 +78,45 @@
   - `/office/accounting`
 - 一组只读 API：
   - `/api/health`
+  - `/api/db/seeded-context`
   - `/api/agent/dashboard`
   - `/api/office/dashboard`
+  - `/api/office/transactions`
+  - `/api/office/transactions/:transactionId`
+  - `/api/office/contacts`
+  - `/api/office/contacts/:contactId`
+  - `/api/office/contacts/:contactId/follow-up-tasks`
+  - `/api/office/contacts/:contactId/transactions/:transactionId`
   - `/api/listings`
   - `/api/clients`
   - `/api/events`
   - `/api/resources`
 - 一个独立的权限模型包 `@acre/auth`
 - 一个独立的领域数据/服务包 `@acre/backoffice`
+- 一个独立的数据库包 `@acre/db`，当前已包含：
+  - 可复用的 Prisma client
+  - 初始 migration 基线
+  - seed workflow
+  - 一个最小的数据库读取 utility 和 API probe
+- 一个最小本地 auth/session 方案，当前已包含：
+  - seeded user 登录
+  - 登录后 signed cookie session
+  - `POST /api/auth/login`
+  - `POST /api/auth/logout`
+  - `/office/*` 服务端保护
+  - 服务端可读取 `currentUser / currentMembership / currentOrganization / currentOffice`
 - 一份 `Prisma + PostgreSQL` schema，覆盖组织、用户、房源、CRM、通知、活动、资源、vendor、审计日志
 
 当前未实现 / 计划中：
 
-- 未实现真实登录、session、用户鉴权
-- 未实现数据库读写，页面和 API 当前都使用 `@acre/backoffice` 里的内存示例数据
+- `Dashboard`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
+- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
+- 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
 - 未实现 `Brokermint` 中更深层的交易详情子页、审批流、checklists、accounting ledger、buyer offers
-- 未实现任何写操作接口，当前 API 全是 `GET`
-- 未实现 Prisma Client 初始化、migration 流程、seed、真实 CRUD
+- 写操作接口当前只覆盖：
+  - `Transactions` 的 create / status update
+  - `Contacts` 的 create / edit / follow-up task create / transaction link
+- 其余模块仍未实现真实 CRUD
 - 未实现测试体系
 - Vercel 项目已绑定 GitHub 仓库，`main` 分支 push 会自动触发生产部署
 - 未实现对象存储、异步任务、AI 工作流、文件上传、OCR、第三方集成
@@ -84,7 +129,8 @@
 
 - Node.js `22+` 建议
 - npm `10+`
-- 如果要校验数据库 schema，需要本地可用的 PostgreSQL 连接串；仅跑前端和只读 API 不需要真实数据库
+- 如果要使用本地登录、执行 Prisma 命令、或访问数据库 probe route，需要本地可用的 PostgreSQL 连接串
+- 如果只浏览当前 mock 页面和不依赖数据库的只读 API，真实数据库不是必需项
 
 安装依赖：
 
@@ -140,6 +186,24 @@ npm run build
 npm run db:validate
 ```
 
+生成 Prisma client：
+
+```bash
+npm run db:generate
+```
+
+运行开发 migration：
+
+```bash
+npm run db:migrate -- --name init
+```
+
+执行 seed：
+
+```bash
+npm run db:seed
+```
+
 ## 项目目录结构
 
 ```text
@@ -164,8 +228,15 @@ acre/
 - [apps/web/app](./apps/web/app) 同时包含页面和 API route
 - [packages/backoffice/src/index.ts](./packages/backoffice/src/index.ts) 是当前最核心的业务入口文件
 - [packages/auth/src/index.ts](./packages/auth/src/index.ts) 定义角色和权限
-- [packages/db/prisma/schema.prisma](./packages/db/prisma/schema.prisma) 定义数据库结构，但尚未接入运行时
+- [packages/db/prisma/schema.prisma](./packages/db/prisma/schema.prisma) 定义数据库结构和 migration 方向
+- [packages/db/src/client.ts](./packages/db/src/client.ts) 是可复用 Prisma client 入口
+- [packages/db/src/bootstrap.ts](./packages/db/src/bootstrap.ts) 是当前最小数据库读取 utility
+- [packages/db/src/transactions.ts](./packages/db/src/transactions.ts) 是当前 transaction 持久化 service 入口
+- [packages/db/src/contacts.ts](./packages/db/src/contacts.ts) 是当前 contact / follow-up task 持久化 service 入口
+- [apps/web/lib/auth-session.ts](./apps/web/lib/auth-session.ts) 是当前本地 session 和 server-side auth context 入口
 - [apps/web/app/office/dashboard/page.tsx](./apps/web/app/office/dashboard/page.tsx)、[apps/web/app/office/pipeline/page.tsx](./apps/web/app/office/pipeline/page.tsx)、[apps/web/app/office/transactions/page.tsx](./apps/web/app/office/transactions/page.tsx) 是当前 `Back Office` UI 的主要入口
+- [apps/web/app/office/transactions/[transactionId]/page.tsx](./apps/web/app/office/transactions/[transactionId]/page.tsx) 是当前 transaction detail 入口
+- [apps/web/app/office/contacts/page.tsx](./apps/web/app/office/contacts/page.tsx) 和 [apps/web/app/office/contacts/[contactId]/page.tsx](./apps/web/app/office/contacts/[contactId]/page.tsx) 是当前 contact list/detail 入口
 
 ## 新人第一次接手建议先看什么
 

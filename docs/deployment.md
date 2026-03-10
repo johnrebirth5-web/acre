@@ -6,9 +6,11 @@
 
 - 本地开发可运行
 - GitHub 仓库已存在并已推送
-- Vercel 未配置
-- 没有生产环境实例
+- Vercel 已配置，并已连接 GitHub 仓库
+- 已有生产部署实例
 - 没有 staging 环境实例
+- 已有最小本地 auth/session，但生产 auth 仍未正式设计
+- 本地 PostgreSQL + Prisma migrate/seed 已验证
 
 所以这份文档既说明“现在如何运行”，也说明“后续推荐如何部署”。其中未落地部分会标明。
 
@@ -32,10 +34,20 @@ npm run dev
 已验证的命令：
 
 ```bash
+npm run db:generate
+npm run db:migrate -- --name init
+npm run db:seed
 npm run lint
 npm run typecheck
 npm run build
 npm run db:validate
+```
+
+如果拉到包含新 Prisma migration 的代码，例如 transaction 或 contact schema 扩展，先额外执行：
+
+```bash
+npm run db:migrate -- --name your_change_name
+npm run db:seed
 ```
 
 ## 推荐的后续部署方案
@@ -48,8 +60,7 @@ npm run db:validate
 
 但注意：
 
-- 现在还没有把项目正式接到 Vercel
-- 现在 API 还没有依赖真实数据库
+- 现在 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
 - 所以当前并不存在“完整生产部署”
 
 ## 构建与发布
@@ -82,19 +93,19 @@ git commit -m "your message"
 git push origin main
 ```
 
-### 未来发布到 Vercel
+### 发布到 Vercel
 
-未实现 / 计划中。
+当前真实状态：
 
-推荐步骤：
+- Vercel 项目已经存在
+- GitHub 自动部署已经接通
+- `main` 分支 push 会自动触发生产部署
 
-1. 在 Vercel 中导入 GitHub 仓库
-2. 指定根项目为仓库根目录
-3. 让 Vercel 识别 `Next.js`
-4. 配置环境变量
-5. 首次构建并验证 `/` 和 `/api/health`
+后续维护时需要继续确认：
 
-由于当前只有一个 app，理论上直接部署仓库即可。但如果未来新增更多 `apps/*`，要重新检查 Vercel 的 root/project 设置。
+1. Vercel 项目的 root 设置仍然指向 `apps/web`
+2. 需要的环境变量已在 Vercel 中配置
+3. 数据库相关路由上线前，生产 `DATABASE_URL` 可连接
 
 ## 依赖的平台和服务
 
@@ -125,7 +136,8 @@ git push origin main
 
 - 运行 `next dev`
 - 使用 `@acre/backoffice` 内存数据
-- 不需要真实数据库即可浏览页面和调用 API
+- 不需要真实数据库即可浏览多数页面和多数 mock API
+- 但 `/office/transactions`、`/office/contacts`、本地登录、以及数据库 probe 依赖真实数据库
 - 如果只执行 `db:validate`，只需要一个格式正确的 `DATABASE_URL`
 
 ### 测试环境
@@ -150,8 +162,8 @@ git push origin main
 当前不应该把这个仓库视为可直接上线的生产系统，原因包括：
 
 - 没有真实鉴权
-- 没有数据库运行时接入
-- 没有写接口
+- 只有部分数据库运行时接入
+- 只有部分写接口
 - 没有 observability
 - 没有错误监控
 - 没有测试
@@ -190,10 +202,11 @@ git push origin main
 说明：
 
 - 当前运行页面不依赖真实数据库
-- 但 Prisma schema 校验依赖 `DATABASE_URL`
+- 但 Prisma schema 校验、migration、seed 和数据库 probe 都依赖 `DATABASE_URL`
 
 建议：
 
+- 在仓库根目录配置 `.env.local`
 - 参考 [docs/env.md](./env.md) 配置
 
 ### 4. 把“可 build”误认为“可上线”
@@ -218,6 +231,7 @@ git push origin main
 在任何准备发布的动作前，建议先跑：
 
 ```bash
+npm run db:generate
 npm run lint
 npm run typecheck
 npm run build
@@ -227,8 +241,10 @@ npm run db:validate
 再手动确认：
 
 - 首页能打开
+- `/login` 能打开
 - Agent 页面能打开
 - Office 页面能打开
 - `/api/health` 返回 `ok`
+- 如果已配置数据库，`/api/db/seeded-context` 能返回 seeded organization / office / memberships
 
 如果后续接入真实数据库，再把数据库连接检查加入发布清单。

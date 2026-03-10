@@ -1049,6 +1049,7 @@ export function getOfficeDashboardSnapshot(userId = "member-simon"): OfficeDashb
 export function getApiCatalog() {
   return [
     "/api/health",
+    "/api/db/seeded-context",
     "/api/agent/dashboard",
     "/api/office/dashboard",
     "/api/listings",

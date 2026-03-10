@@ -11,6 +11,9 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
+    "db:generate": "npm run db:generate --workspace=@acre/db",
+    "db:migrate": "npm run db:migrate --workspace=@acre/db --",
+    "db:seed": "npm run db:seed --workspace=@acre/db",
     "db:validate": "npm run db:validate --workspace=@acre/db"
   },
   "devDependencies": {
