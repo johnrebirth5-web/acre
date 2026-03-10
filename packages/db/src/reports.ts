@@ -43,6 +43,29 @@ export type OfficeReportsSnapshot = {
   transactionsOverTime: OfficeReportTimePoint[];
 };
 
+export type OfficeReportTransactionExportRow = {
+  transactionId: string;
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  type: string;
+  status: OfficeReportStatus;
+  representing: string;
+  owner: string;
+  primaryContact: string;
+  price: string;
+  grossCommission: string;
+  referralFee: string;
+  officeNet: string;
+  agentNet: string;
+  importantDate: string;
+  closingDate: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type GetOfficeReportsSnapshotInput = {
   organizationId: string;
   officeId?: string | null;
@@ -61,12 +84,34 @@ const statusFromDb: Record<TransactionStatus, OfficeReportStatus> = {
   cancelled: "Cancelled"
 };
 
+const typeFromDb = {
+  sales: "Sales",
+  sales_listing: "Sales (listing)",
+  rental_leasing: "Rental/Leasing",
+  rental_listing: "Rental (listing)",
+  commercial_sales: "Commercial Sales",
+  commercial_lease: "Commercial Lease",
+  other: "Other"
+} as const;
+
+const representingFromDb = {
+  buyer: "buyer",
+  seller: "seller",
+  both: "both",
+  tenant: "tenant",
+  landlord: "landlord"
+} as const;
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: value % 1 === 0 ? 0 : 2
   }).format(value);
+}
+
+function formatCurrencyFromDb(value: Prisma.Decimal | null) {
+  return value ? formatCurrency(Number(value)) : "";
 }
 
 function startOfDay(input: string | undefined) {
@@ -162,6 +207,10 @@ function buildTimeSeries(transactions: Array<{ createdAt: Date }>, startDate: Da
   }
 
   return points;
+}
+
+function formatDateOnly(value: Date | null) {
+  return value ? value.toISOString().slice(0, 10) : "";
 }
 
 export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotInput): Promise<OfficeReportsSnapshot> {
@@ -276,4 +325,52 @@ export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotIn
       endDate
     )
   };
+}
+
+export async function listOfficeReportTransactionsForExport(
+  input: GetOfficeReportsSnapshotInput
+): Promise<OfficeReportTransactionExportRow[]> {
+  const transactionWhere = buildTransactionWhere(input);
+
+  const transactions = await prisma.transaction.findMany({
+    where: transactionWhere,
+    include: {
+      ownerMembership: {
+        include: {
+          user: true
+        }
+      },
+      primaryClient: {
+        select: {
+          fullName: true
+        }
+      }
+    },
+    orderBy: [{ createdAt: "desc" }]
+  });
+
+  return transactions.map((transaction) => ({
+    transactionId: transaction.id,
+    title: transaction.title,
+    address: transaction.address,
+    city: transaction.city,
+    state: transaction.state,
+    zipCode: transaction.zipCode,
+    type: typeFromDb[transaction.type],
+    status: statusFromDb[transaction.status],
+    representing: representingFromDb[transaction.representing],
+    owner: transaction.ownerMembership
+      ? `${transaction.ownerMembership.user.firstName} ${transaction.ownerMembership.user.lastName}`
+      : "Unassigned",
+    primaryContact: transaction.primaryClient?.fullName ?? "",
+    price: formatCurrencyFromDb(transaction.price),
+    grossCommission: formatCurrencyFromDb(transaction.grossCommission),
+    referralFee: formatCurrencyFromDb(transaction.referralFee),
+    officeNet: formatCurrencyFromDb(transaction.officeNet),
+    agentNet: formatCurrencyFromDb(transaction.agentNet),
+    importantDate: formatDateOnly(transaction.importantDate),
+    closingDate: formatDateOnly(transaction.closingDate),
+    createdAt: transaction.createdAt.toISOString(),
+    updatedAt: transaction.updatedAt.toISOString()
+  }));
 }

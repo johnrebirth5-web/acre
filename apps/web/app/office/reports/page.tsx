@@ -25,6 +25,21 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
     ownerMembershipId: searchParams.ownerMembershipId
   });
   const maxOwnerCount = getMaxOwnerCount(snapshot.transactionsByOwner);
+  const exportSearchParams = new URLSearchParams();
+
+  if (snapshot.filters.startDate) {
+    exportSearchParams.set("startDate", snapshot.filters.startDate);
+  }
+
+  if (snapshot.filters.endDate) {
+    exportSearchParams.set("endDate", snapshot.filters.endDate);
+  }
+
+  if (snapshot.filters.ownerMembershipId) {
+    exportSearchParams.set("ownerMembershipId", snapshot.filters.ownerMembershipId);
+  }
+
+  const exportHref = `/api/office/reports/export${exportSearchParams.size ? `?${exportSearchParams.toString()}` : ""}`;
 
   return (
     <>
@@ -63,6 +78,9 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
           <button className="office-button" type="submit">
             Apply filters
           </button>
+          <a className="office-button office-button-secondary" href={exportHref}>
+            Export CSV
+          </a>
           <a className="office-button office-button-secondary" href="/office/reports">
             Reset
           </a>

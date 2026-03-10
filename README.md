@@ -64,6 +64,7 @@
   - 支持 transactions over time
   - 支持 contacts needing follow-up
   - 支持最小 date range / owner 过滤
+  - 支持按当前过滤条件导出真实 transaction CSV
 - `Create Transaction` 保持在 `Transactions` 页面内的 modal 结构，按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
 - 基础页面路由：
   - `/` -> 登录后跳对应 workspace，未登录跳 `/login`
@@ -102,6 +103,7 @@
   - `/api/clients`
   - `/api/events`
   - `/api/resources`
+  - `/api/office/reports/export`
 - 一个独立的权限模型包 `@acre/auth`
 - 一个独立的领域数据/服务包 `@acre/backoffice`
 - 一个独立的数据库包 `@acre/db`，当前已包含：

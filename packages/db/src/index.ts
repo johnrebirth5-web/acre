@@ -26,7 +26,7 @@ export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
 export { createContact, createFollowUpTask, getContactById, linkContactToTransaction, listContacts, updateContact } from "./contacts";
 export { getOfficePipelineBuckets } from "./pipeline";
-export { getOfficeReportsSnapshot } from "./reports";
+export { getOfficeReportsSnapshot, listOfficeReportTransactionsForExport } from "./reports";
 export {
   getDefaultTransactionContactRole,
   getTransactionContactLink,
@@ -51,7 +51,14 @@ export type {
   SaveContactInput
 } from "./contacts";
 export type { GetOfficePipelineBucketsInput, OfficePipelineBucket, OfficePipelineItem, OfficePipelineStatus } from "./pipeline";
-export type { GetOfficeReportsSnapshotInput, OfficeReportOwnerMetric, OfficeReportOwnerOption, OfficeReportsFilters, OfficeReportsSnapshot } from "./reports";
+export type {
+  GetOfficeReportsSnapshotInput,
+  OfficeReportOwnerMetric,
+  OfficeReportOwnerOption,
+  OfficeReportTransactionExportRow,
+  OfficeReportsFilters,
+  OfficeReportsSnapshot
+} from "./reports";
 export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
 export type {
   CreateTransactionInput,

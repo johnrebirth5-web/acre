@@ -62,6 +62,7 @@ npm run db:seed
 
 - 现在 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
 - `Transactions` detail 里的 finance 保存也已经依赖真实数据库 migration 和写路径
+- `Reports` 的 CSV 导出 route 也依赖真实数据库和有效 office session
 - 所以当前并不存在“完整生产部署”
 
 ## 构建与发布

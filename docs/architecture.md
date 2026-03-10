@@ -49,6 +49,7 @@
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
+- 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
 - 当前已有最小本地登录 / 登出 / cookie session
 - 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
 - 当前 dashboard 业务指标也已有最小查询 service
@@ -218,8 +219,9 @@
 9. `/office/contacts` 调 `@acre/db` 的 contact service
 10. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
 11. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
-12. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-13. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+12. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+13. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+14. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 

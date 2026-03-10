@@ -230,6 +230,7 @@ Trade-off：
   - transaction detail 现在已经开始消费 `TransactionContact`，支持最小 linked contacts 管理
   - transaction summary 的 `totalNetIncome` 现在按 `officeNet` 聚合，不再硬编码
   - reports page 的最小聚合报表已切到 Prisma
+  - reports page 的 CSV 导出当前采用单页专用 route，不引入通用导出框架
   - 其他模块继续保留 mock
 
 ### 4. Auth 先采用本地 seeded-user + signed-cookie 方案
