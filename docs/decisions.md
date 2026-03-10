@@ -224,9 +224,11 @@ Trade-off：
   - dashboard 业务指标 / recent transactions / access summary 已切到 Prisma + session context
   - pipeline buckets 已切到 Prisma，并按 transaction status 做显式列映射
   - transaction list/detail/create/status update 已经切到 Prisma
+  - transaction finance 先用 `Transaction` 上的 5 个可空字段落地，而不是单独 finance model
   - contact list/detail/create/edit/follow-up task / transaction link 已经切到 Prisma
   - transaction/contact relation 现在以 `TransactionContact` 为 source of truth，`primaryClientId` 仅保留兼容同步
   - transaction detail 现在已经开始消费 `TransactionContact`，支持最小 linked contacts 管理
+  - transaction summary 的 `totalNetIncome` 现在按 `officeNet` 聚合，不再硬编码
   - reports page 的最小聚合报表已切到 Prisma
   - 其他模块继续保留 mock
 

@@ -213,12 +213,13 @@
 4. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
 5. `/office/transactions/:transactionId` 调 `getTransactionById`
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
-7. detail 页面通过 transaction contact routes 做 link / unlink / set primary
-8. `/office/contacts` 调 `@acre/db` 的 contact service
-9. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
-10. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
-11. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-12. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
+8. detail 页面通过 transaction contact routes 做 link / unlink / set primary
+9. `/office/contacts` 调 `@acre/db` 的 contact service
+10. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
+11. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
+12. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+13. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
@@ -336,6 +337,13 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
   - link existing contact
   - unlink linked contact
   - set primary linked contact
+- transaction finance section:
+  - `grossCommission`
+  - `referralFee`
+  - `officeNet`
+  - `agentNet`
+  - `financeNotes`
+  - 当前直接存放在 `Transaction` 行上，而不是独立 finance 子系统
 
 更高级的 CRM 自动化、提醒编排、批量任务、线索分配仍未实现。
 

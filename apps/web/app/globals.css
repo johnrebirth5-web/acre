@@ -2194,6 +2194,31 @@ select {
   font-size: 0.74rem;
 }
 
+.bm-transaction-finance-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.bm-transaction-finance-form input,
+.bm-transaction-finance-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  background: #ffffff;
+  color: #4a4a4a;
+  font-size: 0.74rem;
+}
+
+.bm-transaction-finance-form input {
+  height: 38px;
+}
+
+.bm-transaction-finance-form textarea {
+  resize: vertical;
+  min-height: 84px;
+}
+
 .bm-transaction-contact-list {
   display: grid;
   gap: 12px;
@@ -3118,6 +3143,10 @@ select {
 
   .bm-detail-head,
   .bm-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bm-transaction-finance-form {
     grid-template-columns: 1fr;
   }
 

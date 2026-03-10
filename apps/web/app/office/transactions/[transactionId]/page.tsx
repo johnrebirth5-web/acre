@@ -3,6 +3,7 @@ import { getTransactionById } from "@acre/db";
 import { notFound } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
 import { TransactionContactsCard } from "./contacts-card";
+import { TransactionFinanceForm } from "./finance-form";
 import { TransactionStatusForm } from "./status-form";
 
 type TransactionDetailPageProps = {
@@ -99,6 +100,20 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
         contacts={transaction.contacts}
         transactionId={transaction.id}
       />
+
+      <section className="bm-detail-card">
+        <div className="bm-card-head">
+          <h3>Finance</h3>
+        </div>
+        <TransactionFinanceForm
+          agentNet={transaction.agentNet}
+          financeNotes={transaction.financeNotes}
+          grossCommission={transaction.grossCommission}
+          officeNet={transaction.officeNet}
+          referralFee={transaction.referralFee}
+          transactionId={transaction.id}
+        />
+      </section>
 
       <section className="bm-detail-card">
         <div className="bm-card-head">

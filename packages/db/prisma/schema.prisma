@@ -203,6 +203,11 @@ model Transaction {
   companyReferral             Boolean                  @default(false)
   companyReferralEmployeeName String?
   referralContext             Json?
+  grossCommission             Decimal?                 @db.Decimal(12, 2)
+  referralFee                 Decimal?                 @db.Decimal(12, 2)
+  officeNet                   Decimal?                 @db.Decimal(12, 2)
+  agentNet                    Decimal?                 @db.Decimal(12, 2)
+  financeNotes                String?
   commissionContext           Json?
   additionalFields            Json?
   createdAt                   DateTime                 @default(now())

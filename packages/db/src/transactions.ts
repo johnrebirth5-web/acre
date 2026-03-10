@@ -52,6 +52,11 @@ export type OfficeTransactionDetail = {
   ownerName: string;
   ownerEmail: string;
   officeName: string;
+  grossCommission: string;
+  referralFee: string;
+  officeNet: string;
+  agentNet: string;
+  financeNotes: string;
   additionalFields: Record<string, string>;
   contacts: OfficeTransactionContact[];
   availableContacts: OfficeTransactionContactOption[];
@@ -85,6 +90,11 @@ export type CreateTransactionInput = {
   listingDate?: string;
   listingExpirationDate?: string;
   closingDate?: string;
+  grossCommission?: string;
+  referralFee?: string;
+  officeNet?: string;
+  agentNet?: string;
+  financeNotes?: string;
   additionalFields?: Record<string, string>;
 };
 
@@ -92,6 +102,16 @@ export type UpdateTransactionStatusInput = {
   organizationId: string;
   transactionId: string;
   status: OfficeTransactionStatus;
+};
+
+export type UpdateTransactionFinanceInput = {
+  organizationId: string;
+  transactionId: string;
+  grossCommission?: string;
+  referralFee?: string;
+  officeNet?: string;
+  agentNet?: string;
+  financeNotes?: string;
 };
 
 const transactionStatusLabelMap: Record<TransactionStatus, OfficeTransactionStatus> = {
@@ -202,6 +222,15 @@ function parseOptionalDecimal(value: string | undefined) {
   return Number.isFinite(numeric) ? new Prisma.Decimal(numeric) : null;
 }
 
+function parseOptionalText(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function parseCreateFinanceDecimal(explicitValue: string | undefined, fallbackValue: string | undefined) {
+  return parseOptionalDecimal(explicitValue) ?? parseOptionalDecimal(fallbackValue);
+}
+
 function mapTransactionRecord(
   transaction: {
     id: string;
@@ -260,6 +289,11 @@ function mapTransactionDetail(
     closingDate: Date | null;
     companyReferral: boolean;
     companyReferralEmployeeName: string | null;
+    grossCommission: Prisma.Decimal | null;
+    referralFee: Prisma.Decimal | null;
+    officeNet: Prisma.Decimal | null;
+    agentNet: Prisma.Decimal | null;
+    financeNotes: string | null;
     additionalFields: Prisma.JsonValue | null;
     createdAt: Date;
     updatedAt: Date;
@@ -307,6 +341,11 @@ function mapTransactionDetail(
     ownerName,
     ownerEmail: transaction.ownerMembership?.user.email ?? "",
     officeName: transaction.office?.name ?? "",
+    grossCommission: transaction.grossCommission ? String(transaction.grossCommission) : "",
+    referralFee: transaction.referralFee ? String(transaction.referralFee) : "",
+    officeNet: transaction.officeNet ? String(transaction.officeNet) : "",
+    agentNet: transaction.agentNet ? String(transaction.agentNet) : "",
+    financeNotes: transaction.financeNotes ?? "",
     additionalFields:
       transaction.additionalFields && typeof transaction.additionalFields === "object" && !Array.isArray(transaction.additionalFields)
         ? Object.fromEntries(
@@ -324,9 +363,13 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
   const where: Prisma.TransactionWhereInput = {
     organizationId: input.organizationId
   };
+  const summaryWhere: Prisma.TransactionWhereInput = {
+    organizationId: input.organizationId
+  };
 
   if (input.officeId) {
     where.officeId = input.officeId;
+    summaryWhere.officeId = input.officeId;
   }
 
   if (input.status && input.status !== "All") {
@@ -355,7 +398,7 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
     ];
   }
 
-  const [transactions, totalCount] = await Promise.all([
+  const [transactions, totalCount, financeAggregate] = await Promise.all([
     prisma.transaction.findMany({
       where,
       include: {
@@ -368,9 +411,12 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
       orderBy: [{ createdAt: "desc" }]
     }),
     prisma.transaction.count({
-      where: {
-        organizationId: input.organizationId,
-        ...(input.officeId ? { officeId: input.officeId } : {})
+      where: summaryWhere
+    }),
+    prisma.transaction.aggregate({
+      where: summaryWhere,
+      _sum: {
+        officeNet: true
       }
     })
   ]);
@@ -379,7 +425,7 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
     transactions: transactions.map(mapTransactionRecord),
     summary: {
       totalCount,
-      totalNetIncome: "$ 0"
+      totalNetIncome: formatCurrency(financeAggregate._sum.officeNet)
     }
   };
 }
@@ -447,6 +493,11 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
   const companyReferralValue = (additionalFields.companyReferral ?? "").toString().toLowerCase();
   const companyReferral = companyReferralValue === "yes";
   const companyReferralEmployeeName = (additionalFields.companyReferralEmployeesName ?? additionalFields.companyReferralEmployeeName ?? "").trim();
+  const grossCommission = parseCreateFinanceDecimal(input.grossCommission, additionalFields.commissionAmount);
+  const referralFee = parseCreateFinanceDecimal(input.referralFee, additionalFields.referralFee);
+  const officeNet = parseCreateFinanceDecimal(input.officeNet, additionalFields.officeNet);
+  const agentNet = parseCreateFinanceDecimal(input.agentNet, additionalFields.agentNet);
+  const financeNotes = parseOptionalText(input.financeNotes) ?? parseOptionalText(additionalFields.note);
 
   const transaction = await prisma.transaction.create({
     data: {
@@ -471,6 +522,11 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
       closingDate: parseOptionalDate(input.closingDate),
       companyReferral,
       companyReferralEmployeeName: companyReferralEmployeeName || null,
+      grossCommission,
+      referralFee,
+      officeNet,
+      agentNet,
+      financeNotes,
       referralContext: companyReferral
         ? {
             companyReferralEmployeeName
@@ -537,4 +593,26 @@ export async function updateTransactionStatus(input: UpdateTransactionStatusInpu
     transactionContacts: [],
     availableContacts: []
   });
+}
+
+export async function updateTransactionFinance(input: UpdateTransactionFinanceInput): Promise<OfficeTransactionDetail | null> {
+  const updated = await prisma.transaction.updateMany({
+    where: {
+      id: input.transactionId,
+      organizationId: input.organizationId
+    },
+    data: {
+      grossCommission: parseOptionalDecimal(input.grossCommission),
+      referralFee: parseOptionalDecimal(input.referralFee),
+      officeNet: parseOptionalDecimal(input.officeNet),
+      agentNet: parseOptionalDecimal(input.agentNet),
+      financeNotes: parseOptionalText(input.financeNotes)
+    }
+  });
+
+  if (updated.count === 0) {
+    return null;
+  }
+
+  return getTransactionById(input.organizationId, input.transactionId);
 }

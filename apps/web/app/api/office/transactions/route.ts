@@ -22,7 +22,12 @@ function parseAdditionalFields(body: Record<string, unknown>) {
           "acceptanceDate",
           "listingDate",
           "listingExpirationDate",
-          "closingDate"
+          "closingDate",
+          "grossCommission",
+          "referralFee",
+          "officeNet",
+          "agentNet",
+          "financeNotes"
         ].includes(key)
       ) {
         return false;
@@ -98,6 +103,11 @@ export async function POST(request: NextRequest) {
     listingDate: String(body.listingDate ?? ""),
     listingExpirationDate: String(body.listingExpirationDate ?? ""),
     closingDate: String(body.closingDate ?? ""),
+    grossCommission: String(body.grossCommission ?? ""),
+    referralFee: String(body.referralFee ?? ""),
+    officeNet: String(body.officeNet ?? ""),
+    agentNet: String(body.agentNet ?? ""),
+    financeNotes: String(body.financeNotes ?? ""),
     additionalFields: parseAdditionalFields(body)
   });
 

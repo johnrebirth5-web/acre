@@ -44,9 +44,11 @@
 - `Transactions` 现在是当前第一个接入真实数据库的 `Office` 模块：
   - 列表页使用 PostgreSQL / Prisma 读取真实 transaction 数据
   - 支持搜索和状态筛选
+  - 顶部 `MY NET INCOME` 现在按真实 `officeNet` 聚合，不再硬编码 `$ 0`
   - `Create Transaction` modal 会真实写入数据库
   - 已有 transaction detail 页面
   - transaction detail 现在会渲染真实 linked contacts，并支持 link / unlink / set primary
+  - transaction detail 现在有最小真实 `Finance` 区块，可编辑 gross commission / referral fee / office net / agent net / finance notes
   - 已有 status update 写路径
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
@@ -89,6 +91,7 @@
   - `/api/office/dashboard`
   - `/api/office/transactions`
   - `/api/office/transactions/:transactionId`
+  - `/api/office/transactions/:transactionId/finance`
   - `/api/office/transactions/:transactionId/contacts`
   - `/api/office/transactions/:transactionId/contacts/:contactLinkId`
   - `/api/office/contacts`

@@ -116,7 +116,12 @@ async function main() {
       state: "NJ",
       zipCode: "07029",
       price: "2470",
-      importantDate: null
+      importantDate: null,
+      grossCommission: "2470",
+      referralFee: "0",
+      officeNet: "1800",
+      agentNet: "670",
+      financeNotes: "Seeded lease-side commission snapshot."
     },
     {
       id: "seed-tx-70-christopher",
@@ -130,7 +135,12 @@ async function main() {
       state: "NJ",
       zipCode: "07302",
       price: "3585",
-      importantDate: null
+      importantDate: null,
+      grossCommission: "3585",
+      referralFee: "0",
+      officeNet: "2500",
+      agentNet: "1085",
+      financeNotes: "Seeded rental commission snapshot."
     },
     {
       id: "seed-tx-3820-parson",
@@ -144,7 +154,12 @@ async function main() {
       state: "NY",
       zipCode: "11354",
       price: "625000",
-      importantDate: new Date("2026-12-26T00:00:00.000Z")
+      importantDate: new Date("2026-12-26T00:00:00.000Z"),
+      grossCommission: "18750",
+      referralFee: "2500",
+      officeNet: "10000",
+      agentNet: "6250",
+      financeNotes: "Referral split pending final settlement."
     },
     {
       id: "seed-tx-graham-court",
@@ -158,7 +173,12 @@ async function main() {
       state: "NY",
       zipCode: "11206",
       price: "925000",
-      importantDate: null
+      importantDate: null,
+      grossCommission: null,
+      referralFee: null,
+      officeNet: null,
+      agentNet: null,
+      financeNotes: null
     },
     {
       id: "seed-tx-45-10-court-square",
@@ -174,7 +194,12 @@ async function main() {
       price: "0",
       importantDate: new Date("2026-04-15T00:00:00.000Z"),
       companyReferral: true,
-      companyReferralEmployeeName: "Acre小助手"
+      companyReferralEmployeeName: "Acre小助手",
+      grossCommission: "32000",
+      referralFee: "3200",
+      officeNet: "18000",
+      agentNet: "10800",
+      financeNotes: "Company referral 10% applied in seed data."
     }
   ];
 
@@ -197,6 +222,11 @@ async function main() {
         zipCode: transaction.zipCode,
         price: transaction.price,
         importantDate: transaction.importantDate,
+        grossCommission: transaction.grossCommission,
+        referralFee: transaction.referralFee,
+        officeNet: transaction.officeNet,
+        agentNet: transaction.agentNet,
+        financeNotes: transaction.financeNotes ?? null,
         companyReferral: transaction.companyReferral ?? false,
         companyReferralEmployeeName: transaction.companyReferralEmployeeName ?? null,
         additionalFields: { seeded: true }
@@ -216,6 +246,11 @@ async function main() {
         zipCode: transaction.zipCode,
         price: transaction.price,
         importantDate: transaction.importantDate,
+        grossCommission: transaction.grossCommission,
+        referralFee: transaction.referralFee,
+        officeNet: transaction.officeNet,
+        agentNet: transaction.agentNet,
+        financeNotes: transaction.financeNotes ?? null,
         companyReferral: transaction.companyReferral ?? false,
         companyReferralEmployeeName: transaction.companyReferralEmployeeName ?? null,
         additionalFields: { seeded: true }

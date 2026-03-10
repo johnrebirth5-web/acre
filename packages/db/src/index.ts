@@ -35,7 +35,7 @@ export {
   setPrimaryTransactionContact,
   unlinkContactFromTransaction
 } from "./transaction-contacts";
-export { createTransaction, getTransactionById, listTransactions, updateTransactionStatus } from "./transactions";
+export { createTransaction, getTransactionById, listTransactions, updateTransactionFinance, updateTransactionStatus } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
 export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootstrap";
 export type { OfficeDashboardBusinessSnapshot, OfficeDashboardChartPoint, OfficeDashboardRecentTransaction, OfficeDashboardStatusMetric } from "./dashboard";
@@ -60,5 +60,6 @@ export type {
   OfficeTransactionRecord,
   OfficeTransactionSummary,
   OfficeTransactionStatus,
+  UpdateTransactionFinanceInput,
   UpdateTransactionStatusInput
 } from "./transactions";

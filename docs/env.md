@@ -8,7 +8,7 @@
 
 - 当前数据库相关代码使用 `DATABASE_URL`
 - 当前主页面和大多数 API 仍不依赖数据库，因此在“只跑前端和 mock API”时，即使没有真实数据库，也能运行
-- 但 `Office Pipeline`、`Office Transactions`、`Office Contacts`、本地登录和数据库 probe 已经依赖 `DATABASE_URL`
+- 但 `Office Pipeline`、`Office Transactions`、`Office Contacts`、transaction finance、本地登录和数据库 probe 已经依赖 `DATABASE_URL`
 - 一旦执行 Prisma 相关命令，或访问这些数据库路径，`DATABASE_URL` 就变成必需项
 - 当前本地 auth/session 可以使用默认开发 secret，但建议显式配置 `ACRE_SESSION_SECRET`
 
@@ -32,6 +32,7 @@
 - 对数据库 probe route 是必填
 - 对只看 mock 页面本地运行是“可不填”
 - 对 `/office/pipeline`、`/office/transactions`、`/office/contacts`、`/login`、数据库 probe 是必填
+- 对 transaction detail 下的 finance 读写也是必填
 
 示例格式：
 
