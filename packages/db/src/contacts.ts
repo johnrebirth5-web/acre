@@ -1,4 +1,5 @@
 import { Prisma, TaskStatus, TransactionContactRole } from "@prisma/client";
+import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 import { type LinkTransactionContactInput, linkContactToTransaction as linkTransactionContact } from "./transaction-contacts";
 
@@ -76,6 +77,8 @@ export type ListContactsInput = {
 export type SaveContactInput = {
   organizationId: string;
   ownerMembershipId: string;
+  actorMembershipId?: string;
+  actorOfficeId?: string | null;
   fullName: string;
   email?: string;
   phone?: string;
@@ -170,6 +173,18 @@ function formatTransactionContactRole(role: TransactionContactRole) {
     .join("-");
 }
 
+function buildContactObjectLabel(contact: { fullName: string; email: string | null; phone: string | null }) {
+  return `${contact.fullName}${contact.email ? ` · ${contact.email}` : contact.phone ? ` · ${contact.phone}` : ""}`;
+}
+
+function buildContactChangedDetail(label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return `${label}: ${previousValue || "—"} -> ${nextValue || "—"}`;
+}
+
 function mapContactRecord(
   client: {
     id: string;
@@ -257,24 +272,43 @@ export async function listContacts(input: ListContactsInput): Promise<OfficeCont
 }
 
 export async function createContact(input: SaveContactInput): Promise<OfficeContactDetail> {
-  const client = await prisma.client.create({
-    data: {
+  const client = await prisma.$transaction(async (tx) => {
+    const created = await tx.client.create({
+      data: {
+        organizationId: input.organizationId,
+        ownerMembershipId: input.ownerMembershipId,
+        fullName: input.fullName.trim(),
+        email: input.email?.trim() || null,
+        phone: input.phone?.trim() || null,
+        contactType: input.contactType?.trim() || null,
+        source: input.source?.trim() || "Manual entry",
+        stage: input.stage?.trim() || "New",
+        intent: input.intent?.trim() || "Unknown",
+        budgetMin: parseOptionalDecimal(input.budgetMin),
+        budgetMax: parseOptionalDecimal(input.budgetMax),
+        preferredAreas: input.preferredAreas?.filter(Boolean) ?? [],
+        notes: input.notes?.trim() || null,
+        lastContactAt: parseOptionalDate(input.lastContactAt),
+        nextFollowUpAt: parseOptionalDate(input.nextFollowUpAt)
+      }
+    });
+
+    await recordActivityLogEvent(tx, {
       organizationId: input.organizationId,
-      ownerMembershipId: input.ownerMembershipId,
-      fullName: input.fullName.trim(),
-      email: input.email?.trim() || null,
-      phone: input.phone?.trim() || null,
-      contactType: input.contactType?.trim() || null,
-      source: input.source?.trim() || "Manual entry",
-      stage: input.stage?.trim() || "New",
-      intent: input.intent?.trim() || "Unknown",
-      budgetMin: parseOptionalDecimal(input.budgetMin),
-      budgetMax: parseOptionalDecimal(input.budgetMax),
-      preferredAreas: input.preferredAreas?.filter(Boolean) ?? [],
-      notes: input.notes?.trim() || null,
-      lastContactAt: parseOptionalDate(input.lastContactAt),
-      nextFollowUpAt: parseOptionalDate(input.nextFollowUpAt)
-    }
+      membershipId: input.actorMembershipId ?? input.ownerMembershipId,
+      entityType: "contact",
+      entityId: created.id,
+      action: activityLogActions.contactCreated,
+      payload: {
+        officeId: input.actorOfficeId ?? null,
+        contactId: created.id,
+        contactName: created.fullName,
+        objectLabel: buildContactObjectLabel(created),
+        details: [`Stage: ${created.stage}`, `Intent: ${created.intent}`]
+      }
+    });
+
+    return created;
   });
 
   return (await getContactById(input.organizationId, client.id)) as OfficeContactDetail;
@@ -287,7 +321,15 @@ export async function updateContact(contactId: string, input: SaveContactInput):
       organizationId: input.organizationId
     },
     select: {
-      id: true
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+      contactType: true,
+      source: true,
+      stage: true,
+      intent: true,
+      notes: true
     }
   });
 
@@ -295,22 +337,67 @@ export async function updateContact(contactId: string, input: SaveContactInput):
     return null;
   }
 
-  await prisma.client.update({
-    where: { id: contactId },
-    data: {
-      fullName: input.fullName.trim(),
-      email: input.email?.trim() || null,
-      phone: input.phone?.trim() || null,
-      contactType: input.contactType?.trim() || null,
-      source: input.source?.trim() || "Manual entry",
-      stage: input.stage?.trim() || "New",
-      intent: input.intent?.trim() || "Unknown",
-      budgetMin: parseOptionalDecimal(input.budgetMin),
-      budgetMax: parseOptionalDecimal(input.budgetMax),
-      preferredAreas: input.preferredAreas?.filter(Boolean) ?? [],
-      notes: input.notes?.trim() || null,
-      lastContactAt: parseOptionalDate(input.lastContactAt),
-      nextFollowUpAt: parseOptionalDate(input.nextFollowUpAt)
+  const nextValues = {
+    fullName: input.fullName.trim(),
+    email: input.email?.trim() || null,
+    phone: input.phone?.trim() || null,
+    contactType: input.contactType?.trim() || null,
+    source: input.source?.trim() || "Manual entry",
+    stage: input.stage?.trim() || "New",
+    intent: input.intent?.trim() || "Unknown",
+    notes: input.notes?.trim() || null
+  };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.client.update({
+      where: { id: contactId },
+      data: {
+        fullName: nextValues.fullName,
+        email: nextValues.email,
+        phone: nextValues.phone,
+        contactType: nextValues.contactType,
+        source: nextValues.source,
+        stage: nextValues.stage,
+        intent: nextValues.intent,
+        budgetMin: parseOptionalDecimal(input.budgetMin),
+        budgetMax: parseOptionalDecimal(input.budgetMax),
+        preferredAreas: input.preferredAreas?.filter(Boolean) ?? [],
+        notes: nextValues.notes,
+        lastContactAt: parseOptionalDate(input.lastContactAt),
+        nextFollowUpAt: parseOptionalDate(input.nextFollowUpAt)
+      }
+    });
+
+    const details = [
+      buildContactChangedDetail("Full name", existing.fullName, nextValues.fullName),
+      buildContactChangedDetail("Email", existing.email ?? "", nextValues.email ?? ""),
+      buildContactChangedDetail("Phone", existing.phone ?? "", nextValues.phone ?? ""),
+      buildContactChangedDetail("Type", existing.contactType ?? "", nextValues.contactType ?? ""),
+      buildContactChangedDetail("Stage", existing.stage, nextValues.stage),
+      buildContactChangedDetail("Intent", existing.intent, nextValues.intent),
+      buildContactChangedDetail("Source", existing.source, nextValues.source),
+      buildContactChangedDetail("Notes", existing.notes ?? "", nextValues.notes ?? "")
+    ].filter((detail): detail is string => Boolean(detail));
+
+    if (details.length > 0) {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? input.ownerMembershipId,
+        entityType: "contact",
+        entityId: contactId,
+        action: activityLogActions.contactUpdated,
+        payload: {
+          officeId: input.actorOfficeId ?? null,
+          contactId,
+          contactName: nextValues.fullName,
+          objectLabel: buildContactObjectLabel({
+            fullName: nextValues.fullName,
+            email: nextValues.email,
+            phone: nextValues.phone
+          }),
+          details
+        }
+      });
     }
   });
 

@@ -1,4 +1,5 @@
 import { Prisma, TransactionRepresenting, TransactionStatus, TransactionType } from "@prisma/client";
+import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 import { listAvailableContactsForTransaction, type OfficeTransactionContact, type OfficeTransactionContactOption } from "./transaction-contacts";
 
@@ -75,6 +76,7 @@ export type CreateTransactionInput = {
   organizationId: string;
   officeId?: string | null;
   ownerMembershipId: string;
+  actorMembershipId?: string;
   transactionType: string;
   transactionStatus: string;
   representing: string;
@@ -102,6 +104,7 @@ export type UpdateTransactionStatusInput = {
   organizationId: string;
   transactionId: string;
   status: OfficeTransactionStatus;
+  actorMembershipId?: string;
 };
 
 export type UpdateTransactionFinanceInput = {
@@ -112,6 +115,7 @@ export type UpdateTransactionFinanceInput = {
   officeNet?: string;
   agentNet?: string;
   financeNotes?: string;
+  actorMembershipId?: string;
 };
 
 const transactionStatusLabelMap: Record<TransactionStatus, OfficeTransactionStatus> = {
@@ -229,6 +233,32 @@ function parseOptionalText(value: string | undefined) {
 
 function parseCreateFinanceDecimal(explicitValue: string | undefined, fallbackValue: string | undefined) {
   return parseOptionalDecimal(explicitValue) ?? parseOptionalDecimal(fallbackValue);
+}
+
+function formatAuditCurrencyValue(value: Prisma.Decimal | null) {
+  return value ? formatCurrency(value) : "—";
+}
+
+function formatAuditTextValue(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : "—";
+}
+
+function buildAuditDetail(label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return `${label}: ${previousValue} -> ${nextValue}`;
+}
+
+function buildTransactionObjectLabel(transaction: {
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+}) {
+  return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
 }
 
 function mapTransactionRecord(
@@ -499,50 +529,73 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
   const agentNet = parseCreateFinanceDecimal(input.agentNet, additionalFields.agentNet);
   const financeNotes = parseOptionalText(input.financeNotes) ?? parseOptionalText(additionalFields.note);
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      organizationId: input.organizationId,
-      officeId: input.officeId ?? null,
-      ownerMembershipId: input.ownerMembershipId,
-      type: transactionTypeDbMap[input.transactionType] ?? "other",
-      status: transactionStatusDbMap[(input.transactionStatus as OfficeTransactionStatus) || "Opportunity"] ?? "opportunity",
-      representing: representingDbMap[input.representing] ?? "buyer",
-      title: input.transactionName.trim() || input.address.trim(),
-      address: input.address.trim(),
-      city: input.city.trim(),
-      state: input.state.trim(),
-      zipCode: input.zipCode.trim(),
-      price: parseOptionalDecimal(input.price),
-      importantDate: parseOptionalDate(input.buyerExpirationDate) ?? parseOptionalDate(input.closingDate),
-      buyerAgreementDate: parseOptionalDate(input.buyerAgreementDate),
-      buyerExpirationDate: parseOptionalDate(input.buyerExpirationDate),
-      acceptanceDate: parseOptionalDate(input.acceptanceDate),
-      listingDate: parseOptionalDate(input.listingDate),
-      listingExpirationDate: parseOptionalDate(input.listingExpirationDate),
-      closingDate: parseOptionalDate(input.closingDate),
-      companyReferral,
-      companyReferralEmployeeName: companyReferralEmployeeName || null,
-      grossCommission,
-      referralFee,
-      officeNet,
-      agentNet,
-      financeNotes,
-      referralContext: companyReferral
-        ? {
-            companyReferralEmployeeName
+  const transaction = await prisma.$transaction(async (tx) => {
+    const created = await tx.transaction.create({
+      data: {
+        organizationId: input.organizationId,
+        officeId: input.officeId ?? null,
+        ownerMembershipId: input.ownerMembershipId,
+        type: transactionTypeDbMap[input.transactionType] ?? "other",
+        status: transactionStatusDbMap[(input.transactionStatus as OfficeTransactionStatus) || "Opportunity"] ?? "opportunity",
+        representing: representingDbMap[input.representing] ?? "buyer",
+        title: input.transactionName.trim() || input.address.trim(),
+        address: input.address.trim(),
+        city: input.city.trim(),
+        state: input.state.trim(),
+        zipCode: input.zipCode.trim(),
+        price: parseOptionalDecimal(input.price),
+        importantDate: parseOptionalDate(input.buyerExpirationDate) ?? parseOptionalDate(input.closingDate),
+        buyerAgreementDate: parseOptionalDate(input.buyerAgreementDate),
+        buyerExpirationDate: parseOptionalDate(input.buyerExpirationDate),
+        acceptanceDate: parseOptionalDate(input.acceptanceDate),
+        listingDate: parseOptionalDate(input.listingDate),
+        listingExpirationDate: parseOptionalDate(input.listingExpirationDate),
+        closingDate: parseOptionalDate(input.closingDate),
+        companyReferral,
+        companyReferralEmployeeName: companyReferralEmployeeName || null,
+        grossCommission,
+        referralFee,
+        officeNet,
+        agentNet,
+        financeNotes,
+        referralContext: companyReferral
+          ? {
+              companyReferralEmployeeName
+            }
+          : Prisma.JsonNull,
+        commissionContext: Prisma.JsonNull,
+        additionalFields
+      },
+      include: {
+        office: true,
+        ownerMembership: {
+          include: {
+            user: true
           }
-        : Prisma.JsonNull,
-      commissionContext: Prisma.JsonNull,
-      additionalFields
-    },
-    include: {
-      office: true,
-      ownerMembership: {
-        include: {
-          user: true
         }
       }
-    }
+    });
+
+    await recordActivityLogEvent(tx, {
+      organizationId: input.organizationId,
+      membershipId: input.actorMembershipId ?? input.ownerMembershipId,
+      entityType: "transaction",
+      entityId: created.id,
+      action: activityLogActions.transactionCreated,
+      payload: {
+        officeId: created.officeId,
+        transactionId: created.id,
+        transactionLabel: buildTransactionObjectLabel(created),
+        objectLabel: buildTransactionObjectLabel(created),
+        details: [
+          `Status: ${transactionStatusLabelMap[created.status]}`,
+          `Representing: ${representingLabelMap[created.representing]}`,
+          `Owner: ${created.ownerMembership ? `${created.ownerMembership.user.firstName} ${created.ownerMembership.user.lastName}` : "Unassigned"}`
+        ]
+      }
+    });
+
+    return created;
   });
 
   return mapTransactionDetail({
@@ -559,7 +612,13 @@ export async function updateTransactionStatus(input: UpdateTransactionStatusInpu
       organizationId: input.organizationId
     },
     select: {
-      id: true
+      id: true,
+      officeId: true,
+      title: true,
+      address: true,
+      city: true,
+      state: true,
+      status: true
     }
   });
 
@@ -567,25 +626,47 @@ export async function updateTransactionStatus(input: UpdateTransactionStatusInpu
     return null;
   }
 
-  const updated = await prisma.transaction.update({
-    where: {
-      id: input.transactionId
-    },
-    data: {
-      status: transactionStatusDbMap[input.status],
-      importantDate:
-        input.status === "Closed" || input.status === "Cancelled"
-          ? null
-          : undefined
-    },
-    include: {
-      office: true,
-      ownerMembership: {
-        include: {
-          user: true
+  const nextStatus = transactionStatusDbMap[input.status];
+  const updated = await prisma.$transaction(async (tx) => {
+    const saved = await tx.transaction.update({
+      where: {
+        id: input.transactionId
+      },
+      data: {
+        status: nextStatus,
+        importantDate: input.status === "Closed" || input.status === "Cancelled" ? null : undefined
+      },
+      include: {
+        office: true,
+        ownerMembership: {
+          include: {
+            user: true
+          }
         }
       }
+    });
+
+    if (transaction.status !== nextStatus) {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "transaction",
+        entityId: saved.id,
+        action: nextStatus === "closed" ? activityLogActions.transactionClosed : activityLogActions.transactionStatusChanged,
+        payload: {
+          officeId: saved.officeId,
+          transactionId: saved.id,
+          transactionLabel: buildTransactionObjectLabel(saved),
+          objectLabel: buildTransactionObjectLabel(saved),
+          details: [
+            `Status: ${transactionStatusLabelMap[transaction.status]} -> ${transactionStatusLabelMap[saved.status]}`,
+            ...(nextStatus === "closed" ? ["Closed workflow reached"] : [])
+          ]
+        }
+      });
     }
+
+    return saved;
   });
 
   return mapTransactionDetail({
@@ -596,23 +677,75 @@ export async function updateTransactionStatus(input: UpdateTransactionStatusInpu
 }
 
 export async function updateTransactionFinance(input: UpdateTransactionFinanceInput): Promise<OfficeTransactionDetail | null> {
-  const updated = await prisma.transaction.updateMany({
+  const existing = await prisma.transaction.findFirst({
     where: {
       id: input.transactionId,
       organizationId: input.organizationId
     },
-    data: {
-      grossCommission: parseOptionalDecimal(input.grossCommission),
-      referralFee: parseOptionalDecimal(input.referralFee),
-      officeNet: parseOptionalDecimal(input.officeNet),
-      agentNet: parseOptionalDecimal(input.agentNet),
-      financeNotes: parseOptionalText(input.financeNotes)
+    select: {
+      id: true,
+      officeId: true,
+      title: true,
+      address: true,
+      city: true,
+      state: true,
+      grossCommission: true,
+      referralFee: true,
+      officeNet: true,
+      agentNet: true,
+      financeNotes: true
     }
   });
 
-  if (updated.count === 0) {
+  if (!existing) {
     return null;
   }
+
+  const nextGrossCommission = parseOptionalDecimal(input.grossCommission);
+  const nextReferralFee = parseOptionalDecimal(input.referralFee);
+  const nextOfficeNet = parseOptionalDecimal(input.officeNet);
+  const nextAgentNet = parseOptionalDecimal(input.agentNet);
+  const nextFinanceNotes = parseOptionalText(input.financeNotes);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.update({
+      where: {
+        id: input.transactionId
+      },
+      data: {
+        grossCommission: nextGrossCommission,
+        referralFee: nextReferralFee,
+        officeNet: nextOfficeNet,
+        agentNet: nextAgentNet,
+        financeNotes: nextFinanceNotes
+      }
+    });
+
+    const details = [
+      buildAuditDetail("Gross commission", formatAuditCurrencyValue(existing.grossCommission), formatAuditCurrencyValue(nextGrossCommission)),
+      buildAuditDetail("Referral fee", formatAuditCurrencyValue(existing.referralFee), formatAuditCurrencyValue(nextReferralFee)),
+      buildAuditDetail("Office net", formatAuditCurrencyValue(existing.officeNet), formatAuditCurrencyValue(nextOfficeNet)),
+      buildAuditDetail("Agent net", formatAuditCurrencyValue(existing.agentNet), formatAuditCurrencyValue(nextAgentNet)),
+      buildAuditDetail("Finance notes", formatAuditTextValue(existing.financeNotes), formatAuditTextValue(nextFinanceNotes))
+    ].filter((detail): detail is string => Boolean(detail));
+
+    if (details.length > 0) {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "transaction",
+        entityId: input.transactionId,
+        action: activityLogActions.transactionFinanceUpdated,
+        payload: {
+          officeId: existing.officeId,
+          transactionId: input.transactionId,
+          transactionLabel: buildTransactionObjectLabel(existing),
+          objectLabel: buildTransactionObjectLabel(existing),
+          details
+        }
+      });
+    }
+  });
 
   return getTransactionById(input.organizationId, input.transactionId);
 }

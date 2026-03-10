@@ -1,4 +1,5 @@
 import { Prisma, TransactionTaskStatus, UserRole } from "@prisma/client";
+import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 
 export type OfficeTransactionTaskStatus = "Todo" | "In progress" | "Completed";
@@ -23,6 +24,7 @@ export type OfficeTransactionTaskAssigneeOption = {
 export type CreateTransactionTaskInput = {
   organizationId: string;
   transactionId: string;
+  actorMembershipId?: string;
   checklistGroup?: string;
   title: string;
   description?: string;
@@ -35,6 +37,7 @@ export type UpdateTransactionTaskInput = {
   organizationId: string;
   transactionId: string;
   taskId: string;
+  actorMembershipId?: string;
   checklistGroup?: string;
   title?: string;
   description?: string;
@@ -121,6 +124,27 @@ function mapTransactionTask(
     status: taskStatusLabelMap[task.status],
     sortOrder: task.sortOrder
   };
+}
+
+function buildTransactionObjectLabel(transaction: {
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+}) {
+  return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
+}
+
+function buildTaskObjectLabel(taskTitle: string, transactionLabel: string) {
+  return `${taskTitle} · ${transactionLabel}`;
+}
+
+function buildTaskDetail(label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return `${label}: ${previousValue || "—"} -> ${nextValue || "—"}`;
 }
 
 async function getTransactionScope(organizationId: string, transactionId: string) {
@@ -213,7 +237,20 @@ export async function listTransactionTaskAssigneeOptions(
 }
 
 export async function createTransactionTask(input: CreateTransactionTaskInput): Promise<OfficeTransactionTask | null> {
-  const transaction = await getTransactionScope(input.organizationId, input.transactionId);
+  const transaction = await prisma.transaction.findFirst({
+    where: {
+      id: input.transactionId,
+      organizationId: input.organizationId
+    },
+    select: {
+      id: true,
+      officeId: true,
+      title: true,
+      address: true,
+      city: true,
+      state: true
+    }
+  });
 
   if (!transaction) {
     return null;
@@ -237,32 +274,70 @@ export async function createTransactionTask(input: CreateTransactionTaskInput): 
     }
   });
 
-  const task = await prisma.transactionTask.create({
-    data: {
-      organizationId: input.organizationId,
-      transactionId: input.transactionId,
-      checklistGroup: normalizeChecklistGroup(input.checklistGroup),
-      title,
-      description: parseOptionalText(input.description),
-      assigneeMembershipId,
-      dueAt: parseOptionalDate(input.dueAt),
-      status: taskStatusDbMap[normalizeTaskStatus(input.status)],
-      sortOrder: (sortAggregate._max.sortOrder ?? -1) + 1
-    },
-    include: {
-      assigneeMembership: {
-        include: {
-          user: true
+  const task = await prisma.$transaction(async (tx) => {
+    const created = await tx.transactionTask.create({
+      data: {
+        organizationId: input.organizationId,
+        transactionId: input.transactionId,
+        checklistGroup: normalizeChecklistGroup(input.checklistGroup),
+        title,
+        description: parseOptionalText(input.description),
+        assigneeMembershipId,
+        dueAt: parseOptionalDate(input.dueAt),
+        status: taskStatusDbMap[normalizeTaskStatus(input.status)],
+        sortOrder: (sortAggregate._max.sortOrder ?? -1) + 1
+      },
+      include: {
+        assigneeMembership: {
+          include: {
+            user: true
+          }
         }
       }
-    }
+    });
+
+    const transactionLabel = buildTransactionObjectLabel(transaction);
+    await recordActivityLogEvent(tx, {
+      organizationId: input.organizationId,
+      membershipId: input.actorMembershipId ?? null,
+      entityType: "transaction_task",
+      entityId: created.id,
+      action: activityLogActions.transactionTaskCreated,
+      payload: {
+        officeId: transaction.officeId,
+        transactionId: input.transactionId,
+        taskId: created.id,
+        taskTitle: created.title,
+        objectLabel: buildTaskObjectLabel(created.title, transactionLabel),
+        details: [
+          `Group: ${created.checklistGroup}`,
+          `Status: ${taskStatusLabelMap[created.status]}`,
+          ...(created.dueAt ? [`Due: ${formatDateValue(created.dueAt)}`] : [])
+        ]
+      }
+    });
+
+    return created;
   });
 
   return mapTransactionTask(task);
 }
 
 export async function updateTransactionTask(input: UpdateTransactionTaskInput): Promise<OfficeTransactionTask | null> {
-  const transaction = await getTransactionScope(input.organizationId, input.transactionId);
+  const transaction = await prisma.transaction.findFirst({
+    where: {
+      id: input.transactionId,
+      organizationId: input.organizationId
+    },
+    select: {
+      id: true,
+      officeId: true,
+      title: true,
+      address: true,
+      city: true,
+      state: true
+    }
+  });
 
   if (!transaction) {
     return null;
@@ -275,7 +350,14 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
       transactionId: input.transactionId
     },
     select: {
-      id: true
+      id: true,
+      checklistGroup: true,
+      title: true,
+      description: true,
+      assigneeMembershipId: true,
+      dueAt: true,
+      status: true,
+      sortOrder: true
     }
   });
 
@@ -288,26 +370,81 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
       ? await validateAssigneeMembership(input.organizationId, transaction.officeId, input.assigneeMembershipId)
       : undefined;
 
-  const updatedTask = await prisma.transactionTask.update({
-    where: {
-      id: input.taskId
-    },
-    data: {
-      ...(input.checklistGroup !== undefined ? { checklistGroup: normalizeChecklistGroup(input.checklistGroup) } : {}),
-      ...(input.title !== undefined ? { title: input.title.trim() || "Untitled task" } : {}),
-      ...(input.description !== undefined ? { description: parseOptionalText(input.description) } : {}),
-      ...(input.assigneeMembershipId !== undefined ? { assigneeMembershipId } : {}),
-      ...(input.dueAt !== undefined ? { dueAt: parseOptionalDate(input.dueAt) } : {}),
-      ...(input.status !== undefined ? { status: taskStatusDbMap[normalizeTaskStatus(input.status)] } : {}),
-      ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {})
-    },
-    include: {
-      assigneeMembership: {
-        include: {
-          user: true
+  const nextChecklistGroup = input.checklistGroup !== undefined ? normalizeChecklistGroup(input.checklistGroup) : existingTask.checklistGroup;
+  const nextTitle = input.title !== undefined ? input.title.trim() || "Untitled task" : existingTask.title;
+  const nextDescription = input.description !== undefined ? parseOptionalText(input.description) : existingTask.description;
+  const nextDueAt = input.dueAt !== undefined ? parseOptionalDate(input.dueAt) : existingTask.dueAt;
+  const nextStatus = input.status !== undefined ? taskStatusDbMap[normalizeTaskStatus(input.status)] : existingTask.status;
+  const nextSortOrder = input.sortOrder !== undefined ? input.sortOrder : existingTask.sortOrder;
+  const nextAssigneeMembershipId = input.assigneeMembershipId !== undefined ? assigneeMembershipId : existingTask.assigneeMembershipId;
+
+  const updatedTask = await prisma.$transaction(async (tx) => {
+    const saved = await tx.transactionTask.update({
+      where: {
+        id: input.taskId
+      },
+      data: {
+        checklistGroup: nextChecklistGroup,
+        title: nextTitle,
+        description: nextDescription,
+        assigneeMembershipId: nextAssigneeMembershipId,
+        dueAt: nextDueAt,
+        status: nextStatus,
+        sortOrder: nextSortOrder
+      },
+      include: {
+        assigneeMembership: {
+          include: {
+            user: true
+          }
         }
       }
+    });
+
+    const details = [
+      buildTaskDetail("Group", existingTask.checklistGroup, nextChecklistGroup),
+      buildTaskDetail("Title", existingTask.title, nextTitle),
+      buildTaskDetail("Description", existingTask.description ?? "", nextDescription ?? ""),
+      buildTaskDetail("Due date", formatDateValue(existingTask.dueAt), formatDateValue(nextDueAt)),
+      buildTaskDetail("Status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[nextStatus]),
+      buildTaskDetail("Sort order", String(existingTask.sortOrder), String(nextSortOrder))
+    ].filter((detail): detail is string => Boolean(detail));
+
+    if (existingTask.status !== "completed" && nextStatus === "completed") {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "transaction_task",
+        entityId: saved.id,
+        action: activityLogActions.transactionTaskCompleted,
+        payload: {
+          officeId: transaction.officeId,
+          transactionId: input.transactionId,
+          taskId: saved.id,
+          taskTitle: saved.title,
+          objectLabel: buildTaskObjectLabel(saved.title, buildTransactionObjectLabel(transaction)),
+          details: details.length > 0 ? details : [`Status: ${taskStatusLabelMap[existingTask.status]} -> ${taskStatusLabelMap[nextStatus]}`]
+        }
+      });
+    } else if (details.length > 0) {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "transaction_task",
+        entityId: saved.id,
+        action: activityLogActions.transactionTaskUpdated,
+        payload: {
+          officeId: transaction.officeId,
+          transactionId: input.transactionId,
+          taskId: saved.id,
+          taskTitle: saved.title,
+          objectLabel: buildTaskObjectLabel(saved.title, buildTransactionObjectLabel(transaction)),
+          details
+        }
+      });
     }
+
+    return saved;
   });
 
   return mapTransactionTask(updatedTask);

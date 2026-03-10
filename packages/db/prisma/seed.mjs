@@ -136,6 +136,7 @@ async function main() {
       zipCode: "07302",
       price: "3585",
       importantDate: null,
+      closingDate: new Date("2026-03-13T00:00:00.000Z"),
       grossCommission: "3585",
       referralFee: "0",
       officeNet: "2500",
@@ -222,6 +223,7 @@ async function main() {
         zipCode: transaction.zipCode,
         price: transaction.price,
         importantDate: transaction.importantDate,
+        closingDate: transaction.closingDate ?? null,
         grossCommission: transaction.grossCommission,
         referralFee: transaction.referralFee,
         officeNet: transaction.officeNet,
@@ -246,6 +248,7 @@ async function main() {
         zipCode: transaction.zipCode,
         price: transaction.price,
         importantDate: transaction.importantDate,
+        closingDate: transaction.closingDate ?? null,
         grossCommission: transaction.grossCommission,
         referralFee: transaction.referralFee,
         officeNet: transaction.officeNet,
@@ -366,7 +369,7 @@ async function main() {
       assigneeEmail: "jane@acre.com",
       title: "Follow up on LIC investor inventory",
       status: "queued",
-      dueAt: new Date("2026-03-10T22:00:00.000Z")
+      dueAt: new Date("2026-03-09T22:00:00.000Z")
     },
     {
       id: "seed-task-daniel",
@@ -646,7 +649,7 @@ async function main() {
       title: "Collect signed buyer agreement",
       description: "Confirm executed contract PDF is available from the buyer side.",
       assigneeEmail: "jane@acre.com",
-      dueAt: new Date("2026-03-14T16:00:00.000Z"),
+      dueAt: new Date("2026-03-08T16:00:00.000Z"),
       status: "todo",
       sortOrder: 0
     },
@@ -705,8 +708,188 @@ async function main() {
     });
   }
 
+  const seededAuditLogs = [
+    {
+      id: "seed-audit-transaction-created-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction",
+      entityId: "seed-tx-graham-court",
+      action: "transaction.created",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        details: ["Status: Opportunity", "Representing: buyer", "Owner: Jane Wu"]
+      }
+    },
+    {
+      id: "seed-audit-transaction-status-court-square",
+      membershipEmail: "simon@acre.com",
+      entityType: "transaction",
+      entityId: "seed-tx-45-10-court-square",
+      action: "transaction.status_changed",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-45-10-court-square",
+        transactionLabel: "45-10 Court Square W · 45-10 Court Square W, Long Island City, NY",
+        objectLabel: "45-10 Court Square W · 45-10 Court Square W, Long Island City, NY",
+        details: ["Status: Active -> Pending"]
+      }
+    },
+    {
+      id: "seed-audit-transaction-contact-linked-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction",
+      entityId: "seed-tx-graham-court",
+      action: "transaction.contact_linked",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        contactId: "seed-client-evelyn",
+        contactName: "Evelyn Zhao",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        details: ["Contact: Evelyn Zhao", "Role: Buyer", "Primary contact: Yes"]
+      }
+    },
+    {
+      id: "seed-audit-transaction-primary-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction",
+      entityId: "seed-tx-graham-court",
+      action: "transaction.primary_contact_changed",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        contactId: "seed-client-evelyn",
+        contactName: "Evelyn Zhao",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        details: ["Previous primary: None", "New primary: Evelyn Zhao"]
+      }
+    },
+    {
+      id: "seed-audit-transaction-finance-parson",
+      membershipEmail: "naomi@acre.com",
+      entityType: "transaction",
+      entityId: "seed-tx-3820-parson",
+      action: "transaction.finance_updated",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-3820-parson",
+        transactionLabel: "3820 Parson Blvd · 3820 Parson Blvd, Flushing, NY",
+        objectLabel: "3820 Parson Blvd · 3820 Parson Blvd, Flushing, NY",
+        details: [
+          "Gross commission: $18,750",
+          "Referral fee: $2,500",
+          "Office net: $10,000",
+          "Agent net: $6,250"
+        ]
+      }
+    },
+    {
+      id: "seed-audit-task-created-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction_task",
+      entityId: "seed-transaction-task-graham-contract",
+      action: "transaction.task_created",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        taskId: "seed-transaction-task-graham-contract",
+        taskTitle: "Collect signed buyer agreement",
+        objectLabel: "Collect signed buyer agreement · Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        details: ["Group: Contract", "Status: Todo", "Due: 2026-03-14"]
+      }
+    },
+    {
+      id: "seed-audit-task-updated-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction_task",
+      entityId: "seed-transaction-task-graham-intro",
+      action: "transaction.task_updated",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        taskId: "seed-transaction-task-graham-intro",
+        taskTitle: "Send attorney introduction",
+        objectLabel: "Send attorney introduction · Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        details: ["Status: Todo -> In progress"]
+      }
+    },
+    {
+      id: "seed-audit-task-completed-court-square",
+      membershipEmail: "simon@acre.com",
+      entityType: "transaction_task",
+      entityId: "seed-transaction-task-court-square-invoice",
+      action: "transaction.task_completed",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-45-10-court-square",
+        taskId: "seed-transaction-task-court-square-invoice",
+        taskTitle: "Upload vendor invoice package",
+        objectLabel: "Upload vendor invoice package · 45-10 Court Square W · 45-10 Court Square W, Long Island City, NY",
+        details: ["Status: In progress -> Completed"]
+      }
+    },
+    {
+      id: "seed-audit-contact-created-evelyn",
+      membershipEmail: "jane@acre.com",
+      entityType: "contact",
+      entityId: "seed-client-evelyn",
+      action: "contact.created",
+      payload: {
+        officeId: office.id,
+        contactId: "seed-client-evelyn",
+        contactName: "Evelyn Zhao",
+        objectLabel: "Evelyn Zhao · evelyn@example.com",
+        details: ["Stage: Warm", "Intent: Investor"]
+      }
+    },
+    {
+      id: "seed-audit-contact-updated-iris",
+      membershipEmail: "naomi@acre.com",
+      entityType: "contact",
+      entityId: "seed-client-iris",
+      action: "contact.updated",
+      payload: {
+        officeId: office.id,
+        contactId: "seed-client-iris",
+        contactName: "Iris Chen",
+        objectLabel: "Iris Chen · iris@example.com",
+        details: ["Stage: New -> Nurture", "Notes: rental timing updated"]
+      }
+    }
+  ];
+
+  for (const auditLog of seededAuditLogs) {
+    const membership = auditLog.membershipEmail ? membershipByEmail.get(auditLog.membershipEmail) ?? null : null;
+
+    await prisma.auditLog.upsert({
+      where: { id: auditLog.id },
+      update: {
+        organizationId: organization.id,
+        membershipId: membership?.id ?? null,
+        entityType: auditLog.entityType,
+        entityId: auditLog.entityId,
+        action: auditLog.action,
+        payload: auditLog.payload
+      },
+      create: {
+        id: auditLog.id,
+        organizationId: organization.id,
+        membershipId: membership?.id ?? null,
+        entityType: auditLog.entityType,
+        entityId: auditLog.entityId,
+        action: auditLog.action,
+        payload: auditLog.payload
+      }
+    });
+  }
+
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, and ${seededTransactionTasks.length} transaction tasks.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

@@ -38,6 +38,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     organizationId: context.currentOrganization.id,
     transactionId,
     taskId,
+    actorMembershipId: context.currentMembership.id,
     checklistGroup: body?.checklistGroup,
     title: body?.title,
     description: body?.description,

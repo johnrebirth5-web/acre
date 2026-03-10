@@ -22,7 +22,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   const { contactId, transactionId } = await params;
-  const linked = await linkContactToTransaction(context.currentOrganization.id, contactId, transactionId);
+  const linked = await linkContactToTransaction(context.currentOrganization.id, contactId, transactionId, {
+    actorMembershipId: context.currentMembership.id
+  });
 
   if (!linked) {
     return NextResponse.json({ error: "Contact or transaction not found." }, { status: 404 });

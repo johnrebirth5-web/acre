@@ -1,4 +1,5 @@
 import { Prisma, TransactionContactRole, TransactionRepresenting } from "@prisma/client";
+import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 
 export type OfficeTransactionContact = {
@@ -25,6 +26,7 @@ export type LinkTransactionContactInput = {
   role?: TransactionContactRole;
   isPrimary?: boolean;
   notes?: string | null;
+  actorMembershipId?: string;
 };
 
 type TransactionContactRecord = {
@@ -71,6 +73,15 @@ function mapTransactionContactRecord(record: TransactionContactRecord): OfficeTr
     isPrimary: record.isPrimary,
     notes: record.notes ?? ""
   };
+}
+
+function buildTransactionObjectLabel(transaction: {
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+}) {
+  return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
 }
 
 async function ensurePrimaryTransactionContact(
@@ -225,14 +236,15 @@ export async function linkContactToTransaction(
   options?: LinkTransactionContactInput
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
-    const [client, transaction] = await Promise.all([
+    const [client, transaction, previousPrimary] = await Promise.all([
       tx.client.findFirst({
         where: {
           id: contactId,
           organizationId
         },
         select: {
-          id: true
+          id: true,
+          fullName: true
         }
       }),
       tx.transaction.findFirst({
@@ -242,7 +254,27 @@ export async function linkContactToTransaction(
         },
         select: {
           id: true,
-          representing: true
+          officeId: true,
+          representing: true,
+          title: true,
+          address: true,
+          city: true,
+          state: true
+        }
+      }),
+      tx.transactionContact.findFirst({
+        where: {
+          organizationId,
+          transactionId,
+          isPrimary: true
+        },
+        include: {
+          client: {
+            select: {
+              id: true,
+              fullName: true
+            }
+          }
         }
       })
     ]);
@@ -293,6 +325,51 @@ export async function linkContactToTransaction(
     });
 
     await syncTransactionPrimaryClientId(tx, organizationId, transactionId);
+
+    const transactionLabel = buildTransactionObjectLabel(transaction);
+    await recordActivityLogEvent(tx, {
+      organizationId,
+      membershipId: options?.actorMembershipId ?? null,
+      entityType: "transaction",
+      entityId: transactionId,
+      action: activityLogActions.transactionContactLinked,
+      payload: {
+        officeId: transaction.officeId,
+        transactionId,
+        contactId,
+        contactName: client.fullName,
+        transactionLabel,
+        objectLabel: transactionLabel,
+        details: [
+          `Contact: ${client.fullName}`,
+          `Role: ${transactionContactRoleLabelMap[options?.role ?? getDefaultTransactionContactRole(transaction.representing)]}`,
+          ...(shouldSetPrimary ? ["Primary contact: Yes"] : [])
+        ]
+      }
+    });
+
+    if (shouldSetPrimary && previousPrimary?.client.id !== contactId) {
+      await recordActivityLogEvent(tx, {
+        organizationId,
+        membershipId: options?.actorMembershipId ?? null,
+        entityType: "transaction",
+        entityId: transactionId,
+        action: activityLogActions.transactionPrimaryContactChanged,
+        payload: {
+          officeId: transaction.officeId,
+          transactionId,
+          contactId,
+          contactName: client.fullName,
+          transactionLabel,
+          objectLabel: transactionLabel,
+          details: [
+            `Previous primary: ${previousPrimary?.client.fullName ?? "None"}`,
+            `New primary: ${client.fullName}`
+          ]
+        }
+      });
+    }
+
     return true;
   });
 }
@@ -300,21 +377,41 @@ export async function linkContactToTransaction(
 export async function unlinkContactFromTransaction(
   organizationId: string,
   contactId: string,
-  transactionId: string
+  transactionId: string,
+  actorMembershipId?: string
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
-    const relation = await tx.transactionContact.findFirst({
-      where: {
-        organizationId,
-        transactionId,
-        clientId: contactId
-      },
-      select: {
-        id: true
-      }
-    });
+    const [relation, transaction] = await Promise.all([
+      tx.transactionContact.findFirst({
+        where: {
+          organizationId,
+          transactionId,
+          clientId: contactId
+        },
+        include: {
+          client: {
+            select: {
+              fullName: true
+            }
+          }
+        }
+      }),
+      tx.transaction.findFirst({
+        where: {
+          id: transactionId,
+          organizationId
+        },
+        select: {
+          officeId: true,
+          title: true,
+          address: true,
+          city: true,
+          state: true
+        }
+      })
+    ]);
 
-    if (!relation) {
+    if (!relation || !transaction) {
       return false;
     }
 
@@ -325,6 +422,29 @@ export async function unlinkContactFromTransaction(
     });
 
     await syncTransactionPrimaryClientId(tx, organizationId, transactionId);
+
+    const transactionLabel = buildTransactionObjectLabel(transaction);
+    await recordActivityLogEvent(tx, {
+      organizationId,
+      membershipId: actorMembershipId ?? null,
+      entityType: "transaction",
+      entityId: transactionId,
+      action: activityLogActions.transactionContactUnlinked,
+      payload: {
+        officeId: transaction.officeId,
+        transactionId,
+        contactId,
+        contactName: relation.client.fullName,
+        transactionLabel,
+        objectLabel: transactionLabel,
+        details: [
+          `Contact: ${relation.client.fullName}`,
+          `Role: ${transactionContactRoleLabelMap[relation.role]}`,
+          ...(relation.isPrimary ? ["Removed the primary contact"] : [])
+        ]
+      }
+    });
+
     return true;
   });
 }
@@ -332,22 +452,60 @@ export async function unlinkContactFromTransaction(
 export async function setPrimaryTransactionContact(
   organizationId: string,
   transactionId: string,
-  contactId: string
+  contactId: string,
+  actorMembershipId?: string
 ): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
-    const relation = await tx.transactionContact.findFirst({
-      where: {
-        organizationId,
-        transactionId,
-        clientId: contactId
-      },
-      select: {
-        id: true
-      }
-    });
+    const [relation, previousPrimary, transaction] = await Promise.all([
+      tx.transactionContact.findFirst({
+        where: {
+          organizationId,
+          transactionId,
+          clientId: contactId
+        },
+        include: {
+          client: {
+            select: {
+              fullName: true
+            }
+          }
+        }
+      }),
+      tx.transactionContact.findFirst({
+        where: {
+          organizationId,
+          transactionId,
+          isPrimary: true
+        },
+        include: {
+          client: {
+            select: {
+              fullName: true
+            }
+          }
+        }
+      }),
+      tx.transaction.findFirst({
+        where: {
+          id: transactionId,
+          organizationId
+        },
+        select: {
+          officeId: true,
+          title: true,
+          address: true,
+          city: true,
+          state: true
+        }
+      })
+    ]);
 
-    if (!relation) {
+    if (!relation || !transaction) {
       return false;
+    }
+
+    if (relation.isPrimary) {
+      return true;
     }
 
     await tx.transactionContact.updateMany({
@@ -371,6 +529,28 @@ export async function setPrimaryTransactionContact(
     });
 
     await syncTransactionPrimaryClientId(tx, organizationId, transactionId);
+
+    const transactionLabel = buildTransactionObjectLabel(transaction);
+    await recordActivityLogEvent(tx, {
+      organizationId,
+      membershipId: actorMembershipId ?? null,
+      entityType: "transaction",
+      entityId: transactionId,
+      action: activityLogActions.transactionPrimaryContactChanged,
+      payload: {
+        officeId: transaction.officeId,
+        transactionId,
+        contactId,
+        contactName: relation.client.fullName,
+        transactionLabel,
+        objectLabel: transactionLabel,
+        details: [
+          `Previous primary: ${previousPrimary?.client.fullName ?? "None"}`,
+          `New primary: ${relation.client.fullName}`
+        ]
+      }
+    });
+
     return true;
   });
 }

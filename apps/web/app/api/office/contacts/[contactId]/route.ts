@@ -63,6 +63,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const contact = await updateContact(contactId, {
     organizationId: context.currentOrganization.id,
     ownerMembershipId: context.currentMembership.id,
+    actorMembershipId: context.currentMembership.id,
+    actorOfficeId: context.currentOffice?.id,
     fullName,
     email: String(body.email ?? ""),
     phone: String(body.phone ?? ""),

@@ -2590,6 +2590,229 @@ select {
   display: grid;
 }
 
+.bm-activity-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+}
+
+.bm-activity-nav-column,
+.bm-activity-streams {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.bm-activity-filter-bar {
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.bm-activity-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.bm-activity-filter-field {
+  display: grid;
+  gap: 6px;
+}
+
+.bm-activity-filter-field span {
+  color: #666;
+  font-size: 0.71rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bm-activity-filter-field input,
+.bm-activity-filter-field select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #d3d3d3;
+  background: #fff;
+  color: #3d3d3d;
+  font-size: 0.75rem;
+}
+
+.bm-activity-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bm-activity-sections-card,
+.bm-activity-log-card {
+  align-content: start;
+}
+
+.bm-activity-section-list,
+.bm-activity-records {
+  display: grid;
+}
+
+.bm-activity-section-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-top: 1px solid #ededed;
+  color: #6d6d6d;
+  font-size: 0.72rem;
+}
+
+.bm-activity-section-link strong {
+  color: #393939;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.bm-activity-section-link span {
+  color: #8a8a8a;
+}
+
+.bm-activity-section-link.is-active {
+  background: #f5f8fc;
+}
+
+.bm-activity-section-link.is-active strong,
+.bm-activity-section-link.is-active span {
+  color: #0d2e74;
+}
+
+.bm-activity-record {
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid #ededed;
+}
+
+.bm-alerts-card {
+  border-color: #e7ddd0;
+  background: linear-gradient(180deg, #fffdf8 0%, #fffaf0 100%);
+}
+
+.bm-alert-record {
+  background: rgba(255, 251, 240, 0.44);
+}
+
+.bm-activity-record-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.bm-activity-record-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.bm-activity-record-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #5b6776;
+  font-size: 0.76rem;
+}
+
+.bm-activity-record-summary strong {
+  color: #1d2632;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.bm-activity-object-link {
+  color: #0f62db;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.bm-activity-object-link:hover {
+  text-decoration: underline;
+}
+
+.bm-activity-object-link.is-static {
+  margin: 0;
+  color: #5c6979;
+  text-decoration: none;
+}
+
+.bm-activity-record-meta {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  color: #8e8e8e;
+  font-size: 0.69rem;
+  text-align: right;
+}
+
+.bm-activity-detail-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #6f7a88;
+  font-size: 0.71rem;
+}
+
+.bm-activity-detail-list li {
+  position: relative;
+  padding-left: 14px;
+}
+
+.bm-activity-detail-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #a9b8cb;
+}
+
+.bm-alert-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bm-alert-type-label {
+  color: #805b27;
+  font-size: 0.69rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bm-alert-pill {
+  min-width: 66px;
+}
+
+.bm-alert-pill-high {
+  background: #a12f2f;
+  color: #fff;
+}
+
+.bm-alert-pill-medium {
+  background: #d29019;
+  color: #fff;
+}
+
+.bm-alert-pill-low {
+  background: #2c6b89;
+  color: #fff;
+}
+
 .bm-table-toolbar {
   display: flex;
   align-items: center;
@@ -3223,7 +3446,12 @@ select {
   }
 
   .bm-office-table-row-transactions,
-  .bm-pipeline-board {
+  .bm-pipeline-board,
+  .bm-activity-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .bm-activity-filter-grid {
     grid-template-columns: 1fr;
   }
 
@@ -3285,6 +3513,15 @@ select {
 
   .bm-detail-head {
     display: grid;
+  }
+
+  .bm-activity-record-top {
+    display: grid;
+  }
+
+  .bm-activity-record-meta {
+    justify-items: start;
+    text-align: left;
   }
 
   .bm-office-table-header {

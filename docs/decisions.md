@@ -253,27 +253,33 @@ Trade-off：
 
 - 再决定是否升级到更完整的 auth provider、session store、数据级权限
 
-### 5. `Activity` 当前只展示真实运营项，不伪造完整 audit log
+### 5. `Activity` 现在以 `AuditLog` 为主，并同页补了实时 `Operational Alerts`
 
 原因：
 
-- 当前数据库里已经有 `Event`、`Notification`、`FollowUpTask`、`Transaction`
-- 但还没有一套可靠、持续写入的 transaction 审计历史
-- 如果现在把 `Activity` 包装成“完整审计流”，会误导后续维护者
+- 当前仓库已经落地了多条真实写入路径：
+  - transaction create / status / finance
+  - transaction contact link / unlink / primary change
+  - transaction task create / update / complete
+  - contact create / update
+- 与其继续维护一个“运营 feed”，不如直接把这些真实写入统一沉淀到 `AuditLog`
+- 但也不能假装系统已经有完整 Brokermint 级 audit coverage，所以范围必须如实收口
 
 影响：
 
-- `Activity` 页面当前只显示：
-  - upcoming events
-  - recent notifications
-  - follow-up needs
-  - recent operational items（由 transaction `updatedAt` 派生）
-- 页面文案会明确说明这不是完整 audit log
+- `Activity` 页面现在改成 account activity log：
+  - 左侧 section counts
+  - 右侧保留最新 200 条 event stream
+  - 同页增加基于数据库状态实时派生的 alerts
+  - 以 `AuditLog` 为主数据源，alerts 只作为第二数据源
+- 事件只覆盖当前仓库已经实现并真实写入的模块
+- 没有 write hook 的模块，不会伪造 event category
+- 没有真实底层模块的 alert 类型也不会伪造，比如 document/signature/invoice
 
 Trade-off：
 
-- 当前 activity feed 比理想中的 Brokermint activity stream 更窄
-- 但它是真实、可解释、可维护的，不会把还不存在的数据能力伪装成已完成
+- 当前 activity 还不是完整 back-office 审计产品，也不是完整通知中心
+- 但它已经是一个真实、actor-aware 的 activity log，并能把最关键的运营告警收进系统内
 
 ## 后续接手时最需要先理解的几个决策
 

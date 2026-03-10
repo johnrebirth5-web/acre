@@ -52,7 +52,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const transaction = await updateTransactionStatus({
     organizationId: context.currentOrganization.id,
     transactionId,
-    status: status as OfficeTransactionStatus
+    status: status as OfficeTransactionStatus,
+    actorMembershipId: context.currentMembership.id
   });
 
   if (!transaction) {

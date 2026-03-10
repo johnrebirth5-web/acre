@@ -38,7 +38,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     referralFee: body?.referralFee ?? "",
     officeNet: body?.officeNet ?? "",
     agentNet: body?.agentNet ?? "",
-    financeNotes: body?.financeNotes ?? ""
+    financeNotes: body?.financeNotes ?? "",
+    actorMembershipId: context.currentMembership.id
   });
 
   if (!transaction) {

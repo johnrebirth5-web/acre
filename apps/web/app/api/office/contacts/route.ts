@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
   const contact = await createContact({
     organizationId: context.currentOrganization.id,
     ownerMembershipId: context.currentMembership.id,
+    actorMembershipId: context.currentMembership.id,
+    actorOfficeId: context.currentOffice?.id,
     fullName,
     email: String(body.email ?? ""),
     phone: String(body.phone ?? ""),

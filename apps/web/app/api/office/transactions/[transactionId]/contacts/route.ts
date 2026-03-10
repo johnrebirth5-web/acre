@@ -29,7 +29,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   }
 
   const linked = await linkContactToTransaction(context.currentOrganization.id, contactId, transactionId, {
-    isPrimary: Boolean(body?.isPrimary)
+    isPrimary: Boolean(body?.isPrimary),
+    actorMembershipId: context.currentMembership.id
   });
 
   if (!linked) {

@@ -28,7 +28,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Linked contact not found." }, { status: 404 });
   }
 
-  const updated = await setPrimaryTransactionContact(context.currentOrganization.id, transactionId, relation.clientId);
+  const updated = await setPrimaryTransactionContact(
+    context.currentOrganization.id,
+    transactionId,
+    relation.clientId,
+    context.currentMembership.id
+  );
 
   if (!updated) {
     return NextResponse.json({ error: "Failed to set primary contact." }, { status: 400 });
@@ -55,7 +60,12 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Linked contact not found." }, { status: 404 });
   }
 
-  const removed = await unlinkContactFromTransaction(context.currentOrganization.id, relation.clientId, transactionId);
+  const removed = await unlinkContactFromTransaction(
+    context.currentOrganization.id,
+    relation.clientId,
+    transactionId,
+    context.currentMembership.id
+  );
 
   if (!removed) {
     return NextResponse.json({ error: "Failed to unlink contact." }, { status: 400 });

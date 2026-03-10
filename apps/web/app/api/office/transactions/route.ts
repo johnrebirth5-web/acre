@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
     organizationId: context.currentOrganization.id,
     officeId: context.currentOffice?.id,
     ownerMembershipId: context.currentMembership.id,
+    actorMembershipId: context.currentMembership.id,
     transactionType: String(body.transactionType ?? ""),
     transactionStatus: String(body.transactionStatus ?? ""),
     representing: String(body.representing ?? ""),

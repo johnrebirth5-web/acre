@@ -41,6 +41,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const task = await createTransactionTask({
     organizationId: context.currentOrganization.id,
     transactionId,
+    actorMembershipId: context.currentMembership.id,
     checklistGroup: body?.checklistGroup ?? "",
     title,
     description: body?.description ?? "",

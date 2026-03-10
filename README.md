@@ -67,11 +67,27 @@
   - 支持最小 date range / owner 过滤
   - 支持按当前过滤条件导出真实 transaction CSV
 - `Activity` 现在也已接入真实数据库：
-  - 支持 upcoming events
-  - 支持 recent notifications
-  - 支持 follow-up needs
-  - 支持基于 transaction 更新时间的 recent operational items
-  - 明确不是完整 audit log，只显示当前真实可追溯的运营数据
+  - 页面现在改为真实 `Account Activity Log`
+  - 以 `AuditLog` 为主数据源
+  - 同页整合 `Activity Log + Operational Alerts`
+  - 支持左侧事件分类和告警分类，右侧分别显示审计事件流和实时告警
+  - 默认显示当前 scope 内最新 `200` 条记录
+  - 支持最小过滤：
+    - `All / Activity only / Alerts only`
+    - `actor`
+    - `date range`
+  - 当前已接入的真实事件包括：
+    - transaction created / status changed / closed
+    - transaction contact linked / unlinked / primary changed
+    - transaction finance updated
+    - transaction task created / updated / completed
+    - contact created / updated
+  - 当前已接入的真实告警包括：
+    - transaction closing soon
+    - overdue transaction tasks
+    - contacts needing follow-up soon
+    - overdue follow-up tasks
+    - transaction finance incomplete
 - `Create Transaction` 保持在 `Transactions` 页面内的 modal 结构，按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
 - 基础页面路由：
   - `/` -> 登录后跳对应 workspace，未登录跳 `/login`

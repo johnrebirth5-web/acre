@@ -8,7 +8,7 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Reports` 和 `Office Activity` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Reports` 和 `Office Activity Log` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
@@ -48,7 +48,7 @@
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
   - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update
-  - `Activity`：server-side 数据读取 upcoming events / notifications / follow-up pressure / recent operational items
+  - `Activity`：server-side 同时读取真实 `AuditLog` 和实时派生 alerts，渲染 `Activity Log + Operational Alerts`
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
@@ -179,7 +179,7 @@
 - `getPrismaClient`
 - `getSeededWorkspaceSnapshot`
 - `getOfficeDashboardBusinessSnapshot`
-- `getOfficeActivitySnapshot`
+- `getOfficeActivityLogSnapshot`
 - `getOfficePipelineBuckets`
 - `listTransactions`
 - `getTransactionById`
@@ -216,7 +216,7 @@
 当前 `Back Office` 页面读取路径大致是：
 
 1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
-2. `/office/activity` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeActivitySnapshot`
+2. `/office/activity` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeActivityLogSnapshot`
 3. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineBuckets`
 4. `/office/transactions` 调 `@acre/db` 的 transaction service
 5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
@@ -228,9 +228,11 @@
 10. `/office/contacts` 调 `@acre/db` 的 contact service
 11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
 12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
-13. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
-14. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-15. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+13. `/office/activity` 读取 `AuditLog`，并结合 transaction / task / contact / follow-up 的实时数据库状态派生 operational alerts
+14. transaction / contact / finance / task 的真实写入路径会同步写入 `AuditLog`
+15. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+16. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+17. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
