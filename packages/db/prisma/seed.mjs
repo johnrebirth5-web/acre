@@ -468,8 +468,75 @@ async function main() {
     }
   });
 
+  const seededTransactionTasks = [
+    {
+      id: "seed-transaction-task-graham-contract",
+      transactionId: "seed-tx-graham-court",
+      checklistGroup: "Contract",
+      title: "Collect signed buyer agreement",
+      description: "Confirm executed contract PDF is available from the buyer side.",
+      assigneeEmail: "jane@acre.com",
+      dueAt: new Date("2026-03-14T16:00:00.000Z"),
+      status: "todo",
+      sortOrder: 0
+    },
+    {
+      id: "seed-transaction-task-graham-intro",
+      transactionId: "seed-tx-graham-court",
+      checklistGroup: "Client care",
+      title: "Send attorney introduction",
+      description: "Email the standard attorney introduction once offer terms are confirmed.",
+      assigneeEmail: "jane@acre.com",
+      dueAt: new Date("2026-03-16T15:00:00.000Z"),
+      status: "in_progress",
+      sortOrder: 1
+    },
+    {
+      id: "seed-transaction-task-court-square-invoice",
+      transactionId: "seed-tx-45-10-court-square",
+      checklistGroup: "Finance",
+      title: "Upload vendor invoice package",
+      description: "Prepare the pending invoice package for vendor review.",
+      assigneeEmail: "simon@acre.com",
+      dueAt: new Date("2026-03-18T17:00:00.000Z"),
+      status: "completed",
+      sortOrder: 0
+    }
+  ];
+
+  for (const task of seededTransactionTasks) {
+    const assigneeMembership = membershipByEmail.get(task.assigneeEmail) ?? null;
+
+    await prisma.transactionTask.upsert({
+      where: { id: task.id },
+      update: {
+        organizationId: organization.id,
+        transactionId: task.transactionId,
+        checklistGroup: task.checklistGroup,
+        title: task.title,
+        description: task.description,
+        assigneeMembershipId: assigneeMembership?.id ?? null,
+        dueAt: task.dueAt,
+        status: task.status,
+        sortOrder: task.sortOrder
+      },
+      create: {
+        id: task.id,
+        organizationId: organization.id,
+        transactionId: task.transactionId,
+        checklistGroup: task.checklistGroup,
+        title: task.title,
+        description: task.description,
+        assigneeMembershipId: assigneeMembership?.id ?? null,
+        dueAt: task.dueAt,
+        status: task.status,
+        sortOrder: task.sortOrder
+      }
+    });
+  }
+
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, and ${seededTasks.length} follow-up tasks.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, and ${seededTransactionTasks.length} transaction tasks.`
   );
 }
 

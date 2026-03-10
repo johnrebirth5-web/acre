@@ -48,6 +48,7 @@
   - `Create Transaction` modal 会真实写入数据库
   - 已有 transaction detail 页面
   - transaction detail 现在会渲染真实 linked contacts，并支持 link / unlink / set primary
+  - transaction detail 现在有最小真实 `Checklist / Tasks` 区块，可创建、编辑并切换完成状态
   - transaction detail 现在有最小真实 `Finance` 区块，可编辑 gross commission / referral fee / office net / agent net / finance notes
   - 已有 status update 写路径
 - `Contacts` 现在也已接入真实数据库：
@@ -95,6 +96,8 @@
   - `/api/office/transactions/:transactionId/finance`
   - `/api/office/transactions/:transactionId/contacts`
   - `/api/office/transactions/:transactionId/contacts/:contactLinkId`
+  - `/api/office/transactions/:transactionId/tasks`
+  - `/api/office/transactions/:transactionId/tasks/:taskId`
   - `/api/office/contacts`
   - `/api/office/contacts/:contactId`
   - `/api/office/contacts/:contactId/follow-up-tasks`

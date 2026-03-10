@@ -98,6 +98,12 @@ enum TransactionContactRole {
   other
 }
 
+enum TransactionTaskStatus {
+  todo
+  in_progress
+  completed
+}
+
 model Organization {
   id            String         @id @default(cuid())
   name          String
@@ -117,6 +123,7 @@ model Organization {
   auditLogs     AuditLog[]
   transactions  Transaction[]
   transactionContacts TransactionContact[]
+  transactionTasks TransactionTask[]
 }
 
 model Office {
@@ -174,6 +181,7 @@ model Membership {
   eventRsvps        EventRsvp[]
   auditLogs         AuditLog[]
   transactionsOwned Transaction[]
+  transactionTasksAssigned TransactionTask[]
 
   @@unique([organizationId, userId])
 }
@@ -217,6 +225,7 @@ model Transaction {
   ownerMembership             Membership?              @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
   primaryClient               Client?                  @relation("TransactionPrimaryClient", fields: [primaryClientId], references: [id], onDelete: SetNull)
   transactionContacts         TransactionContact[]
+  tasks                       TransactionTask[]
 
   @@index([organizationId, status])
   @@index([organizationId, officeId])
@@ -327,6 +336,29 @@ model TransactionContact {
   @@index([organizationId, transactionId])
   @@index([organizationId, clientId])
   @@index([organizationId, transactionId, isPrimary])
+}
+
+model TransactionTask {
+  id                 String                @id @default(cuid())
+  organizationId     String
+  transactionId      String
+  checklistGroup     String                @default("General")
+  title              String
+  description        String?
+  assigneeMembershipId String?
+  dueAt              DateTime?
+  status             TransactionTaskStatus @default(todo)
+  sortOrder          Int                   @default(0)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction        Transaction           @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  assigneeMembership Membership?           @relation(fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, transactionId])
+  @@index([organizationId, assigneeMembershipId])
+  @@index([organizationId, transactionId, status])
+  @@index([organizationId, transactionId, sortOrder])
 }
 
 model FollowUpTask {

@@ -17,7 +17,8 @@ export const databaseModules = [
   "vendors",
   "audit_logs",
   "transactions",
-  "transaction_contacts"
+  "transaction_contacts",
+  "transaction_tasks"
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
@@ -35,6 +36,12 @@ export {
   setPrimaryTransactionContact,
   unlinkContactFromTransaction
 } from "./transaction-contacts";
+export {
+  createTransactionTask,
+  listTransactionTaskAssigneeOptions,
+  listTransactionTasks,
+  updateTransactionTask
+} from "./transaction-tasks";
 export { createTransaction, getTransactionById, listTransactions, updateTransactionFinance, updateTransactionStatus } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
 export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootstrap";
@@ -60,6 +67,13 @@ export type {
   OfficeReportsSnapshot
 } from "./reports";
 export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
+export type {
+  CreateTransactionTaskInput,
+  OfficeTransactionTask,
+  OfficeTransactionTaskAssigneeOption,
+  OfficeTransactionTaskStatus,
+  UpdateTransactionTaskInput
+} from "./transaction-tasks";
 export type {
   CreateTransactionInput,
   OfficeTransactionDetail,

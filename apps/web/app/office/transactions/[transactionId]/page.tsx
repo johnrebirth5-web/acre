@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { getTransactionById } from "@acre/db";
+import { getTransactionById, listTransactionTaskAssigneeOptions, listTransactionTasks } from "@acre/db";
 import { notFound } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
 import { TransactionContactsCard } from "./contacts-card";
 import { TransactionFinanceForm } from "./finance-form";
 import { TransactionStatusForm } from "./status-form";
+import { TransactionTasksCard } from "./tasks-card";
 
 type TransactionDetailPageProps = {
   params: Promise<{
@@ -15,7 +16,11 @@ type TransactionDetailPageProps = {
 export default async function OfficeTransactionDetailPage({ params }: TransactionDetailPageProps) {
   const context = await requireOfficeSession();
   const { transactionId } = await params;
-  const transaction = await getTransactionById(context.currentOrganization.id, transactionId);
+  const [transaction, tasks, taskAssigneeOptions] = await Promise.all([
+    getTransactionById(context.currentOrganization.id, transactionId),
+    listTransactionTasks(context.currentOrganization.id, transactionId),
+    listTransactionTaskAssigneeOptions(context.currentOrganization.id, transactionId)
+  ]);
 
   if (!transaction) {
     notFound();
@@ -100,6 +105,8 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
         contacts={transaction.contacts}
         transactionId={transaction.id}
       />
+
+      <TransactionTasksCard assigneeOptions={taskAssigneeOptions} tasks={tasks} transactionId={transaction.id} />
 
       <section className="bm-detail-card">
         <div className="bm-card-head">

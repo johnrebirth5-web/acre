@@ -47,6 +47,7 @@
 - 当前 API 已包含最小读写路径：
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
+  - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
@@ -163,6 +164,7 @@
 - `ListingShareLink`
 - `Client`
 - `FollowUpTask`
+- `TransactionTask`
 - `Notification`
 - `Event`
 - `EventRsvp`
@@ -187,6 +189,9 @@
 - `updateContact`
 - `createFollowUpTask`
 - `linkContactToTransaction`
+- `listTransactionTasks`
+- `createTransactionTask`
+- `updateTransactionTask`
 - `getOfficeReportsSnapshot`
 
 ## 关键数据流
@@ -216,12 +221,13 @@
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
 8. detail 页面通过 transaction contact routes 做 link / unlink / set primary
-9. `/office/contacts` 调 `@acre/db` 的 contact service
-10. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
-11. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
-12. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
-13. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-14. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen
+10. `/office/contacts` 调 `@acre/db` 的 contact service
+11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
+12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
+13. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+14. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+15. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 

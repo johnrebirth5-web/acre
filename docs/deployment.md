@@ -43,7 +43,7 @@ npm run build
 npm run db:validate
 ```
 
-如果拉到包含新 Prisma migration 的代码，例如 transaction、contact、transaction finance，或 `TransactionContact` 这类 relation schema 扩展，先额外执行：
+如果拉到包含新 Prisma migration 的代码，例如 transaction、contact、transaction finance、`TransactionContact`，或 `TransactionTask` 这类 relation / workflow schema 扩展，先额外执行：
 
 ```bash
 npm run db:migrate -- --name your_change_name

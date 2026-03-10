@@ -2286,6 +2286,126 @@ select {
   font-size: 0.74rem;
 }
 
+.bm-card-head-inline {
+  margin-bottom: 14px;
+}
+
+.bm-transaction-task-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.bm-transaction-task-group {
+  display: grid;
+  gap: 10px;
+}
+
+.bm-transaction-task-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bm-transaction-task-group-head strong {
+  color: #2f2f2f;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.bm-transaction-task-group-head span {
+  color: #8c8c8c;
+  font-size: 0.72rem;
+}
+
+.bm-transaction-task-list {
+  display: grid;
+  gap: 12px;
+}
+
+.bm-transaction-task-row,
+.bm-transaction-task-create {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e2e2e2;
+  background: #fafafa;
+}
+
+.bm-transaction-task-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.bm-transaction-task-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bm-transaction-task-status strong {
+  color: #5b5b5b;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.bm-transaction-task-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bm-transaction-task-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.bm-transaction-task-grid input,
+.bm-transaction-task-grid select,
+.bm-transaction-task-grid textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  background: #ffffff;
+  color: #4a4a4a;
+  font-size: 0.74rem;
+}
+
+.bm-transaction-task-grid input,
+.bm-transaction-task-grid select {
+  height: 38px;
+}
+
+.bm-transaction-task-grid textarea {
+  resize: vertical;
+  min-height: 84px;
+}
+
+.bm-transaction-task-create {
+  margin-top: 18px;
+}
+
+.bm-task-status-todo {
+  background: #f2f4f8;
+  color: #556271;
+}
+
+.bm-task-status-in-progress {
+  background: #eef3ff;
+  color: #365d9a;
+}
+
+.bm-task-status-completed {
+  background: #eef8f0;
+  color: #3c7454;
+}
+
 .bm-status-pill-primary {
   background: #e7f0ff;
   color: #173c8a;
@@ -2972,7 +3092,8 @@ select {
   }
 
   .bm-new-transaction-grid,
-  .bm-transaction-form-grid {
+  .bm-transaction-form-grid,
+  .bm-transaction-task-grid {
     grid-template-columns: 1fr;
   }
 
@@ -3132,7 +3253,8 @@ select {
 
   .bm-transaction-modal-grid,
   .bm-transaction-modal-grid-additional,
-  .bm-contact-form-grid {
+  .bm-contact-form-grid,
+  .bm-transaction-task-grid {
     grid-template-columns: 1fr;
   }
 
