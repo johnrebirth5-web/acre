@@ -385,6 +385,54 @@ async function main() {
     }
   });
 
+  await prisma.transactionContact.upsert({
+    where: {
+      transactionId_clientId: {
+        transactionId: "seed-tx-graham-court",
+        clientId: "seed-client-evelyn"
+      }
+    },
+    update: {
+      organizationId: organization.id,
+      role: "buyer",
+      isPrimary: true,
+      notes: "Seeded primary client link"
+    },
+    create: {
+      id: "seed-transaction-contact-evelyn",
+      organizationId: organization.id,
+      transactionId: "seed-tx-graham-court",
+      clientId: "seed-client-evelyn",
+      role: "buyer",
+      isPrimary: true,
+      notes: "Seeded primary client link"
+    }
+  });
+
+  await prisma.transactionContact.upsert({
+    where: {
+      transactionId_clientId: {
+        transactionId: "seed-tx-45-10-court-square",
+        clientId: "seed-client-daniel"
+      }
+    },
+    update: {
+      organizationId: organization.id,
+      role: "tenant",
+      isPrimary: true,
+      notes: "Seeded primary client link"
+    },
+    create: {
+      id: "seed-transaction-contact-daniel",
+      organizationId: organization.id,
+      transactionId: "seed-tx-45-10-court-square",
+      clientId: "seed-client-daniel",
+      role: "tenant",
+      isPrimary: true,
+      notes: "Seeded primary client link"
+    }
+  });
+
   console.log(
     `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, and ${seededTasks.length} follow-up tasks.`
   );

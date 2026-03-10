@@ -8,12 +8,12 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Transactions`、`Office Contacts` 和 `Office Reports` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Pipeline`、`Office Transactions`、`Office Contacts` 和 `Office Reports` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 
 ## 技术栈
 
@@ -47,6 +47,7 @@
 - 当前 API 已包含最小读写路径：
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
+- 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前已有最小本地登录 / 登出 / cookie session
 - 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
@@ -120,7 +121,6 @@
 - `listEvents`
 - `listResources`
 - `listTransactions`
-- `getPipelineBuckets`
 - `getApiCatalog`
 
 ### `packages/auth`
@@ -175,6 +175,7 @@
 - `getPrismaClient`
 - `getSeededWorkspaceSnapshot`
 - `getOfficeDashboardBusinessSnapshot`
+- `getOfficePipelineBuckets`
 - `listTransactions`
 - `getTransactionById`
 - `createTransaction`
@@ -207,7 +208,7 @@
 当前 `Back Office` 页面读取路径大致是：
 
 1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
-2. `/office/pipeline` 调 `getPipelineBuckets`
+2. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineBuckets`
 3. `/office/transactions` 调 `@acre/db` 的 transaction service
 4. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
 5. `/office/transactions/:transactionId` 调 `getTransactionById`
@@ -327,7 +328,8 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - contact list / create / edit
 - contact detail
 - follow-up task create / list
-- primary client -> transaction link
+- `TransactionContact` -> transaction/contact relation
+- `Transaction.primaryClientId` 兼容同步
 
 更高级的 CRM 自动化、提醒编排、批量任务、线索分配仍未实现。
 
@@ -369,7 +371,7 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 
 ### 4. 数据库 runtime 已有，但主读取链路还没有切换
 
-后续第一位接手者最容易误判“既然有 Prisma client 和 seed，就说明页面已经接数据库”。实际上现在只有 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 这几条线已经接数据库，其他主页面大多还没有。
+后续第一位接手者最容易误判“既然有 Prisma client 和 seed，就说明页面已经接数据库”。实际上现在只有 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 这几条线已经接数据库，其他主页面大多还没有。
 
 建议：
 

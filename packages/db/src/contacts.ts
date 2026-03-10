@@ -1,5 +1,6 @@
-import { Prisma, TaskStatus } from "@prisma/client";
+import { Prisma, TaskStatus, TransactionContactRole } from "@prisma/client";
 import { prisma } from "./client";
+import { linkContactToTransaction as linkTransactionContact } from "./transaction-contacts";
 
 export type OfficeContactRecord = {
   id: string;
@@ -35,6 +36,8 @@ export type OfficeContactLinkedTransaction = {
   label: string;
   status: string;
   price: string;
+  role: string;
+  isPrimary: boolean;
 };
 
 export type OfficeTransactionLinkOption = {
@@ -158,6 +161,13 @@ function formatBudget(min: Prisma.Decimal | null, max: Prisma.Decimal | null) {
   }
 
   return format(min ?? max);
+}
+
+function formatTransactionContactRole(role: TransactionContactRole) {
+  return role
+    .split("_")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join("-");
 }
 
 function mapContactRecord(
@@ -328,6 +338,15 @@ export async function getContactById(organizationId: string, contactId: string):
           }
         },
         orderBy: [{ createdAt: "desc" }]
+      },
+      transactionContacts: {
+        where: {
+          organizationId
+        },
+        include: {
+          transaction: true
+        },
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]
       }
     }
   });
@@ -336,29 +355,39 @@ export async function getContactById(organizationId: string, contactId: string):
     return null;
   }
 
-  const [linkedTransactions, availableTransactions] = await Promise.all([
-    prisma.transaction.findMany({
-      where: {
-        organizationId,
-        primaryClientId: client.id
-      },
-      orderBy: [{ updatedAt: "desc" }]
-    }),
-    prisma.transaction.findMany({
-      where: {
-        organizationId,
-        OR: [{ primaryClientId: null }, { primaryClientId: client.id }]
-      },
-      orderBy: [{ updatedAt: "desc" }],
-      select: {
-        id: true,
-        title: true,
-        address: true,
-        city: true,
-        state: true
+  const availableTransactions = await prisma.transaction.findMany({
+    where: {
+      organizationId,
+      transactionContacts: {
+        none: {
+          clientId: client.id
+        }
       }
-    })
-  ]);
+    },
+    orderBy: [{ updatedAt: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      address: true,
+      city: true,
+      state: true
+    }
+  });
+
+  const linkedTransactions = client.transactionContacts.map((transactionContact) => ({
+    id: transactionContact.transaction.id,
+    label: `${transactionContact.transaction.address}, ${transactionContact.transaction.city}, ${transactionContact.transaction.state} ${transactionContact.transaction.zipCode}`,
+    status: transactionContact.transaction.status,
+    price: transactionContact.transaction.price
+      ? new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: Number(transactionContact.transaction.price) % 1 === 0 ? 0 : 2
+        }).format(Number(transactionContact.transaction.price))
+      : "$0",
+    role: formatTransactionContactRole(transactionContact.role),
+    isPrimary: transactionContact.isPrimary
+  }));
 
   return {
     id: client.id,
@@ -377,18 +406,7 @@ export async function getContactById(organizationId: string, contactId: string):
     nextFollowUpAt: formatDateValue(client.nextFollowUpAt),
     ownerMembershipId: client.ownerMembershipId,
     ownerName: client.ownerMembership ? `${client.ownerMembership.user.firstName} ${client.ownerMembership.user.lastName}` : "Unassigned",
-    linkedTransactions: linkedTransactions.map((transaction) => ({
-      id: transaction.id,
-      label: `${transaction.address}, ${transaction.city}, ${transaction.state} ${transaction.zipCode}`,
-      status: transaction.status,
-      price: transaction.price
-        ? new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            maximumFractionDigits: Number(transaction.price) % 1 === 0 ? 0 : 2
-          }).format(Number(transaction.price))
-        : "$0"
-    })),
+    linkedTransactions,
     availableTransactions: availableTransactions.map((transaction) => ({
       id: transaction.id,
       label: `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`
@@ -453,33 +471,5 @@ export async function createFollowUpTask(input: CreateFollowUpTaskInput): Promis
 }
 
 export async function linkContactToTransaction(organizationId: string, contactId: string, transactionId: string): Promise<boolean> {
-  const [client, transaction] = await Promise.all([
-    prisma.client.findFirst({
-      where: {
-        id: contactId,
-        organizationId
-      },
-      select: { id: true }
-    }),
-    prisma.transaction.findFirst({
-      where: {
-        id: transactionId,
-        organizationId
-      },
-      select: { id: true }
-    })
-  ]);
-
-  if (!client || !transaction) {
-    return false;
-  }
-
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: {
-      primaryClientId: contactId
-    }
-  });
-
-  return true;
+  return linkTransactionContact(organizationId, contactId, transactionId);
 }

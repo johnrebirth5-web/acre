@@ -8,7 +8,7 @@
 
 - 当前数据库相关代码使用 `DATABASE_URL`
 - 当前主页面和大多数 API 仍不依赖数据库，因此在“只跑前端和 mock API”时，即使没有真实数据库，也能运行
-- 但 `Office Transactions`、`Office Contacts`、本地登录和数据库 probe 已经依赖 `DATABASE_URL`
+- 但 `Office Pipeline`、`Office Transactions`、`Office Contacts`、本地登录和数据库 probe 已经依赖 `DATABASE_URL`
 - 一旦执行 Prisma 相关命令，或访问这些数据库路径，`DATABASE_URL` 就变成必需项
 - 当前本地 auth/session 可以使用默认开发 secret，但建议显式配置 `ACRE_SESSION_SECRET`
 
@@ -23,6 +23,7 @@
 - 提供 PostgreSQL 连接串
 - 当前用于 Prisma schema 校验
 - 当前用于 Prisma Client、migration、seed 和数据库 probe 读取
+- 当前也用于 `TransactionContact` 关系迁移和回填
 - 后续会用于更多页面和 API 的真实数据库读写
 
 是否必填：
@@ -30,7 +31,7 @@
 - 对 Prisma 命令是必填
 - 对数据库 probe route 是必填
 - 对只看 mock 页面本地运行是“可不填”
-- 对 `/office/transactions`、`/office/contacts`、`/login`、数据库 probe 是必填
+- 对 `/office/pipeline`、`/office/transactions`、`/office/contacts`、`/login`、数据库 probe 是必填
 
 示例格式：
 
@@ -44,6 +45,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/acre"
 - `npm run db:migrate` 会失败
 - `npm run db:seed` 会失败
 - `/api/db/seeded-context` 会失败
+- `/office/pipeline` 会失败
 - `/office/transactions` 会失败
 - `/office/contacts` 会失败
 - `/login` 和需要 session context 的 server-side 查询会失败

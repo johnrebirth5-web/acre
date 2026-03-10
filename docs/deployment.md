@@ -43,7 +43,7 @@ npm run build
 npm run db:validate
 ```
 
-如果拉到包含新 Prisma migration 的代码，例如 transaction 或 contact schema 扩展，先额外执行：
+如果拉到包含新 Prisma migration 的代码，例如 transaction、contact，或 `TransactionContact` 这类 relation schema 扩展，先额外执行：
 
 ```bash
 npm run db:migrate -- --name your_change_name
@@ -60,7 +60,7 @@ npm run db:seed
 
 但注意：
 
-- 现在 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
+- 现在 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
 - 所以当前并不存在“完整生产部署”
 
 ## 构建与发布

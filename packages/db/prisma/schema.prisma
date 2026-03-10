@@ -88,6 +88,16 @@ enum TransactionRepresenting {
   landlord
 }
 
+enum TransactionContactRole {
+  buyer
+  seller
+  co_buyer
+  co_seller
+  tenant
+  landlord
+  other
+}
+
 model Organization {
   id            String         @id @default(cuid())
   name          String
@@ -106,6 +116,7 @@ model Organization {
   vendors       Vendor[]
   auditLogs     AuditLog[]
   transactions  Transaction[]
+  transactionContacts TransactionContact[]
 }
 
 model Office {
@@ -199,7 +210,8 @@ model Transaction {
   organization                Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office                      Office?                  @relation(fields: [officeId], references: [id], onDelete: SetNull)
   ownerMembership             Membership?              @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
-  primaryClient               Client?                  @relation(fields: [primaryClientId], references: [id], onDelete: SetNull)
+  primaryClient               Client?                  @relation("TransactionPrimaryClient", fields: [primaryClientId], references: [id], onDelete: SetNull)
+  transactionContacts         TransactionContact[]
 
   @@index([organizationId, status])
   @@index([organizationId, officeId])
@@ -286,9 +298,30 @@ model Client {
   organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   ownerMembership   Membership?   @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
   followUpTasks     FollowUpTask[]
-  transactions      Transaction[]
+  primaryTransactions Transaction[]      @relation("TransactionPrimaryClient")
+  transactionContacts TransactionContact[]
 
   @@index([organizationId, stage])
+}
+
+model TransactionContact {
+  id             String                 @id @default(cuid())
+  organizationId String
+  transactionId  String
+  clientId       String
+  role           TransactionContactRole @default(other)
+  isPrimary      Boolean                @default(false)
+  notes          String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction    Transaction            @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  client         Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, clientId])
+  @@index([organizationId, transactionId])
+  @@index([organizationId, clientId])
+  @@index([organizationId, transactionId, isPrimary])
 }
 
 model FollowUpTask {

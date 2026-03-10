@@ -16,7 +16,8 @@ export const databaseModules = [
   "resources",
   "vendors",
   "audit_logs",
-  "transactions"
+  "transactions",
+  "transaction_contacts"
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
@@ -24,7 +25,14 @@ export { findActiveMembershipContextByEmail, getSessionMembershipContext } from 
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
 export { createContact, createFollowUpTask, getContactById, linkContactToTransaction, listContacts, updateContact } from "./contacts";
+export { getOfficePipelineBuckets } from "./pipeline";
 export { getOfficeReportsSnapshot } from "./reports";
+export {
+  getDefaultTransactionContactRole,
+  listTransactionContacts,
+  setPrimaryTransactionContact,
+  unlinkContactFromTransaction
+} from "./transaction-contacts";
 export { createTransaction, getTransactionById, listTransactions, updateTransactionStatus } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
 export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootstrap";
@@ -40,7 +48,9 @@ export type {
   OfficeTransactionLinkOption,
   SaveContactInput
 } from "./contacts";
+export type { GetOfficePipelineBucketsInput, OfficePipelineBucket, OfficePipelineItem, OfficePipelineStatus } from "./pipeline";
 export type { GetOfficeReportsSnapshotInput, OfficeReportOwnerMetric, OfficeReportOwnerOption, OfficeReportsFilters, OfficeReportsSnapshot } from "./reports";
+export type { LinkTransactionContactInput, OfficeTransactionContact } from "./transaction-contacts";
 export type {
   CreateTransactionInput,
   OfficeTransactionDetail,

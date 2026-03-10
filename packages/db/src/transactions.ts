@@ -1,5 +1,6 @@
 import { Prisma, TransactionRepresenting, TransactionStatus, TransactionType } from "@prisma/client";
 import { prisma } from "./client";
+import { type OfficeTransactionContact } from "./transaction-contacts";
 
 export type OfficeTransactionStatus = "Opportunity" | "Active" | "Pending" | "Closed" | "Cancelled";
 
@@ -52,6 +53,7 @@ export type OfficeTransactionDetail = {
   ownerEmail: string;
   officeName: string;
   additionalFields: Record<string, string>;
+  contacts: OfficeTransactionContact[];
   createdAt: string;
   updatedAt: string;
 };
@@ -270,6 +272,7 @@ function mapTransactionDetail(
         lastName: string;
       };
     } | null;
+    transactionContacts?: OfficeTransactionContact[];
   }
 ): OfficeTransactionDetail {
   const ownerName = transaction.ownerMembership
@@ -308,6 +311,7 @@ function mapTransactionDetail(
             Object.entries(transaction.additionalFields as Record<string, Prisma.JsonValue>).map(([key, value]) => [key, String(value ?? "")])
           )
         : {},
+    contacts: transaction.transactionContacts ?? [],
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString()
   };
@@ -389,11 +393,44 @@ export async function getTransactionById(organizationId: string, transactionId: 
         include: {
           user: true
         }
+      },
+      transactionContacts: {
+        where: {
+          organizationId
+        },
+        include: {
+          client: {
+            select: {
+              fullName: true,
+              email: true,
+              phone: true
+            }
+          }
+        },
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]
       }
     }
   });
 
-  return transaction ? mapTransactionDetail(transaction) : null;
+  return transaction
+    ? mapTransactionDetail({
+        ...transaction,
+        transactionContacts: transaction.transactionContacts.map((transactionContact) => ({
+          id: transactionContact.id,
+          transactionId: transactionContact.transactionId,
+          clientId: transactionContact.clientId,
+          fullName: transactionContact.client.fullName,
+          email: transactionContact.client.email ?? "",
+          phone: transactionContact.client.phone ?? "",
+          role: transactionContact.role
+            .split("_")
+            .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+            .join("-"),
+          isPrimary: transactionContact.isPrimary,
+          notes: transactionContact.notes ?? ""
+        }))
+      })
+    : null;
 }
 
 export async function createTransaction(input: CreateTransactionInput): Promise<OfficeTransactionDetail> {
@@ -444,7 +481,10 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     }
   });
 
-  return mapTransactionDetail(transaction);
+  return mapTransactionDetail({
+    ...transaction,
+    transactionContacts: []
+  });
 }
 
 export async function updateTransactionStatus(input: UpdateTransactionStatusInput): Promise<OfficeTransactionDetail | null> {
@@ -483,5 +523,8 @@ export async function updateTransactionStatus(input: UpdateTransactionStatusInpu
     }
   });
 
-  return mapTransactionDetail(updated);
+  return mapTransactionDetail({
+    ...updated,
+    transactionContacts: []
+  });
 }

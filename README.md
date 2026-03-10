@@ -35,7 +35,11 @@
   - `Acre Useful Links`
   - `Back Office Agent Training Links`
   - `Recent Transactions`（真实数据库）
-- `Pipeline` 当前已实现一版静态漏斗页，按 `Opportunity / Active / Pending / Closed / Cancelled` 分栏展示
+- `Pipeline` 现在也已接入真实数据库：
+  - 按 `Opportunity / Active / Pending / Closed / Cancelled` 返回真实 transaction bucket
+  - 每列包含真实 count、total volume、transaction cards
+  - card 可进入真实 transaction detail
+  - `Closing date` toggle 目前仍是纯视觉占位
 - `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
 - `Transactions` 现在是当前第一个接入真实数据库的 `Office` 模块：
   - 列表页使用 PostgreSQL / Prisma 读取真实 transaction 数据
@@ -48,7 +52,8 @@
   - 支持搜索、创建、编辑和基础 stage 筛选
   - 已有 contact detail 页面
   - 支持为 contact 创建 follow-up task
-  - 支持把 contact 作为 primary client 关联到 transaction
+  - 已切到 `TransactionContact` relation，支持一个 transaction 关联多个 contact
+  - `Transaction.primaryClientId` 仍临时保留，并与当前 primary linked contact 同步
 - `Reports` 现在也已接入真实数据库：
   - 支持 total transactions
   - 支持 transactions by status
@@ -109,8 +114,8 @@
 
 当前未实现 / 计划中：
 
-- `Dashboard`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
-- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
+- `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
+- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
 - 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
 - 未实现 `Brokermint` 中更深层的交易详情子页、审批流、checklists、accounting ledger、buyer offers
 - 写操作接口当前只覆盖：

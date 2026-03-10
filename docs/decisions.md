@@ -180,7 +180,7 @@ Trade-off：
 - 没有异常监控
 - 已有 Vercel 生产部署实例，但还没有完整生产业务能力
 - `@acre/backoffice` 目前同时承担“领域模型”和“临时数据源”两种职责
-- 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但除 `Dashboard` 业务指标、`Transactions`、`Contacts`、`Reports` 外，大部分仍是静态示例数据和简化交互，不应误判为已复刻完成
+- 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但除 `Dashboard` 业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 外，大部分仍是静态示例数据和简化交互，不应误判为已复刻完成
 
 ## 明确的临时方案
 
@@ -222,8 +222,10 @@ Trade-off：
 - 再把真实数据库读取逐步替换进领域 service 和页面/API
 - 当前这条迁移已经从 `Transactions` 和 `Contacts` 开始落地：
   - dashboard 业务指标 / recent transactions / access summary 已切到 Prisma + session context
+  - pipeline buckets 已切到 Prisma，并按 transaction status 做显式列映射
   - transaction list/detail/create/status update 已经切到 Prisma
   - contact list/detail/create/edit/follow-up task / transaction link 已经切到 Prisma
+  - transaction/contact relation 现在以 `TransactionContact` 为 source of truth，`primaryClientId` 仅保留兼容同步
   - reports page 的最小聚合报表已切到 Prisma
   - 其他模块继续保留 mock
 
@@ -251,7 +253,7 @@ Trade-off：
 如果你只读这一段，也要先理解下面四点：
 
 1. 当前系统不是“全栈已完成”，而是“前端 + API + schema + 最小 Prisma runtime + 最小本地 auth + 部分模块数据库落地”已完成
-2. 当前主 API 和页面的数据仍主要来自 `@acre/backoffice` 的内存数据，但 `Dashboard` 的业务指标、`Transactions`、`Contacts`、`Reports` 已是例外
+2. 当前主 API 和页面的数据仍主要来自 `@acre/backoffice` 的内存数据，但 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 已是例外
 3. `packages/db` 现在已经能 generate / migrate / seed / query，但这不代表所有页面都已经完成数据库迁移
 4. 当前 auth 只是本地开发方案，不应误判为生产 auth 设计
 5. 后续功能开发应优先保持模块边界，不要把 auth、db、页面逻辑重新混在一起
