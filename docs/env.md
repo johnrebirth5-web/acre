@@ -56,6 +56,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/acre"
 - `/office/pipeline` 会失败
 - `/office/transactions` 会失败
 - `/office/contacts` 会失败
+- `/office/contacts` 的 URL 驱动分页查询（`q / stage / page / pageSize`）会失败
 - `/office/activity` 会失败
 - `/office/tasks` 会失败
 - `/login` 和需要 session context 的 server-side 查询会失败

@@ -28,7 +28,16 @@ export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnaps
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
-export { createContact, createFollowUpTask, getContactById, linkContactToTransaction, listContacts, updateContact } from "./contacts";
+export {
+  createContact,
+  createFollowUpTask,
+  getContactById,
+  linkContactToTransaction,
+  listContacts,
+  officeContactsPageDefaults,
+  officeContactsPageLimits,
+  updateContact
+} from "./contacts";
 export { getOfficePipelineWorkspaceSnapshot } from "./pipeline";
 export { getOfficeReportsSnapshot, listOfficeReportTransactionsForExport } from "./reports";
 export {

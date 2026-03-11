@@ -143,6 +143,7 @@ git push origin main
 - 使用 `@acre/backoffice` 内存数据
 - 不需要真实数据库即可浏览多数页面和多数 mock API
 - 但 `/office/transactions`、`/office/contacts`、本地登录、以及数据库 probe 依赖真实数据库
+- `/office/contacts` 现在的 `q / stage / page / pageSize` 服务端分页查询也依赖真实数据库
 - 如果只执行 `db:validate`，只需要一个格式正确的 `DATABASE_URL`
 
 ### 测试环境

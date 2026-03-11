@@ -22,6 +22,9 @@ export type OfficeContactRecord = {
 export type OfficeContactListResult = {
   contacts: OfficeContactRecord[];
   totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
 };
 
 export type OfficeContactTask = {
@@ -72,7 +75,13 @@ export type ListContactsInput = {
   organizationId: string;
   search?: string;
   stage?: string;
+  page?: number;
+  pageSize?: number;
 };
+
+const defaultContactsPage = 1;
+const defaultContactsPageSize = 20;
+const maxContactsPageSize = 100;
 
 export type SaveContactInput = {
   organizationId: string;
@@ -247,6 +256,9 @@ export async function listContacts(input: ListContactsInput): Promise<OfficeCont
   const where: Prisma.ClientWhereInput = {
     organizationId: input.organizationId
   };
+  const requestedPage = Number.isFinite(input.page) ? Number(input.page) : defaultContactsPage;
+  const requestedPageSize = Number.isFinite(input.pageSize) ? Number(input.pageSize) : defaultContactsPageSize;
+  const pageSize = Math.min(Math.max(Math.trunc(requestedPageSize) || defaultContactsPageSize, 1), maxContactsPageSize);
 
   if (input.stage && input.stage !== "All") {
     where.stage = input.stage;
@@ -264,30 +276,42 @@ export async function listContacts(input: ListContactsInput): Promise<OfficeCont
     ];
   }
 
-  const [clients, totalCount] = await Promise.all([
-    prisma.client.findMany({
-      where,
-      include: {
-        ownerMembership: {
-          include: {
-            user: true
-          }
+  const totalCount = await prisma.client.count({
+    where
+  });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(Math.trunc(requestedPage) || defaultContactsPage, 1), totalPages);
+  const clients = await prisma.client.findMany({
+    where,
+    include: {
+      ownerMembership: {
+        include: {
+          user: true
         }
-      },
-      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
-    }),
-    prisma.client.count({
-      where: {
-        organizationId: input.organizationId
       }
-    })
-  ]);
+    },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    skip: (page - 1) * pageSize,
+    take: pageSize
+  });
 
   return {
     contacts: clients.map(mapContactRecord),
-    totalCount
+    totalCount,
+    totalPages,
+    page,
+    pageSize
   };
 }
+
+export const officeContactsPageDefaults = {
+  page: defaultContactsPage,
+  pageSize: defaultContactsPageSize
+} as const;
+
+export const officeContactsPageLimits = {
+  maxPageSize: maxContactsPageSize
+} as const;
 
 export async function createContact(input: SaveContactInput): Promise<OfficeContactDetail> {
   const client = await prisma.$transaction(async (tx) => {

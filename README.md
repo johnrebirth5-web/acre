@@ -93,7 +93,12 @@
   - 变更会回流到 transaction detail 的 tasks section，同一套数据不会分叉
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
-  - 支持搜索、创建、编辑和基础 stage 筛选
+  - 列表页现在使用 URL 驱动的服务端查询：
+    - `q`
+    - `stage`
+    - `page`
+    - `pageSize`
+  - 支持搜索、创建、编辑、基础 stage 筛选和服务端分页
   - 已有 contact detail 页面
   - 支持为 contact 创建 follow-up task
   - 已切到 `TransactionContact` relation，支持一个 transaction 关联多个 contact

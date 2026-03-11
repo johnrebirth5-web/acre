@@ -229,6 +229,7 @@ Trade-off：
   - transaction list/detail/create/status update 已经切到 Prisma
   - transaction finance 先用 `Transaction` 上的 5 个可空字段落地，而不是单独 finance model
   - contact list/detail/create/edit/follow-up task / transaction link 已经切到 Prisma
+  - contact list 现在改成 URL 驱动的服务端搜索 / stage 过滤 / 分页，而不是客户端拿全量数组后本地过滤
   - transaction/contact relation 现在以 `TransactionContact` 为 source of truth，`primaryClientId` 仅保留兼容同步
   - transaction detail 现在已经开始消费 `TransactionContact`，支持最小 linked contacts 管理
   - transaction detail 的 checklist 先用单独的 `TransactionTask` 小模型落地，不复用 `FollowUpTask`

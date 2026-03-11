@@ -244,8 +244,8 @@
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
 8. detail 页面通过 transaction contact routes 做 link / unlink / set primary
 9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen / review
-10. `/office/contacts` 调 `@acre/db` 的 contact service
-11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
+10. `/office/contacts` 调 `@acre/db` 的 contact service，并按 query-param 驱动的 `q / stage / page / pageSize` 做服务端过滤和分页
+11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link；`GET /api/office/contacts` 也接受 `q / stage / page / pageSize`
 12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
 13. `/office/activity` 读取 `AuditLog`，并结合 transaction / task / contact / follow-up 的实时数据库状态派生 operational alerts
 14. transaction / contact / finance / task 的真实写入路径会同步写入 `AuditLog`
@@ -366,6 +366,7 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 当前已经落地的最小闭环包括：
 
 - contact list / create / edit
+  - contact list 现在不再把全量结果拉到客户端内存过滤，而是由服务端按 URL 参数返回分页结果
 - contact detail
 - follow-up task create / list
 - `TransactionContact` -> transaction/contact relation
