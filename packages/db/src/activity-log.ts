@@ -54,6 +54,14 @@ export const activityLogActions = {
   accountingPaymentMade: "accounting.payment_made",
   accountingRefundCreated: "accounting.refund_created",
   accountingTransactionUpdated: "accounting.transaction_updated",
+  accountingAgentChargeCreated: "accounting.agent_charge_created",
+  accountingRecurringRuleCreated: "accounting.recurring_rule_created",
+  accountingRecurringRuleUpdated: "accounting.recurring_rule_updated",
+  accountingRecurringRuleDeactivated: "accounting.recurring_rule_deactivated",
+  accountingPaymentMethodAdded: "accounting.payment_method_added",
+  accountingPaymentMethodUpdated: "accounting.payment_method_updated",
+  accountingPaymentMethodRemoved: "accounting.payment_method_removed",
+  accountingAgentCreditApplied: "accounting.agent_credit_applied",
   emdExpectedCreated: "emd.expected_created",
   emdReceived: "emd.received",
   emdRefunded: "emd.refunded",
@@ -75,6 +83,8 @@ export type ActivityLogEntityType =
   | "signature_request"
   | "incoming_update"
   | "accounting_transaction"
+  | "agent_recurring_charge_rule"
+  | "agent_payment_method"
   | "earnest_money";
 export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "document" | "comment" | "auth" | "accounting";
 
@@ -305,6 +315,14 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "accounting.payment_made": "Payment made",
   "accounting.refund_created": "Refund created",
   "accounting.transaction_updated": "Accounting transaction updated",
+  "accounting.agent_charge_created": "Agent charge created",
+  "accounting.recurring_rule_created": "Recurring rule created",
+  "accounting.recurring_rule_updated": "Recurring rule updated",
+  "accounting.recurring_rule_deactivated": "Recurring rule deactivated",
+  "accounting.payment_method_added": "Payment method added",
+  "accounting.payment_method_updated": "Payment method updated",
+  "accounting.payment_method_removed": "Payment method removed",
+  "accounting.agent_credit_applied": "Credit applied",
   "emd.expected_created": "EMD expected",
   "emd.received": "EMD received",
   "emd.refunded": "EMD refunded / distributed",
@@ -380,6 +398,14 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.accountingPaymentMade ||
       action === activityLogActions.accountingRefundCreated ||
       action === activityLogActions.accountingTransactionUpdated ||
+      action === activityLogActions.accountingAgentChargeCreated ||
+      action === activityLogActions.accountingRecurringRuleCreated ||
+      action === activityLogActions.accountingRecurringRuleUpdated ||
+      action === activityLogActions.accountingRecurringRuleDeactivated ||
+      action === activityLogActions.accountingPaymentMethodAdded ||
+      action === activityLogActions.accountingPaymentMethodUpdated ||
+      action === activityLogActions.accountingPaymentMethodRemoved ||
+      action === activityLogActions.accountingAgentCreditApplied ||
       action === activityLogActions.emdExpectedCreated ||
       action === activityLogActions.emdReceived ||
       action === activityLogActions.emdRefunded
@@ -525,6 +551,8 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
     case "session":
       return "auth";
     case "accounting_transaction":
+    case "agent_recurring_charge_rule":
+    case "agent_payment_method":
     case "earnest_money":
       return "accounting";
     default:
@@ -569,6 +597,10 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "accounting_transaction") {
     return `/office/accounting?entryId=${record.entityId}`;
+  }
+
+  if (record.entityType === "agent_recurring_charge_rule" || record.entityType === "agent_payment_method") {
+    return payload.contextHref ?? "/office/accounting#agent-billing";
   }
 
   if (record.entityType === "transaction_document" && payload.transactionId) {
@@ -746,6 +778,22 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "recorded a refund";
     case activityLogActions.accountingTransactionUpdated:
       return payload.changes.length === 1 ? `updated accounting ${payload.changes[0].label.toLowerCase()}` : "updated an accounting transaction";
+    case activityLogActions.accountingAgentChargeCreated:
+      return "created an agent billing charge";
+    case activityLogActions.accountingRecurringRuleCreated:
+      return "created a recurring billing rule";
+    case activityLogActions.accountingRecurringRuleUpdated:
+      return payload.changes.length === 1 ? `updated recurring rule ${payload.changes[0].label.toLowerCase()}` : "updated a recurring billing rule";
+    case activityLogActions.accountingRecurringRuleDeactivated:
+      return "deactivated a recurring billing rule";
+    case activityLogActions.accountingPaymentMethodAdded:
+      return "added a payment method";
+    case activityLogActions.accountingPaymentMethodUpdated:
+      return payload.changes.length === 1 ? `updated payment method ${payload.changes[0].label.toLowerCase()}` : "updated a payment method";
+    case activityLogActions.accountingPaymentMethodRemoved:
+      return "removed a payment method";
+    case activityLogActions.accountingAgentCreditApplied:
+      return "applied a credit memo to an outstanding balance";
     case activityLogActions.emdExpectedCreated:
       return "created an earnest money expectation";
     case activityLogActions.emdReceived:

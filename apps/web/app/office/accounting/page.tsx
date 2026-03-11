@@ -1,6 +1,12 @@
-import { canAccessOfficeAccounting, canManageOfficeAccounting } from "@acre/auth";
+import {
+  canAccessOfficeAccounting,
+  canManageOfficeAccounting,
+  canManageOfficeAgentBilling,
+  canManageOfficePayments,
+  canViewOfficeAgentBilling
+} from "@acre/auth";
 import { Badge, PageHeader, PageShell } from "@acre/ui";
-import { getOfficeAccountingSnapshot } from "@acre/db";
+import { getOfficeAccountingSnapshot, getOfficeAgentBillingSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
 import { OfficeAccountingClient } from "./accounting-client";
@@ -14,6 +20,12 @@ type OfficeAccountingPageProps = {
     ownerMembershipId?: string;
     q?: string;
     entryId?: string;
+    billingMembershipId?: string;
+    billingStatus?: string;
+    billingStartDate?: string;
+    billingEndDate?: string;
+    billingTransactionId?: string;
+    billingQ?: string;
   }>;
 };
 
@@ -25,17 +37,31 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
   }
 
   const searchParams = (await props.searchParams) ?? {};
-  const snapshot = await getOfficeAccountingSnapshot({
-    organizationId: context.currentOrganization.id,
-    officeId: context.currentOffice?.id ?? null,
-    type: searchParams.type,
-    status: searchParams.status,
-    startDate: searchParams.startDate,
-    endDate: searchParams.endDate,
-    ownerMembershipId: searchParams.ownerMembershipId,
-    q: searchParams.q,
-    entryId: searchParams.entryId
-  });
+  const [snapshot, agentBillingSnapshot] = await Promise.all([
+    getOfficeAccountingSnapshot({
+      organizationId: context.currentOrganization.id,
+      officeId: context.currentOffice?.id ?? null,
+      type: searchParams.type,
+      status: searchParams.status,
+      startDate: searchParams.startDate,
+      endDate: searchParams.endDate,
+      ownerMembershipId: searchParams.ownerMembershipId,
+      q: searchParams.q,
+      entryId: searchParams.entryId
+    }),
+    canViewOfficeAgentBilling(context.currentMembership.role)
+      ? getOfficeAgentBillingSnapshot({
+          organizationId: context.currentOrganization.id,
+          officeId: context.currentOffice?.id ?? null,
+          membershipId: searchParams.billingMembershipId,
+          status: searchParams.billingStatus,
+          startDate: searchParams.billingStartDate,
+          endDate: searchParams.billingEndDate,
+          transactionId: searchParams.billingTransactionId,
+          q: searchParams.billingQ
+        })
+      : null
+  ]);
 
   return (
     <PageShell>
@@ -53,7 +79,11 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
       />
 
       <OfficeAccountingClient
+        agentBillingSnapshot={agentBillingSnapshot}
         canManageAccounting={canManageOfficeAccounting(context.currentMembership.role)}
+        canManageAgentBilling={canManageOfficeAgentBilling(context.currentMembership.role)}
+        canManagePayments={canManageOfficePayments(context.currentMembership.role)}
+        canViewAgentBilling={canViewOfficeAgentBilling(context.currentMembership.role)}
         officeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
         snapshot={snapshot}
       />

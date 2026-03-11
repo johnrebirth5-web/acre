@@ -1,14 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import type { OfficeAccountingSnapshot } from "@acre/db";
+import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot } from "@acre/db";
+import { AgentBillingPanel } from "./agent-billing-panel";
 
 type OfficeAccountingClientProps = {
   snapshot: OfficeAccountingSnapshot;
+  agentBillingSnapshot: OfficeAgentBillingSnapshot | null;
   officeLabel: string;
   canManageAccounting: boolean;
+  canViewAgentBilling: boolean;
+  canManageAgentBilling: boolean;
+  canManagePayments: boolean;
 };
 
 type AccountingTypeOption = {
@@ -247,9 +252,18 @@ function buildEarnestMoneyState(record?: OfficeAccountingSnapshot["earnestMoneyR
   };
 }
 
-export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccounting }: OfficeAccountingClientProps) {
+export function OfficeAccountingClient({
+  snapshot,
+  agentBillingSnapshot,
+  officeLabel,
+  canManageAccounting,
+  canViewAgentBilling,
+  canManageAgentBilling,
+  canManagePayments
+}: OfficeAccountingClientProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isCreateEntryOpen, setIsCreateEntryOpen] = useState(false);
   const [isEarnestMoneyOpen, setIsEarnestMoneyOpen] = useState(false);
   const [editingEarnestMoneyId, setEditingEarnestMoneyId] = useState("");
@@ -294,17 +308,31 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
   const entryModalConfig = getAccountingTypeConfig(entryFormState.type);
 
   function navigateWithFilters(overrides: Partial<typeof filterState> & { entryId?: string }) {
-    router.push(
-      buildAccountingHref(pathname, {
-        type: overrides.type ?? filterState.type,
-        status: overrides.status ?? filterState.status,
-        startDate: overrides.startDate ?? filterState.startDate,
-        endDate: overrides.endDate ?? filterState.endDate,
-        ownerMembershipId: overrides.ownerMembershipId ?? filterState.ownerMembershipId,
-        q: overrides.q ?? filterState.q,
-        entryId: overrides.entryId ?? snapshot.filters.entryId
-      })
-    );
+    const params = new URLSearchParams(searchParams.toString());
+    const href = buildAccountingHref(pathname, {
+      type: overrides.type ?? filterState.type,
+      status: overrides.status ?? filterState.status,
+      startDate: overrides.startDate ?? filterState.startDate,
+      endDate: overrides.endDate ?? filterState.endDate,
+      ownerMembershipId: overrides.ownerMembershipId ?? filterState.ownerMembershipId,
+      q: overrides.q ?? filterState.q,
+      entryId: overrides.entryId ?? snapshot.filters.entryId
+    });
+
+    const nextUrl = new URL(href, "http://localhost");
+    params.delete("type");
+    params.delete("status");
+    params.delete("startDate");
+    params.delete("endDate");
+    params.delete("ownerMembershipId");
+    params.delete("q");
+    params.delete("entryId");
+
+    nextUrl.searchParams.forEach((value, key) => {
+      params.set(key, value);
+    });
+
+    router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }
 
   function resetFilters() {
@@ -316,7 +344,15 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
       ownerMembershipId: "",
       q: ""
     });
-    router.push(pathname);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("type");
+    params.delete("status");
+    params.delete("startDate");
+    params.delete("endDate");
+    params.delete("ownerMembershipId");
+    params.delete("q");
+    params.delete("entryId");
+    router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }
 
   function updateEntryField<K extends keyof AccountingEntryFormState>(key: K, value: AccountingEntryFormState[K]) {
@@ -471,6 +507,14 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
 
   return (
     <>
+      <nav className="office-section-nav" aria-label="Accounting sections">
+        <a href="#accounting-overview">Overview</a>
+        <a href="#accounting-ledger">Accounting transactions</a>
+        <a href="#agent-billing">Agent billing</a>
+        <a href="#earnest-money">Earnest money</a>
+        <a href="#chart-of-accounts">Chart of accounts</a>
+      </nav>
+
       <section className="office-kpi-grid">
         <article className="office-kpi-card office-kpi-card-accent">
           <span>Total invoices</span>
@@ -515,6 +559,7 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
       </section>
 
       <form
+        id="accounting-overview"
         className="office-report-filters"
         onSubmit={(event) => {
           event.preventDefault();
@@ -601,7 +646,7 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
 
       <section className="office-dashboard-grid-wide bm-accounting-grid">
         <div className="office-side-stack">
-          <section className="bm-table-card">
+          <section className="bm-table-card" id="accounting-ledger">
             <div className="bm-card-head">
               <h3>Accounting transactions</h3>
               <span>{snapshot.transactions.length} records in the current filtered window</span>
@@ -644,7 +689,7 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
             </div>
           </section>
 
-          <section className="bm-table-card">
+          <section className="bm-table-card" id="chart-of-accounts">
             <div className="bm-card-head">
               <h3>General ledger</h3>
               <span>Latest {snapshot.generalLedgerEntries.length} posted entries</span>
@@ -790,6 +835,13 @@ export function OfficeAccountingClient({ snapshot, officeLabel, canManageAccount
           </section>
         </div>
       </section>
+
+      <AgentBillingPanel
+        canManageAgentBilling={canManageAgentBilling}
+        canManagePayments={canManagePayments}
+        canViewAgentBilling={canViewAgentBilling}
+        snapshot={agentBillingSnapshot}
+      />
 
       {isCreateEntryOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsCreateEntryOpen(false)}>

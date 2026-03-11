@@ -211,6 +211,29 @@ enum AccountingPaymentMethod {
   other
 }
 
+enum AgentBillingFrequency {
+  monthly
+  quarterly
+  annual
+  custom_interval
+}
+
+enum AgentPaymentMethodType {
+  card_on_file
+  bank_account
+  check
+  manual
+  other
+}
+
+enum AgentPaymentMethodStatus {
+  active
+  inactive
+  invalid
+  expired
+  removed
+}
+
 enum EarnestMoneyStatus {
   not_received
   overdue
@@ -244,8 +267,11 @@ model Organization {
   ledgerAccounts LedgerAccount[]
   accountingTransactions AccountingTransaction[]
   accountingTransactionLineItems AccountingTransactionLineItem[]
+  accountingTransactionApplications AccountingTransactionApplication[]
   generalLedgerEntries GeneralLedgerEntry[]
   earnestMoneyRecords EarnestMoneyRecord[]
+  agentRecurringChargeRules AgentRecurringChargeRule[]
+  agentPaymentMethods AgentPaymentMethod[]
   transactionDocuments TransactionDocument[]
   formTemplates FormTemplate[]
   transactionForms TransactionForm[]
@@ -273,8 +299,11 @@ model Office {
   ledgerAccounts LedgerAccount[]
   accountingTransactions AccountingTransaction[]
   accountingTransactionLineItems AccountingTransactionLineItem[]
+  accountingTransactionApplications AccountingTransactionApplication[]
   generalLedgerEntries GeneralLedgerEntry[]
   earnestMoneyRecords EarnestMoneyRecord[]
+  agentRecurringChargeRules AgentRecurringChargeRule[]
+  agentPaymentMethods AgentPaymentMethod[]
   transactionDocuments TransactionDocument[]
   formTemplates FormTemplate[]
   transactionForms TransactionForm[]
@@ -328,7 +357,10 @@ model Membership {
   taskListViews TaskListView[]
   accountingTransactionsCreated AccountingTransaction[] @relation("AccountingTransactionCreatedBy")
   accountingTransactionsRelated AccountingTransaction[] @relation("AccountingTransactionRelatedMembership")
+  accountingTransactionApplicationsCreated AccountingTransactionApplication[] @relation("AccountingTransactionApplicationCreatedBy")
   earnestMoneyRecordsCreated EarnestMoneyRecord[] @relation("EarnestMoneyCreatedBy")
+  agentRecurringChargeRules AgentRecurringChargeRule[] @relation("AgentRecurringChargeRuleMembership")
+  agentPaymentMethods AgentPaymentMethod[]
   uploadedTransactionDocuments TransactionDocument[] @relation("TransactionDocumentUploadedBy")
   createdTransactionForms TransactionForm[] @relation("TransactionFormCreatedBy")
   requestedSignatureRequests SignatureRequest[] @relation("SignatureRequestRequestedBy")
@@ -876,6 +908,9 @@ model AccountingTransaction {
   counterpartyName      String?
   memo                  String?
   notes                 String?
+  isAgentBilling        Boolean                     @default(false)
+  billingCategory       String?
+  originRecurringChargeRuleId String?
   totalAmount           Decimal                     @db.Decimal(12, 2)
   createdByMembershipId String
   postedAt              DateTime?
@@ -888,13 +923,17 @@ model AccountingTransaction {
   relatedTransaction    Transaction?                @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
   relatedMembership     Membership?                 @relation("AccountingTransactionRelatedMembership", fields: [relatedMembershipId], references: [id], onDelete: SetNull)
   createdByMembership   Membership                  @relation("AccountingTransactionCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  originRecurringChargeRule AgentRecurringChargeRule? @relation(fields: [originRecurringChargeRuleId], references: [id], onDelete: SetNull)
   lineItems             AccountingTransactionLineItem[]
+  applicationsFrom      AccountingTransactionApplication[] @relation("AccountingTransactionApplicationSource")
+  applicationsTo        AccountingTransactionApplication[] @relation("AccountingTransactionApplicationTarget")
   ledgerEntries         GeneralLedgerEntry[]
 
   @@index([organizationId, officeId, type])
   @@index([organizationId, officeId, status])
   @@index([organizationId, relatedTransactionId])
   @@index([organizationId, relatedMembershipId])
+  @@index([organizationId, isAgentBilling, relatedMembershipId])
   @@index([organizationId, accountingDate])
 }
 
@@ -922,6 +961,29 @@ model AccountingTransactionLineItem {
   @@index([organizationId, relatedTransactionId])
 }
 
+model AccountingTransactionApplication {
+  id                           String                @id @default(cuid())
+  organizationId               String
+  officeId                     String?
+  sourceAccountingTransactionId String
+  targetAccountingTransactionId String
+  createdByMembershipId        String?
+  amount                       Decimal               @db.Decimal(12, 2)
+  memo                         String?
+  appliedAt                    DateTime              @default(now())
+  createdAt                    DateTime              @default(now())
+  updatedAt                    DateTime              @updatedAt
+  organization                 Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                       Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  sourceAccountingTransaction  AccountingTransaction @relation("AccountingTransactionApplicationSource", fields: [sourceAccountingTransactionId], references: [id], onDelete: Cascade)
+  targetAccountingTransaction  AccountingTransaction @relation("AccountingTransactionApplicationTarget", fields: [targetAccountingTransactionId], references: [id], onDelete: Cascade)
+  createdByMembership          Membership?           @relation("AccountingTransactionApplicationCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, sourceAccountingTransactionId])
+  @@index([organizationId, targetAccountingTransactionId])
+  @@index([organizationId, officeId])
+}
+
 model GeneralLedgerEntry {
   id                    String                @id @default(cuid())
   organizationId        String
@@ -944,6 +1006,59 @@ model GeneralLedgerEntry {
   @@index([organizationId, accountingTransactionId])
   @@index([organizationId, relatedTransactionId])
   @@index([organizationId, accountId])
+}
+
+model AgentRecurringChargeRule {
+  id                  String               @id @default(cuid())
+  organizationId      String
+  officeId            String?
+  membershipId        String
+  name                String
+  chargeType          String
+  description         String?
+  amount              Decimal              @db.Decimal(12, 2)
+  frequency           AgentBillingFrequency
+  customIntervalDays  Int?
+  startDate           DateTime
+  nextDueDate         DateTime
+  endDate             DateTime?
+  lastGeneratedAt     DateTime?
+  autoGenerateInvoice Boolean              @default(false)
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office              Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership          Membership           @relation("AgentRecurringChargeRuleMembership", fields: [membershipId], references: [id], onDelete: Cascade)
+  generatedTransactions AccountingTransaction[]
+
+  @@unique([organizationId, membershipId, name])
+  @@index([organizationId, officeId, isActive])
+  @@index([organizationId, membershipId, isActive])
+  @@index([organizationId, nextDueDate])
+}
+
+model AgentPaymentMethod {
+  id                  String                   @id @default(cuid())
+  organizationId      String
+  officeId            String?
+  membershipId        String
+  type                AgentPaymentMethodType
+  label               String
+  provider            String
+  last4               String?
+  isDefault           Boolean                  @default(false)
+  autoPayEnabled      Boolean                  @default(false)
+  externalReferenceId String?
+  status              AgentPaymentMethodStatus @default(active)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  organization        Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office              Office?                  @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership          Membership               @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, officeId])
+  @@index([organizationId, membershipId, status])
 }
 
 model EarnestMoneyRecord {

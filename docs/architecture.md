@@ -531,6 +531,9 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - `AccountingTransactionLineItem`
 - `GeneralLedgerEntry`
 - `EarnestMoneyRecord`
+- `AccountingTransactionApplication`
+- `AgentRecurringChargeRule`
+- `AgentPaymentMethod`
 
 当前支持的 accounting transaction types：
 
@@ -558,6 +561,52 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 
 - expected amount
 - received amount
+- refund / distribution
+- ledger-tracked optional posting
+
+### 6. Agent Billing 建在现有 Accounting foundation 上，不另建第二套 billing 系统
+
+`Agent Billing` 当前不是独立 app，也不是第二套账务系统，而是 `/office/accounting` 里的一个一等模块。
+
+这样做的原因是：
+
+- agent billing 的 invoice / payment / credit / balance，本质上仍然是 accounting transaction
+- 如果单独再建一套 billing store，后面 ledger / statement / activity log 会双轨
+- 参考目标是 `BoldTrail / Brokermint` 的 back-office agent billing，不是消费级订阅计费
+
+当前实现方式：
+
+- 继续复用：
+  - `AccountingTransaction`
+  - `AccountingTransactionLineItem`
+  - `GeneralLedgerEntry`
+- 用 `AccountingTransactionApplication` 表达 payment / credit 对 invoice 的应用关系
+- 用 `AgentRecurringChargeRule` 表达 recurring charge rule
+- 用 `AgentPaymentMethod` 表达 masked payment method foundation
+
+当前 `/office/accounting` 中的 Agent Billing 区块支持：
+
+- overview cards
+- agent ledger
+- one-time charges
+- recurring billing rules
+- payment methods
+- record payment
+- apply credit memo
+- statement snapshot
+
+当前明确没做的部分：
+
+- real payment gateway capture
+- ACH / autopay execution
+- payroll
+- broad office operational accounting
+- QuickBooks sync
+
+所以页面里如果看到 `card on file`，应理解为：
+
+- 这是 payment method foundation
+- 不是已经接通自动扣款
 - refunded / distributed amount
 - due date / payment date / deposit date
 - held by office / held externally

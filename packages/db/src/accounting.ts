@@ -7,7 +7,7 @@ import {
   LedgerAccountType,
   Prisma
 } from "@prisma/client";
-import { activityLogActions, recordActivityLogEvent } from "./activity-log";
+import { activityLogActions, recordActivityLogEvent, type ActivityLogAction } from "./activity-log";
 import { prisma } from "./client";
 
 export type OfficeAccountingTransactionTypeLabel =
@@ -198,10 +198,15 @@ export type SaveAccountingTransactionInput = {
   counterpartyName?: string;
   memo?: string;
   notes?: string;
+  isAgentBilling?: boolean;
+  billingCategory?: string;
+  originRecurringChargeRuleId?: string;
   totalAmount?: string;
   lineItems?: AccountingTransactionLineItemInput[];
   createdByMembershipId: string;
   actorMembershipId?: string;
+  activityActionOverride?: ActivityLogAction;
+  activityContextHref?: string;
 };
 
 export type CreateEarnestMoneyRecordInput = {
@@ -287,6 +292,7 @@ export const accountingSystemAccountCodes = {
   accountsReceivable: "1100",
   accountsPayable: "2000",
   commissionIncome: "4000",
+  agentBillingIncome: "4010",
   agentCommissionExpense: "5000",
   earnestMoneyLiability: "2100",
   operatingBank: "1000",
@@ -1027,7 +1033,7 @@ function normalizeTypeAwareLineItems(type: AccountingTransactionType, lineItems:
   }
 }
 
-async function saveAccountingTransactionInternal(
+export async function saveAccountingTransactionInternal(
   tx: Prisma.TransactionClient,
   input: SaveAccountingTransactionInput
 ) {
@@ -1139,14 +1145,17 @@ async function saveAccountingTransactionInternal(
           status,
           accountingDate,
           dueDate: parseOptionalDate(input.dueDate),
-          paymentMethod,
-          referenceNumber: parseOptionalText(input.referenceNumber),
-          counterpartyName: parseOptionalText(input.counterpartyName),
-          memo: parseOptionalText(input.memo),
-          notes: parseOptionalText(input.notes),
-          totalAmount,
-          postedAt: status === "draft" || status === "void" ? null : new Date()
-        },
+        paymentMethod,
+        referenceNumber: parseOptionalText(input.referenceNumber),
+        counterpartyName: parseOptionalText(input.counterpartyName),
+        memo: parseOptionalText(input.memo),
+        notes: parseOptionalText(input.notes),
+        isAgentBilling: input.isAgentBilling ?? existing.isAgentBilling,
+        billingCategory: input.billingCategory !== undefined ? parseOptionalText(input.billingCategory) : existing.billingCategory,
+        originRecurringChargeRuleId: input.originRecurringChargeRuleId ?? existing.originRecurringChargeRuleId,
+        totalAmount,
+        postedAt: status === "draft" || status === "void" ? null : new Date()
+      },
         include: {
           relatedTransaction: {
             select: {
@@ -1173,6 +1182,9 @@ async function saveAccountingTransactionInternal(
           counterpartyName: parseOptionalText(input.counterpartyName),
           memo: parseOptionalText(input.memo),
           notes: parseOptionalText(input.notes),
+          isAgentBilling: input.isAgentBilling ?? false,
+          billingCategory: parseOptionalText(input.billingCategory),
+          originRecurringChargeRuleId: input.originRecurringChargeRuleId ?? null,
           totalAmount,
           createdByMembershipId: input.createdByMembershipId,
           postedAt: status === "draft" || status === "void" ? null : new Date()
@@ -1248,7 +1260,7 @@ async function saveAccountingTransactionInternal(
     membershipId: input.actorMembershipId ?? input.createdByMembershipId,
     entityType: "accounting_transaction",
     entityId: saved.id,
-    action: existing ? activityLogActions.accountingTransactionUpdated : getActivityActionForAccountingType(type),
+    action: input.activityActionOverride ?? (existing ? activityLogActions.accountingTransactionUpdated : getActivityActionForAccountingType(type)),
     payload: {
       officeId: saved.officeId,
       objectLabel: buildAccountingTransactionLabel(saved),
@@ -1256,6 +1268,7 @@ async function saveAccountingTransactionInternal(
       transactionLabel: relatedTransaction
         ? `${relatedTransaction.title} · ${relatedTransaction.address}, ${relatedTransaction.city}, ${relatedTransaction.state}`
         : undefined,
+      contextHref: input.activityContextHref,
       details: [
         `Type: ${accountingTypeLabelMap[type]}`,
         `Status: ${accountingStatusLabelMap[status]}`,

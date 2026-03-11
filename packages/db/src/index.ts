@@ -25,6 +25,9 @@ export const databaseModules = [
   "accounting_transaction_line_items",
   "general_ledger_entries",
   "earnest_money_records",
+  "accounting_transaction_applications",
+  "agent_recurring_charge_rules",
+  "agent_payment_methods",
   "transaction_documents",
   "form_templates",
   "transaction_forms",
@@ -45,6 +48,17 @@ export {
   updateAccountingTransaction,
   updateEarnestMoneyRecord
 } from "./accounting";
+export {
+  applyAgentBillingCreditMemo,
+  createAgentBillingCharges,
+  createAgentPaymentMethod,
+  createAgentRecurringChargeRule,
+  generateDueAgentBillingCharges,
+  getOfficeAgentBillingSnapshot,
+  recordAgentBillingPayment,
+  updateAgentPaymentMethod,
+  updateAgentRecurringChargeRule
+} from "./agent-billing";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
 export {
   createContact,
@@ -127,6 +141,30 @@ export type {
   SaveAccountingTransactionInput,
   UpdateEarnestMoneyRecordInput
 } from "./accounting";
+export type {
+  ApplyAgentBillingCreditMemoInput,
+  CreateAgentBillingChargesInput,
+  CreateAgentPaymentMethodInput,
+  CreateAgentRecurringChargeRuleInput,
+  GenerateDueAgentBillingChargesInput,
+  GetOfficeAgentBillingSnapshotInput,
+  OfficeAgentBillingCreditMemoOption,
+  OfficeAgentBillingFilters,
+  OfficeAgentBillingInvoiceOption,
+  OfficeAgentBillingLedgerRow,
+  OfficeAgentBillingLedgerStatus,
+  OfficeAgentBillingMemberOption,
+  OfficeAgentBillingOverview,
+  OfficeAgentBillingSnapshot,
+  OfficeAgentBillingTransactionOption,
+  OfficeAgentPaymentMethodRecord,
+  OfficeAgentRecurringChargeRuleRecord,
+  OfficeAgentStatementLine,
+  OfficeAgentStatementSnapshot,
+  RecordAgentBillingPaymentInput,
+  UpdateAgentPaymentMethodInput,
+  UpdateAgentRecurringChargeRuleInput
+} from "./agent-billing";
 export type {
   GetOfficeActivitySnapshotInput,
   OfficeActivityEvent,

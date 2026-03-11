@@ -11,6 +11,9 @@ export type AppPermission =
   | "incoming_updates:review"
   | "accounting:view"
   | "accounting:manage"
+  | "accounting:billing:view"
+  | "accounting:billing:manage"
+  | "accounting:payments:manage"
   | "tasks:view"
   | "tasks:manage"
   | "tasks:review"
@@ -67,6 +70,9 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "incoming_updates:review",
     "accounting:view",
     "accounting:manage",
+    "accounting:billing:view",
+    "accounting:billing:manage",
+    "accounting:payments:manage",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -92,6 +98,9 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "incoming_updates:review",
     "accounting:view",
     "accounting:manage",
+    "accounting:billing:view",
+    "accounting:billing:manage",
+    "accounting:payments:manage",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -163,6 +172,18 @@ export function canAccessOfficeAccounting(role: UserRole): boolean {
 
 export function canManageOfficeAccounting(role: UserRole): boolean {
   return can(role, "accounting:manage");
+}
+
+export function canViewOfficeAgentBilling(role: UserRole): boolean {
+  return can(role, "accounting:billing:view");
+}
+
+export function canManageOfficeAgentBilling(role: UserRole): boolean {
+  return can(role, "accounting:billing:manage");
+}
+
+export function canManageOfficePayments(role: UserRole): boolean {
+  return can(role, "accounting:payments:manage");
 }
 
 export function canAccessOfficeTasks(role: UserRole): boolean {

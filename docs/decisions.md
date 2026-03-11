@@ -403,6 +403,39 @@ Trade-off：
   - full commission-plan engine
 - 这样做的好处是后续还能继续长，而不用重推翻当前 schema foundation
 
+## 关键决策 9：Agent Billing 不另建第二套系统，直接落在 Accounting foundation 上
+
+原因：
+
+- agent billing 的本质仍然是 accounting transaction、open balance、payment application、statement
+- 如果另建一套 billing store，后面一定会和 ledger、EMD、activity log 分叉
+- 当前目标是 `BoldTrail / Brokermint` 风格的 brokerage back-office，不是消费级 subscription billing
+
+影响：
+
+- 继续复用 `AccountingTransaction` / `AccountingTransactionLineItem`
+- 用 `AccountingTransactionApplication` 处理 payment / credit 对 open invoice 的应用
+- 只新增最小 durable 模型：
+  - `AgentRecurringChargeRule`
+  - `AgentPaymentMethod`
+- `/office/accounting` 现在包含：
+  - overview
+  - accounting transactions
+  - agent billing
+  - earnest money
+  - chart of accounts
+
+Trade-off：
+
+- 现在的 `Agent Billing` 已经是真实可操作的 MVP，但仍然是人工/内部 foundation
+- 没有：
+  - real gateway capture
+  - ACH
+  - auto-charge execution
+  - payroll
+  - full brokerage billing suite
+- 好处是后续接真实 payment provider 时，不需要把 agent ledger / statement / invoice 模型推翻重做
+
 ## 后续接手时最需要先理解的几个决策
 
 如果你只读这一段，也要先理解下面四点：

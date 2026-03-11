@@ -2770,6 +2770,86 @@ select {
   min-height: 0;
 }
 
+.office-section-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.office-section-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--office-border, #d8dee8);
+  background: #fff;
+  color: var(--office-text, #20304a);
+  font-size: 0.73rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.office-section-nav a:hover {
+  background: #f6f8fb;
+}
+
+.office-table-row-agent-billing-ledger,
+.office-table-row-recurring-rules,
+.office-table-row-payment-methods,
+.office-table-row-agent-statement {
+  align-items: center;
+}
+
+.office-table-row-agent-billing-ledger {
+  grid-template-columns: 92px 118px minmax(170px, 1.3fr) 112px 110px 110px 118px 98px minmax(180px, 1.1fr);
+}
+
+.office-table-row-recurring-rules {
+  grid-template-columns: 132px minmax(180px, 1.4fr) 108px 112px 100px 120px;
+}
+
+.office-table-row-payment-methods {
+  grid-template-columns: 132px minmax(190px, 1.4fr) 112px 90px 120px;
+}
+
+.office-table-row-agent-statement {
+  grid-template-columns: 92px minmax(220px, 1.5fr) 120px 110px;
+}
+
+.bm-agent-statement {
+  display: grid;
+  gap: 18px;
+}
+
+.bm-agent-statement-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.bm-agent-statement-metrics div {
+  padding: 14px 16px;
+  border: 1px solid #dfe5ee;
+  background: #fbfcfe;
+}
+
+.bm-agent-statement-metrics span {
+  display: block;
+  margin-bottom: 6px;
+  color: #68788f;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.bm-agent-statement-metrics strong {
+  color: #1f2d44;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .office-task-view-save-row {
   display: flex;
   align-items: center;

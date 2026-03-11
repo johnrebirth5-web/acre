@@ -168,6 +168,14 @@
   - 路由：`/office/accounting`
   - 基于 `LedgerAccount / AccountingTransaction / AccountingTransactionLineItem / GeneralLedgerEntry / EarnestMoneyRecord`
   - 已有最小 chart of accounts foundation
+  - 现在也包含最小 `Agent Billing` foundation：
+    - `Agent ledger`
+    - `One-time charges`
+    - `Recurring charge rules`
+    - `Payment methods`（masked/internal foundation，不存原始敏感凭据）
+    - `Collections / payments received`
+    - `Credit memo application`
+    - `Statement` on-screen summary
   - 支持 accounting transaction types：
     - `invoice`
     - `bill`
@@ -187,6 +195,18 @@
     - `refund`
   - `credit_memo / journal_entry / transfer` 当前已有基础 list/view 和 line-item 录入能力
   - 已有最小 general ledger posting layer
+  - `Agent Billing` 当前已支持：
+    - 单个或多个 agent 的 one-time charges
+    - recurring billing rule create / update / deactivate
+    - due recurring charge generation（手动触发，deterministic）
+    - payment method create / update
+    - record payment against agent balances
+    - apply credit memo to open invoices
+    - agent statement snapshot
+    - ledger rows linked back to accounting transactions 和 originating transaction
+  - 当前 gateway / collection 边界仍然是 MVP：
+    - `card on file` 只是配置基础，不代表已自动扣款
+    - 没有 ACH / Stripe / QuickBooks sync
   - 已有最小 earnest money / EMD workflow：
     - expected
     - received
@@ -320,11 +340,11 @@
 - `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
 - 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity`、`Accounting` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
 - 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
-- 未实现 `Brokermint` 中更深层的交易详情子页、审批流、documents / eSign / approvals、buyer offers，以及更完整的 accounting workflows（如 reconciliation、agent billing、QuickBooks sync）
+- 未实现 `Brokermint` 中更深层的 buyer offers，以及更完整的 accounting workflows（如 reconciliation、QuickBooks sync、ACH/网关自动扣款）
 - 写操作接口当前只覆盖：
   - `Transactions` 的 create / status update
   - `Contacts` 的 create / edit / follow-up task create / transaction link
-  - `Accounting` 的最小 create / edit / EMD write flows
+  - `Accounting` 的最小 create / edit / EMD / Agent Billing write flows
 - 其余模块仍未实现真实 CRUD
 - 未实现测试体系
 - Vercel 项目已绑定 GitHub 仓库，`main` 分支 push 会自动触发生产部署

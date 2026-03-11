@@ -89,6 +89,9 @@ async function upsertAccountingTransactionWithPostings({
   officeId,
   relatedTransactionId,
   relatedMembershipId,
+  isAgentBilling = false,
+  billingCategory = null,
+  originRecurringChargeRuleId = null,
   type,
   status,
   accountingDate,
@@ -111,6 +114,9 @@ async function upsertAccountingTransactionWithPostings({
       officeId,
       relatedTransactionId,
       relatedMembershipId,
+      isAgentBilling,
+      billingCategory,
+      originRecurringChargeRuleId,
       type,
       status,
       accountingDate,
@@ -130,6 +136,9 @@ async function upsertAccountingTransactionWithPostings({
       officeId,
       relatedTransactionId,
       relatedMembershipId,
+      isAgentBilling,
+      billingCategory,
+      originRecurringChargeRuleId,
       type,
       status,
       accountingDate,
@@ -755,10 +764,34 @@ async function main() {
     }
   });
 
+  await prisma.transactionContact.updateMany({
+    where: {
+      transactionId: "seed-tx-graham-court",
+      NOT: {
+        clientId: "seed-client-evelyn"
+      }
+    },
+    data: {
+      isPrimary: false
+    }
+  });
+
   await prisma.transaction.update({
     where: { id: "seed-tx-45-10-court-square" },
     data: {
       primaryClientId: "seed-client-daniel"
+    }
+  });
+
+  await prisma.transactionContact.updateMany({
+    where: {
+      transactionId: "seed-tx-45-10-court-square",
+      NOT: {
+        clientId: "seed-client-daniel"
+      }
+    },
+    data: {
+      isPrimary: false
     }
   });
 
@@ -1434,6 +1467,7 @@ async function main() {
     { code: "2000", name: "Accounts Payable", accountType: "liability" },
     { code: "2100", name: "Earnest Money Liability", accountType: "liability" },
     { code: "4000", name: "Commission Income", accountType: "income" },
+    { code: "4010", name: "Agent Billing Income", accountType: "income" },
     { code: "4050", name: "Refund / Contra Revenue", accountType: "contra_income" },
     { code: "5000", name: "Agent Commission Expense", accountType: "expense" },
     { code: "5100", name: "Referral Expense", accountType: "expense" }
@@ -1832,6 +1866,452 @@ async function main() {
         ...entry,
         accountId: ledgerAccountByCode.get(entry.accountCode).id
       }))
+    });
+  }
+
+  const seededAgentBillingTransactions = [
+    {
+      id: "seed-agent-invoice-jane-desk-fee",
+      relatedTransactionId: null,
+      relatedMembershipEmail: "jane@acre.com",
+      createdByEmail: "naomi@acre.com",
+      isAgentBilling: true,
+      billingCategory: "desk_fee",
+      type: "invoice",
+      status: "open",
+      accountingDate: new Date("2026-03-01T00:00:00.000Z"),
+      dueDate: new Date("2026-03-12T00:00:00.000Z"),
+      paymentMethod: null,
+      referenceNumber: "AGINV-2026-03-001",
+      counterpartyName: "Jane Wu",
+      memo: "March desk fee",
+      notes: "Seeded monthly desk fee invoice.",
+      totalAmount: "350",
+      lineItems: [
+        {
+          id: "seed-agent-li-jane-desk-fee",
+          ledgerAccountCode: "4010",
+          description: "Monthly desk fee",
+          entrySide: "credit",
+          amount: "350"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-agent-gl-jane-desk-fee-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-03-01T00:00:00.000Z"),
+          debitAmount: "350",
+          creditAmount: "0",
+          memo: "Agent invoice AGINV-2026-03-001"
+        },
+        {
+          id: "seed-agent-gl-jane-desk-fee-income",
+          accountCode: "4010",
+          entryDate: new Date("2026-03-01T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "350",
+          memo: "Agent invoice AGINV-2026-03-001"
+        }
+      ]
+    },
+    {
+      id: "seed-agent-invoice-jane-marketing-fee",
+      relatedTransactionId: "seed-tx-graham-court",
+      relatedMembershipEmail: "jane@acre.com",
+      createdByEmail: "naomi@acre.com",
+      isAgentBilling: true,
+      billingCategory: "marketing_fee",
+      type: "invoice",
+      status: "draft",
+      accountingDate: new Date("2026-04-01T00:00:00.000Z"),
+      dueDate: new Date("2026-04-01T00:00:00.000Z"),
+      paymentMethod: null,
+      referenceNumber: "AGINV-2026-04-001",
+      counterpartyName: "Jane Wu",
+      memo: "April marketing package",
+      notes: "Future-dated marketing fee invoice.",
+      totalAmount: "125",
+      lineItems: [
+        {
+          id: "seed-agent-li-jane-marketing-fee",
+          ledgerAccountCode: "4010",
+          description: "Marketing package",
+          entrySide: "credit",
+          amount: "125"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-agent-gl-jane-marketing-fee-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-04-01T00:00:00.000Z"),
+          debitAmount: "125",
+          creditAmount: "0",
+          memo: "Agent invoice AGINV-2026-04-001"
+        },
+        {
+          id: "seed-agent-gl-jane-marketing-fee-income",
+          accountCode: "4010",
+          entryDate: new Date("2026-04-01T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "125",
+          memo: "Agent invoice AGINV-2026-04-001"
+        }
+      ]
+    },
+    {
+      id: "seed-agent-invoice-simon-office-fee",
+      relatedTransactionId: null,
+      relatedMembershipEmail: "simon@acre.com",
+      createdByEmail: "naomi@acre.com",
+      isAgentBilling: true,
+      billingCategory: "office_fee",
+      type: "invoice",
+      status: "open",
+      accountingDate: new Date("2026-03-03T00:00:00.000Z"),
+      dueDate: new Date("2026-03-15T00:00:00.000Z"),
+      paymentMethod: null,
+      referenceNumber: "AGINV-2026-03-002",
+      counterpartyName: "Simon Park",
+      memo: "Office support fee",
+      notes: "Seeded office support fee invoice.",
+      totalAmount: "400",
+      lineItems: [
+        {
+          id: "seed-agent-li-simon-office-fee",
+          ledgerAccountCode: "4010",
+          description: "Office support fee",
+          entrySide: "credit",
+          amount: "400"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-agent-gl-simon-office-fee-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-03-03T00:00:00.000Z"),
+          debitAmount: "400",
+          creditAmount: "0",
+          memo: "Agent invoice AGINV-2026-03-002"
+        },
+        {
+          id: "seed-agent-gl-simon-office-fee-income",
+          accountCode: "4010",
+          entryDate: new Date("2026-03-03T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "400",
+          memo: "Agent invoice AGINV-2026-03-002"
+        }
+      ]
+    },
+    {
+      id: "seed-agent-payment-jane-march",
+      relatedTransactionId: null,
+      relatedMembershipEmail: "jane@acre.com",
+      createdByEmail: "naomi@acre.com",
+      isAgentBilling: true,
+      billingCategory: "collections",
+      type: "received_payment",
+      status: "completed",
+      accountingDate: new Date("2026-03-06T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: "check",
+      referenceNumber: "AGPAY-2026-03-001",
+      counterpartyName: "Jane Wu",
+      memo: "Received agent payment",
+      notes: "Partial payment against March charges.",
+      totalAmount: "200",
+      lineItems: [],
+      ledgerEntries: [
+        {
+          id: "seed-agent-gl-payment-jane-bank",
+          accountCode: "1000",
+          entryDate: new Date("2026-03-06T00:00:00.000Z"),
+          debitAmount: "200",
+          creditAmount: "0",
+          memo: "Agent payment AGPAY-2026-03-001"
+        },
+        {
+          id: "seed-agent-gl-payment-jane-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-03-06T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "200",
+          memo: "Agent payment AGPAY-2026-03-001"
+        }
+      ]
+    },
+    {
+      id: "seed-agent-credit-jane-courtesy",
+      relatedTransactionId: null,
+      relatedMembershipEmail: "jane@acre.com",
+      createdByEmail: "naomi@acre.com",
+      isAgentBilling: true,
+      billingCategory: "courtesy_credit",
+      type: "credit_memo",
+      status: "posted",
+      accountingDate: new Date("2026-03-07T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: null,
+      referenceNumber: "AGCR-2026-03-001",
+      counterpartyName: "Jane Wu",
+      memo: "Courtesy credit",
+      notes: "Applied courtesy credit to March desk fee.",
+      totalAmount: "50",
+      lineItems: [
+        {
+          id: "seed-agent-li-credit-jane-contra",
+          ledgerAccountCode: "4050",
+          description: "Courtesy credit",
+          entrySide: "debit",
+          amount: "50"
+        },
+        {
+          id: "seed-agent-li-credit-jane-ar",
+          ledgerAccountCode: "1100",
+          description: "Accounts receivable reduction",
+          entrySide: "credit",
+          amount: "50"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-agent-gl-credit-jane-contra",
+          accountCode: "4050",
+          entryDate: new Date("2026-03-07T00:00:00.000Z"),
+          debitAmount: "50",
+          creditAmount: "0",
+          memo: "Agent credit AGCR-2026-03-001"
+        },
+        {
+          id: "seed-agent-gl-credit-jane-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-03-07T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "50",
+          memo: "Agent credit AGCR-2026-03-001"
+        }
+      ]
+    }
+  ];
+
+  for (const accountingTransaction of seededAgentBillingTransactions) {
+    const relatedMembership = accountingTransaction.relatedMembershipEmail
+      ? membershipByEmail.get(accountingTransaction.relatedMembershipEmail) ?? null
+      : null;
+    const createdByMembership = membershipByEmail.get(accountingTransaction.createdByEmail) ?? null;
+
+    await upsertAccountingTransactionWithPostings({
+      id: accountingTransaction.id,
+      organizationId: organization.id,
+      officeId: office.id,
+      relatedTransactionId: accountingTransaction.relatedTransactionId ?? null,
+      relatedMembershipId: relatedMembership?.id ?? null,
+      isAgentBilling: accountingTransaction.isAgentBilling,
+      billingCategory: accountingTransaction.billingCategory,
+      type: accountingTransaction.type,
+      status: accountingTransaction.status,
+      accountingDate: accountingTransaction.accountingDate,
+      dueDate: accountingTransaction.dueDate ?? null,
+      paymentMethod: accountingTransaction.paymentMethod ?? null,
+      referenceNumber: accountingTransaction.referenceNumber,
+      counterpartyName: accountingTransaction.counterpartyName,
+      memo: accountingTransaction.memo,
+      notes: accountingTransaction.notes,
+      totalAmount: accountingTransaction.totalAmount,
+      createdByMembershipId: createdByMembership.id,
+      postedAt: ["draft", "void"].includes(accountingTransaction.status) ? null : accountingTransaction.accountingDate,
+      lineItems: accountingTransaction.lineItems.map((lineItem) => ({
+        ...lineItem,
+        ledgerAccountId: ledgerAccountByCode.get(lineItem.ledgerAccountCode).id
+      })),
+      ledgerEntries: accountingTransaction.ledgerEntries.map((entry) => ({
+        ...entry,
+        accountId: ledgerAccountByCode.get(entry.accountCode).id
+      }))
+    });
+  }
+
+  const seededAgentBillingApplications = [
+    {
+      id: "seed-agent-application-payment-jane-desk-fee",
+      sourceAccountingTransactionId: "seed-agent-payment-jane-march",
+      targetAccountingTransactionId: "seed-agent-invoice-jane-desk-fee",
+      amount: "200",
+      memo: "Applied payment to March desk fee"
+    },
+    {
+      id: "seed-agent-application-credit-jane-desk-fee",
+      sourceAccountingTransactionId: "seed-agent-credit-jane-courtesy",
+      targetAccountingTransactionId: "seed-agent-invoice-jane-desk-fee",
+      amount: "50",
+      memo: "Applied courtesy credit"
+    }
+  ];
+
+  for (const application of seededAgentBillingApplications) {
+    await prisma.accountingTransactionApplication.upsert({
+      where: {
+        id: application.id
+      },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        sourceAccountingTransactionId: application.sourceAccountingTransactionId,
+        targetAccountingTransactionId: application.targetAccountingTransactionId,
+        createdByMembershipId: membershipByEmail.get("naomi@acre.com")?.id ?? null,
+        amount: application.amount,
+        memo: application.memo,
+        appliedAt: new Date("2026-03-08T00:00:00.000Z")
+      },
+      create: {
+        id: application.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        sourceAccountingTransactionId: application.sourceAccountingTransactionId,
+        targetAccountingTransactionId: application.targetAccountingTransactionId,
+        createdByMembershipId: membershipByEmail.get("naomi@acre.com")?.id ?? null,
+        amount: application.amount,
+        memo: application.memo,
+        appliedAt: new Date("2026-03-08T00:00:00.000Z")
+      }
+    });
+  }
+
+  const seededAgentRecurringRules = [
+    {
+      id: "seed-agent-recurring-jane-marketing",
+      membershipEmail: "jane@acre.com",
+      name: "Monthly marketing package",
+      chargeType: "marketing_fee",
+      description: "Standard monthly marketing package for active agents.",
+      amount: "125",
+      frequency: "monthly",
+      customIntervalDays: null,
+      startDate: new Date("2026-03-01T00:00:00.000Z"),
+      nextDueDate: new Date("2026-04-01T00:00:00.000Z"),
+      endDate: null,
+      lastGeneratedAt: new Date("2026-03-01T00:00:00.000Z"),
+      autoGenerateInvoice: true,
+      isActive: true
+    }
+  ];
+
+  for (const rule of seededAgentRecurringRules) {
+    const membership = membershipByEmail.get(rule.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.agentRecurringChargeRule.upsert({
+      where: {
+        id: rule.id
+      },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        name: rule.name,
+        chargeType: rule.chargeType,
+        description: rule.description,
+        amount: rule.amount,
+        frequency: rule.frequency,
+        customIntervalDays: rule.customIntervalDays,
+        startDate: rule.startDate,
+        nextDueDate: rule.nextDueDate,
+        endDate: rule.endDate,
+        lastGeneratedAt: rule.lastGeneratedAt,
+        autoGenerateInvoice: rule.autoGenerateInvoice,
+        isActive: rule.isActive
+      },
+      create: {
+        id: rule.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        name: rule.name,
+        chargeType: rule.chargeType,
+        description: rule.description,
+        amount: rule.amount,
+        frequency: rule.frequency,
+        customIntervalDays: rule.customIntervalDays,
+        startDate: rule.startDate,
+        nextDueDate: rule.nextDueDate,
+        endDate: rule.endDate,
+        lastGeneratedAt: rule.lastGeneratedAt,
+        autoGenerateInvoice: rule.autoGenerateInvoice,
+        isActive: rule.isActive
+      }
+    });
+  }
+
+  const seededAgentPaymentMethods = [
+    {
+      id: "seed-agent-payment-method-jane-card",
+      membershipEmail: "jane@acre.com",
+      type: "card_on_file",
+      label: "Visa ending 4242",
+      provider: "Manual",
+      last4: "4242",
+      isDefault: true,
+      autoPayEnabled: false,
+      externalReferenceId: "pm_jane_demo",
+      status: "active"
+    },
+    {
+      id: "seed-agent-payment-method-simon-invalid",
+      membershipEmail: "simon@acre.com",
+      type: "bank_account",
+      label: "Bank account ending 8811",
+      provider: "Manual",
+      last4: "8811",
+      isDefault: true,
+      autoPayEnabled: false,
+      externalReferenceId: "pm_simon_demo",
+      status: "invalid"
+    }
+  ];
+
+  for (const paymentMethod of seededAgentPaymentMethods) {
+    const membership = membershipByEmail.get(paymentMethod.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.agentPaymentMethod.upsert({
+      where: {
+        id: paymentMethod.id
+      },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        type: paymentMethod.type,
+        label: paymentMethod.label,
+        provider: paymentMethod.provider,
+        last4: paymentMethod.last4,
+        isDefault: paymentMethod.isDefault,
+        autoPayEnabled: paymentMethod.autoPayEnabled,
+        externalReferenceId: paymentMethod.externalReferenceId,
+        status: paymentMethod.status
+      },
+      create: {
+        id: paymentMethod.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        type: paymentMethod.type,
+        label: paymentMethod.label,
+        provider: paymentMethod.provider,
+        last4: paymentMethod.last4,
+        isDefault: paymentMethod.isDefault,
+        autoPayEnabled: paymentMethod.autoPayEnabled,
+        externalReferenceId: paymentMethod.externalReferenceId,
+        status: paymentMethod.status
+      }
     });
   }
 
