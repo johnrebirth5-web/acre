@@ -252,6 +252,18 @@ function buildAuditDetail(label: string, previousValue: string, nextValue: strin
   return `${label}: ${previousValue} -> ${nextValue}`;
 }
 
+function buildAuditChange(label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return {
+    label,
+    previousValue,
+    nextValue
+  };
+}
+
 function buildTransactionObjectLabel(transaction: {
   title: string;
   address: string;
@@ -647,20 +659,27 @@ export async function updateTransactionStatus(input: UpdateTransactionStatusInpu
     });
 
     if (transaction.status !== nextStatus) {
+      const statusChange = buildAuditChange("Status", transactionStatusLabelMap[transaction.status], transactionStatusLabelMap[saved.status]);
       await recordActivityLogEvent(tx, {
         organizationId: input.organizationId,
         membershipId: input.actorMembershipId ?? null,
         entityType: "transaction",
         entityId: saved.id,
-        action: nextStatus === "closed" ? activityLogActions.transactionClosed : activityLogActions.transactionStatusChanged,
+        action:
+          nextStatus === "closed"
+            ? activityLogActions.transactionClosed
+            : nextStatus === "cancelled"
+              ? activityLogActions.transactionCancelled
+              : activityLogActions.transactionStatusChanged,
         payload: {
           officeId: saved.officeId,
           transactionId: saved.id,
           transactionLabel: buildTransactionObjectLabel(saved),
           objectLabel: buildTransactionObjectLabel(saved),
+          changes: statusChange ? [statusChange] : [],
           details: [
-            `Status: ${transactionStatusLabelMap[transaction.status]} -> ${transactionStatusLabelMap[saved.status]}`,
-            ...(nextStatus === "closed" ? ["Closed workflow reached"] : [])
+            ...(nextStatus === "closed" ? ["Closed workflow reached"] : []),
+            ...(nextStatus === "cancelled" ? ["Cancelled workflow reached"] : [])
           ]
         }
       });
@@ -728,6 +747,13 @@ export async function updateTransactionFinance(input: UpdateTransactionFinanceIn
       buildAuditDetail("Agent net", formatAuditCurrencyValue(existing.agentNet), formatAuditCurrencyValue(nextAgentNet)),
       buildAuditDetail("Finance notes", formatAuditTextValue(existing.financeNotes), formatAuditTextValue(nextFinanceNotes))
     ].filter((detail): detail is string => Boolean(detail));
+    const changes = [
+      buildAuditChange("Gross commission", formatAuditCurrencyValue(existing.grossCommission), formatAuditCurrencyValue(nextGrossCommission)),
+      buildAuditChange("Referral fee", formatAuditCurrencyValue(existing.referralFee), formatAuditCurrencyValue(nextReferralFee)),
+      buildAuditChange("Office net", formatAuditCurrencyValue(existing.officeNet), formatAuditCurrencyValue(nextOfficeNet)),
+      buildAuditChange("Agent net", formatAuditCurrencyValue(existing.agentNet), formatAuditCurrencyValue(nextAgentNet)),
+      buildAuditChange("Finance notes", formatAuditTextValue(existing.financeNotes), formatAuditTextValue(nextFinanceNotes))
+    ].filter((change): change is NonNullable<typeof change> => Boolean(change));
 
     if (details.length > 0) {
       await recordActivityLogEvent(tx, {
@@ -741,6 +767,7 @@ export async function updateTransactionFinance(input: UpdateTransactionFinanceIn
           transactionId: input.transactionId,
           transactionLabel: buildTransactionObjectLabel(existing),
           objectLabel: buildTransactionObjectLabel(existing),
+          changes,
           details
         }
       });

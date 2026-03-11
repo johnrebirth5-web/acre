@@ -1,3 +1,4 @@
+import { activityLogActions, prisma, recordActivityLogEvent } from "@acre/db";
 import { getDefaultAppPath } from "@acre/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateSeededUser, createSessionCookieValue, getSessionCookieName, getSessionCookieSettings } from "../../../../lib/auth-session";
@@ -10,6 +11,19 @@ export async function POST(request: NextRequest) {
   if (!context) {
     return NextResponse.redirect(new URL("/login?error=invalid_email", request.url), 303);
   }
+
+  await recordActivityLogEvent(prisma, {
+    organizationId: context.currentOrganization.id,
+    membershipId: context.currentMembership.id,
+    entityType: "session",
+    entityId: context.currentMembership.id,
+    action: activityLogActions.authLogin,
+    payload: {
+      officeId: context.currentOffice?.id ?? null,
+      objectLabel: `${context.currentUser.firstName} ${context.currentUser.lastName} · ${context.currentUser.email}`,
+      details: [`Role: ${context.currentMembership.role}`, `Office: ${context.currentOffice?.name ?? context.currentOrganization.name}`]
+    }
+  });
 
   const response = NextResponse.redirect(new URL(getDefaultAppPath(context.currentMembership.role), request.url), 303);
 

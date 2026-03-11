@@ -9,6 +9,7 @@ type OfficeActivityPageProps = {
     activitySection?: string;
     alertSection?: string;
     actorMembershipId?: string;
+    objectType?: string;
     startDate?: string;
     endDate?: string;
   }>;
@@ -19,6 +20,7 @@ type ActivitySearchParams = {
   activitySection?: string;
   alertSection?: string;
   actorMembershipId?: string;
+  objectType?: string;
   startDate?: string;
   endDate?: string;
 };
@@ -30,6 +32,7 @@ function buildActivityHref(currentSearchParams: ActivitySearchParams, nextSearch
     activitySection: currentSearchParams.activitySection,
     alertSection: currentSearchParams.alertSection,
     actorMembershipId: currentSearchParams.actorMembershipId,
+    objectType: currentSearchParams.objectType,
     startDate: currentSearchParams.startDate,
     endDate: currentSearchParams.endDate,
     ...nextSearchParams
@@ -55,6 +58,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
     activitySection: searchParams.activitySection,
     alertSection: searchParams.alertSection,
     actorMembershipId: searchParams.actorMembershipId,
+    objectType: searchParams.objectType,
     startDate: searchParams.startDate,
     endDate: searchParams.endDate
   });
@@ -108,14 +112,25 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
 
         <div className="bm-activity-filter-grid">
           <label className="bm-activity-filter-field">
-            <span>Actor</span>
-            <select defaultValue={snapshot.filters.actorMembershipId} name="actorMembershipId">
+            <span>Actor (activity only)</span>
+            <select defaultValue={snapshot.filters.actorMembershipId} disabled={selectedView === "alerts"} name="actorMembershipId">
               <option value="">All actors</option>
               {snapshot.filters.actorOptions.map((actor) => (
                 <option key={actor.id} value={actor.id}>
                   {actor.label}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className="bm-activity-filter-field">
+            <span>Object type</span>
+            <select defaultValue={snapshot.filters.objectType} name="objectType">
+              <option value="all">All objects</option>
+              <option value="transaction">Transactions</option>
+              <option value="contact">Contacts</option>
+              <option value="task">Tasks</option>
+              <option value="auth">Authentication</option>
             </select>
           </label>
 

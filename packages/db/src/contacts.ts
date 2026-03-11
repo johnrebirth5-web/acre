@@ -98,6 +98,8 @@ export type CreateFollowUpTaskInput = {
   organizationId: string;
   clientId: string;
   assigneeMembershipId: string;
+  actorMembershipId?: string;
+  actorOfficeId?: string | null;
   title: string;
   dueAt?: string;
 };
@@ -183,6 +185,22 @@ function buildContactChangedDetail(label: string, previousValue: string, nextVal
   }
 
   return `${label}: ${previousValue || "—"} -> ${nextValue || "—"}`;
+}
+
+function buildContactChange(label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return {
+    label,
+    previousValue: previousValue || "—",
+    nextValue: nextValue || "—"
+  };
+}
+
+function formatAreas(areas: string[] | undefined) {
+  return areas && areas.length > 0 ? areas.join(", ") : "—";
 }
 
 function mapContactRecord(
@@ -329,7 +347,12 @@ export async function updateContact(contactId: string, input: SaveContactInput):
       source: true,
       stage: true,
       intent: true,
-      notes: true
+      notes: true,
+      budgetMin: true,
+      budgetMax: true,
+      preferredAreas: true,
+      lastContactAt: true,
+      nextFollowUpAt: true
     }
   });
 
@@ -345,7 +368,12 @@ export async function updateContact(contactId: string, input: SaveContactInput):
     source: input.source?.trim() || "Manual entry",
     stage: input.stage?.trim() || "New",
     intent: input.intent?.trim() || "Unknown",
-    notes: input.notes?.trim() || null
+    notes: input.notes?.trim() || null,
+    budgetMin: parseOptionalDecimal(input.budgetMin),
+    budgetMax: parseOptionalDecimal(input.budgetMax),
+    preferredAreas: input.preferredAreas?.filter(Boolean) ?? [],
+    lastContactAt: parseOptionalDate(input.lastContactAt),
+    nextFollowUpAt: parseOptionalDate(input.nextFollowUpAt)
   };
 
   await prisma.$transaction(async (tx) => {
@@ -359,12 +387,12 @@ export async function updateContact(contactId: string, input: SaveContactInput):
         source: nextValues.source,
         stage: nextValues.stage,
         intent: nextValues.intent,
-        budgetMin: parseOptionalDecimal(input.budgetMin),
-        budgetMax: parseOptionalDecimal(input.budgetMax),
-        preferredAreas: input.preferredAreas?.filter(Boolean) ?? [],
+        budgetMin: nextValues.budgetMin,
+        budgetMax: nextValues.budgetMax,
+        preferredAreas: nextValues.preferredAreas,
         notes: nextValues.notes,
-        lastContactAt: parseOptionalDate(input.lastContactAt),
-        nextFollowUpAt: parseOptionalDate(input.nextFollowUpAt)
+        lastContactAt: nextValues.lastContactAt,
+        nextFollowUpAt: nextValues.nextFollowUpAt
       }
     });
 
@@ -376,8 +404,26 @@ export async function updateContact(contactId: string, input: SaveContactInput):
       buildContactChangedDetail("Stage", existing.stage, nextValues.stage),
       buildContactChangedDetail("Intent", existing.intent, nextValues.intent),
       buildContactChangedDetail("Source", existing.source, nextValues.source),
-      buildContactChangedDetail("Notes", existing.notes ?? "", nextValues.notes ?? "")
+      buildContactChangedDetail("Notes", existing.notes ?? "", nextValues.notes ?? ""),
+      buildContactChangedDetail("Budget", formatBudget(existing.budgetMin, existing.budgetMax), formatBudget(nextValues.budgetMin, nextValues.budgetMax)),
+      buildContactChangedDetail("Areas", formatAreas(existing.preferredAreas), formatAreas(nextValues.preferredAreas)),
+      buildContactChangedDetail("Last contact", formatDateValue(existing.lastContactAt), formatDateValue(nextValues.lastContactAt)),
+      buildContactChangedDetail("Next follow-up", formatDateValue(existing.nextFollowUpAt), formatDateValue(nextValues.nextFollowUpAt))
     ].filter((detail): detail is string => Boolean(detail));
+    const changes = [
+      buildContactChange("Full name", existing.fullName, nextValues.fullName),
+      buildContactChange("Email", existing.email ?? "", nextValues.email ?? ""),
+      buildContactChange("Phone", existing.phone ?? "", nextValues.phone ?? ""),
+      buildContactChange("Type", existing.contactType ?? "", nextValues.contactType ?? ""),
+      buildContactChange("Stage", existing.stage, nextValues.stage),
+      buildContactChange("Intent", existing.intent, nextValues.intent),
+      buildContactChange("Source", existing.source, nextValues.source),
+      buildContactChange("Notes", existing.notes ?? "", nextValues.notes ?? ""),
+      buildContactChange("Budget", formatBudget(existing.budgetMin, existing.budgetMax), formatBudget(nextValues.budgetMin, nextValues.budgetMax)),
+      buildContactChange("Areas", formatAreas(existing.preferredAreas), formatAreas(nextValues.preferredAreas)),
+      buildContactChange("Last contact", formatDateValue(existing.lastContactAt), formatDateValue(nextValues.lastContactAt)),
+      buildContactChange("Next follow-up", formatDateValue(existing.nextFollowUpAt), formatDateValue(nextValues.nextFollowUpAt))
+    ].filter((change): change is NonNullable<typeof change> => Boolean(change));
 
     if (details.length > 0) {
       await recordActivityLogEvent(tx, {
@@ -395,6 +441,7 @@ export async function updateContact(contactId: string, input: SaveContactInput):
             email: nextValues.email,
             phone: nextValues.phone
           }),
+          changes,
           details
         }
       });
@@ -515,7 +562,10 @@ export async function createFollowUpTask(input: CreateFollowUpTaskInput): Promis
       organizationId: input.organizationId
     },
     select: {
-      id: true
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true
     }
   });
 
@@ -523,29 +573,48 @@ export async function createFollowUpTask(input: CreateFollowUpTaskInput): Promis
     return null;
   }
 
-  const task = await prisma.followUpTask.create({
-    data: {
-      organizationId: input.organizationId,
-      clientId: input.clientId,
-      assigneeMemberId: input.assigneeMembershipId,
-      title: input.title.trim(),
-      status: TaskStatus.queued,
-      dueAt: parseOptionalDate(input.dueAt),
-      metadata: Prisma.JsonNull
-    }
-  });
-
-  const hydratedTask = await prisma.followUpTask.findUnique({
-    where: {
-      id: task.id
-    },
-    include: {
-      assigneeMembership: {
-        include: {
-          user: true
+  const task = await prisma.$transaction(async (tx) => {
+    const created = await tx.followUpTask.create({
+      data: {
+        organizationId: input.organizationId,
+        clientId: input.clientId,
+        assigneeMemberId: input.assigneeMembershipId,
+        title: input.title.trim(),
+        status: TaskStatus.queued,
+        dueAt: parseOptionalDate(input.dueAt),
+        metadata: Prisma.JsonNull
+      },
+      include: {
+        assigneeMembership: {
+          include: {
+            user: true
+          }
         }
       }
-    }
+    });
+
+    await recordActivityLogEvent(tx, {
+      organizationId: input.organizationId,
+      membershipId: input.actorMembershipId ?? input.assigneeMembershipId,
+      entityType: "follow_up_task",
+      entityId: created.id,
+      action: activityLogActions.followUpTaskCreated,
+      payload: {
+        officeId: input.actorOfficeId ?? null,
+        contactId: client.id,
+        contactName: client.fullName,
+        taskId: created.id,
+        taskTitle: created.title,
+        objectLabel: `${created.title} · ${buildContactObjectLabel(client)}`,
+        details: [
+          `Status: Queued`,
+          ...(created.dueAt ? [`Due: ${formatDateLabel(created.dueAt)}`] : []),
+          `Assignee: ${created.assigneeMembership ? `${created.assigneeMembership.user.firstName} ${created.assigneeMembership.user.lastName}` : "Unassigned"}`
+        ]
+      }
+    });
+
+    return created;
   });
 
   return {
@@ -553,7 +622,7 @@ export async function createFollowUpTask(input: CreateFollowUpTaskInput): Promis
     title: task.title,
     status: task.status,
     dueAt: formatDateLabel(task.dueAt),
-    assigneeName: hydratedTask?.assigneeMembership ? `${hydratedTask.assigneeMembership.user.firstName} ${hydratedTask.assigneeMembership.user.lastName}` : "Unassigned"
+    assigneeName: task.assigneeMembership ? `${task.assigneeMembership.user.firstName} ${task.assigneeMembership.user.lastName}` : "Unassigned"
   };
 }
 

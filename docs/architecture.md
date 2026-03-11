@@ -13,7 +13,8 @@
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；documents / approvals / accounting / settings 变更还没有真实事件源
 
 ## 技术栈
 
@@ -49,6 +50,9 @@
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
   - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update
   - `Activity`：server-side 同时读取真实 `AuditLog` 和实时派生 alerts，渲染 `Activity Log + Operational Alerts`
+    - `AuditLog` 是唯一活动事件源
+    - 页面支持 `actor / object type / date range` 过滤
+    - 事件摘要通过集中 formatter 读取结构化 payload / changes，而不是把文案散在 UI 里
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
@@ -230,9 +234,11 @@
 12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
 13. `/office/activity` 读取 `AuditLog`，并结合 transaction / task / contact / follow-up 的实时数据库状态派生 operational alerts
 14. transaction / contact / finance / task 的真实写入路径会同步写入 `AuditLog`
-15. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
-16. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-17. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+15. auth login / logout 和 follow-up task create 也会写入 `AuditLog`
+16. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
+17. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+18. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+19. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 

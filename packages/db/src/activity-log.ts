@@ -5,6 +5,7 @@ export const activityLogActions = {
   transactionCreated: "transaction.created",
   transactionStatusChanged: "transaction.status_changed",
   transactionClosed: "transaction.closed",
+  transactionCancelled: "transaction.cancelled",
   transactionContactLinked: "transaction.contact_linked",
   transactionContactUnlinked: "transaction.contact_unlinked",
   transactionPrimaryContactChanged: "transaction.primary_contact_changed",
@@ -12,12 +13,24 @@ export const activityLogActions = {
   transactionTaskCreated: "transaction.task_created",
   transactionTaskUpdated: "transaction.task_updated",
   transactionTaskCompleted: "transaction.task_completed",
+  transactionTaskReopened: "transaction.task_reopened",
+  followUpTaskCreated: "follow_up_task.created",
   contactCreated: "contact.created",
-  contactUpdated: "contact.updated"
+  contactUpdated: "contact.updated",
+  authLogin: "auth.login",
+  authLogout: "auth.logout"
 } as const;
 
 export type ActivityLogAction = (typeof activityLogActions)[keyof typeof activityLogActions];
 export type ActivityLogViewMode = "all" | "activity" | "alerts";
+export type ActivityLogEntityType = "transaction" | "contact" | "transaction_task" | "follow_up_task" | "session";
+export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "auth";
+
+export type ActivityLogChange = {
+  label: string;
+  previousValue?: string | null;
+  nextValue?: string | null;
+};
 
 export type ActivityLogPayload = {
   officeId?: string | null;
@@ -29,23 +42,17 @@ export type ActivityLogPayload = {
   taskId?: string;
   taskTitle?: string;
   details?: string[];
+  changes?: ActivityLogChange[];
 };
 
 export type ActivityLogSectionKey =
   | "all"
-  | "transaction-created"
-  | "transaction-updated"
-  | "transaction-status-changed"
-  | "transaction-closed"
-  | "transaction-contact-linked"
-  | "transaction-contact-unlinked"
-  | "transaction-primary-contact-changed"
-  | "transaction-finance-updated"
-  | "task-created"
-  | "task-updated"
-  | "task-completed"
-  | "contact-created"
-  | "contact-updated";
+  | "transaction-lifecycle"
+  | "transaction-contacts"
+  | "transaction-finance"
+  | "task-workflow"
+  | "contact-workflow"
+  | "authentication";
 
 export type ActivityAlertSectionKey =
   | "all"
@@ -73,6 +80,7 @@ export type OfficeActivityLogEvent = {
   actionLabel: string;
   actorDisplayName: string;
   summary: string;
+  objectType: Exclude<ActivityLogObjectType, "all">;
   objectLabel: string;
   href: string | null;
   timestampLabel: string;
@@ -87,6 +95,7 @@ export type OfficeOperationalAlert = {
   typeLabel: string;
   severity: OfficeOperationalAlertSeverity;
   severityLabel: string;
+  objectType: Exclude<ActivityLogObjectType, "all" | "auth">;
   title: string;
   summary: string;
   objectLabel: string;
@@ -107,6 +116,7 @@ export type GetOfficeActivityLogInput = {
   activitySection?: string;
   alertSection?: string;
   actorMembershipId?: string;
+  objectType?: string;
   startDate?: string;
   endDate?: string;
   limit?: number;
@@ -126,6 +136,7 @@ export type OfficeActivityLogSnapshot = {
   alerts: OfficeOperationalAlert[];
   filters: {
     actorMembershipId: string;
+    objectType: ActivityLogObjectType;
     startDate: string;
     endDate: string;
     actorOptions: OfficeActivityActorOption[];
@@ -137,7 +148,7 @@ type AuditLogWriter = Pick<Prisma.TransactionClient, "auditLog">;
 type RecordActivityLogEventInput = {
   organizationId: string;
   membershipId?: string | null;
-  entityType: "transaction" | "contact" | "transaction_task";
+  entityType: ActivityLogEntityType;
   entityId: string;
   action: ActivityLogAction;
   payload?: ActivityLogPayload;
@@ -171,10 +182,16 @@ type ActivityAlertSectionDefinition = {
   matches: (alert: OfficeOperationalAlert) => boolean;
 };
 
+type ParsedActivityPayload = ActivityLogPayload & {
+  changes: ActivityLogChange[];
+  details: string[];
+};
+
 const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.created": "Transaction created",
   "transaction.status_changed": "Transaction status changed",
   "transaction.closed": "Transaction closed",
+  "transaction.cancelled": "Transaction cancelled",
   "transaction.contact_linked": "Transaction contact linked",
   "transaction.contact_unlinked": "Transaction contact unlinked",
   "transaction.primary_contact_changed": "Transaction primary contact changed",
@@ -182,39 +199,61 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.task_created": "Task created",
   "transaction.task_updated": "Task updated",
   "transaction.task_completed": "Task completed",
+  "transaction.task_reopened": "Task reopened",
+  "follow_up_task.created": "Follow-up task created",
   "contact.created": "Contact created",
-  "contact.updated": "Contact updated"
+  "contact.updated": "Contact updated",
+  "auth.login": "Sign in",
+  "auth.logout": "Sign out"
 };
 
 const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
   { key: "all", label: "All events", matches: () => true },
-  { key: "transaction-created", label: "Transaction created", matches: (action) => action === activityLogActions.transactionCreated },
   {
-    key: "transaction-updated",
-    label: "Transaction updated",
+    key: "transaction-lifecycle",
+    label: "Transaction lifecycle",
     matches: (action) =>
+      action === activityLogActions.transactionCreated ||
       action === activityLogActions.transactionStatusChanged ||
       action === activityLogActions.transactionClosed ||
+      action === activityLogActions.transactionCancelled
+  },
+  {
+    key: "transaction-contacts",
+    label: "Transaction contacts",
+    matches: (action) =>
       action === activityLogActions.transactionContactLinked ||
       action === activityLogActions.transactionContactUnlinked ||
-      action === activityLogActions.transactionPrimaryContactChanged ||
-      action === activityLogActions.transactionFinanceUpdated
+      action === activityLogActions.transactionPrimaryContactChanged
   },
-  { key: "transaction-status-changed", label: "Transaction status changed", matches: (action) => action === activityLogActions.transactionStatusChanged },
-  { key: "transaction-closed", label: "Transaction closed", matches: (action) => action === activityLogActions.transactionClosed },
-  { key: "transaction-contact-linked", label: "Transaction contact linked", matches: (action) => action === activityLogActions.transactionContactLinked },
-  { key: "transaction-contact-unlinked", label: "Transaction contact unlinked", matches: (action) => action === activityLogActions.transactionContactUnlinked },
   {
-    key: "transaction-primary-contact-changed",
-    label: "Transaction primary contact changed",
-    matches: (action) => action === activityLogActions.transactionPrimaryContactChanged
+    key: "transaction-finance",
+    label: "Transaction finance",
+    matches: (action) => action === activityLogActions.transactionFinanceUpdated
   },
-  { key: "transaction-finance-updated", label: "Transaction finance updated", matches: (action) => action === activityLogActions.transactionFinanceUpdated },
-  { key: "task-created", label: "Task created", matches: (action) => action === activityLogActions.transactionTaskCreated },
-  { key: "task-updated", label: "Task updated", matches: (action) => action === activityLogActions.transactionTaskUpdated || action === activityLogActions.transactionTaskCompleted },
-  { key: "task-completed", label: "Task completed", matches: (action) => action === activityLogActions.transactionTaskCompleted },
-  { key: "contact-created", label: "Contact created", matches: (action) => action === activityLogActions.contactCreated },
-  { key: "contact-updated", label: "Contact updated", matches: (action) => action === activityLogActions.contactUpdated }
+  {
+    key: "task-workflow",
+    label: "Task workflow",
+    matches: (action) =>
+      action === activityLogActions.transactionTaskCreated ||
+      action === activityLogActions.transactionTaskUpdated ||
+      action === activityLogActions.transactionTaskCompleted ||
+      action === activityLogActions.transactionTaskReopened ||
+      action === activityLogActions.followUpTaskCreated
+  },
+  {
+    key: "contact-workflow",
+    label: "Contact workflow",
+    matches: (action) =>
+      action === activityLogActions.contactCreated ||
+      action === activityLogActions.contactUpdated
+  },
+  {
+    key: "authentication",
+    label: "Authentication",
+    matches: (action) =>
+      action === activityLogActions.authLogin || action === activityLogActions.authLogout
+  }
 ];
 
 const activityAlertSectionDefinitions: ActivityAlertSectionDefinition[] = [
@@ -251,27 +290,97 @@ function isPayloadObject(payload: Prisma.JsonValue | null): payload is Prisma.Js
   return Boolean(payload) && typeof payload === "object" && !Array.isArray(payload);
 }
 
-function getActivityPayload(payload: Prisma.JsonValue | null): ActivityLogPayload {
-  if (!isPayloadObject(payload)) {
-    return {};
+function parsePayloadString(payload: Prisma.JsonObject, key: string) {
+  return typeof payload[key] === "string" ? payload[key] : undefined;
+}
+
+function parsePayloadNullableString(payload: Prisma.JsonObject, key: string) {
+  return typeof payload[key] === "string" ? payload[key] : payload[key] === null ? null : undefined;
+}
+
+function parsePayloadDetails(payload: Prisma.JsonObject) {
+  const value = payload.details;
+
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+}
+
+function parsePayloadChanges(payload: Prisma.JsonObject) {
+  const value = payload.changes;
+
+  if (!Array.isArray(value)) {
+    return [];
   }
 
-  const detailsValue = payload.details;
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return [];
+    }
+
+    const maybeLabel = "label" in entry ? entry.label : undefined;
+    const maybePrevious = "previousValue" in entry ? entry.previousValue : undefined;
+    const maybeNext = "nextValue" in entry ? entry.nextValue : undefined;
+
+    if (typeof maybeLabel !== "string" || maybeLabel.trim().length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        label: maybeLabel,
+        previousValue: typeof maybePrevious === "string" ? maybePrevious : maybePrevious === null ? null : undefined,
+        nextValue: typeof maybeNext === "string" ? maybeNext : maybeNext === null ? null : undefined
+      }
+    ];
+  });
+}
+
+function getActivityPayload(payload: Prisma.JsonValue | null): ParsedActivityPayload {
+  if (!isPayloadObject(payload)) {
+    return {
+      details: [],
+      changes: []
+    };
+  }
 
   return {
-    officeId: typeof payload.officeId === "string" ? payload.officeId : payload.officeId === null ? null : undefined,
-    objectLabel: typeof payload.objectLabel === "string" ? payload.objectLabel : undefined,
-    transactionId: typeof payload.transactionId === "string" ? payload.transactionId : undefined,
-    transactionLabel: typeof payload.transactionLabel === "string" ? payload.transactionLabel : undefined,
-    contactId: typeof payload.contactId === "string" ? payload.contactId : undefined,
-    contactName: typeof payload.contactName === "string" ? payload.contactName : undefined,
-    taskId: typeof payload.taskId === "string" ? payload.taskId : undefined,
-    taskTitle: typeof payload.taskTitle === "string" ? payload.taskTitle : undefined,
-    details: Array.isArray(detailsValue) ? detailsValue.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : []
+    officeId: parsePayloadNullableString(payload, "officeId"),
+    objectLabel: parsePayloadString(payload, "objectLabel"),
+    transactionId: parsePayloadString(payload, "transactionId"),
+    transactionLabel: parsePayloadString(payload, "transactionLabel"),
+    contactId: parsePayloadString(payload, "contactId"),
+    contactName: parsePayloadString(payload, "contactName"),
+    taskId: parsePayloadString(payload, "taskId"),
+    taskTitle: parsePayloadString(payload, "taskTitle"),
+    details: parsePayloadDetails(payload),
+    changes: parsePayloadChanges(payload)
   };
 }
 
-function getActivityHref(record: ActivityLogRecord, payload: ActivityLogPayload) {
+function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjectType, "all"> {
+  switch (entityType) {
+    case "transaction":
+      return "transaction";
+    case "contact":
+      return "contact";
+    case "transaction_task":
+    case "follow_up_task":
+      return "task";
+    case "session":
+      return "auth";
+    default:
+      return "transaction";
+  }
+}
+
+function normalizeObjectType(value: string | undefined): ActivityLogObjectType {
+  if (value === "transaction" || value === "contact" || value === "task" || value === "auth") {
+    return value;
+  }
+
+  return "all";
+}
+
+function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPayload) {
   if (record.entityType === "transaction") {
     return `/office/transactions/${payload.transactionId ?? record.entityId}`;
   }
@@ -284,10 +393,14 @@ function getActivityHref(record: ActivityLogRecord, payload: ActivityLogPayload)
     return `/office/transactions/${payload.transactionId}`;
   }
 
+  if (record.entityType === "follow_up_task" && payload.contactId) {
+    return `/office/contacts/${payload.contactId}`;
+  }
+
   return null;
 }
 
-function getObjectLabel(record: ActivityLogRecord, payload: ActivityLogPayload) {
+function getObjectLabel(record: ActivityLogRecord, payload: ParsedActivityPayload) {
   return (
     payload.objectLabel ??
     payload.transactionLabel ??
@@ -301,32 +414,74 @@ function getActionLabel(action: string) {
   return activityActionLabelMap[action as ActivityLogAction] ?? action;
 }
 
-function getSummary(action: string) {
+function normalizeChangeValue(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : "—";
+}
+
+function formatActivityChange(change: ActivityLogChange) {
+  const previousValue = normalizeChangeValue(change.previousValue);
+  const nextValue = normalizeChangeValue(change.nextValue);
+
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return `${change.label}: ${previousValue} -> ${nextValue}`;
+}
+
+function getPayloadChange(payload: ParsedActivityPayload, label: string) {
+  return payload.changes.find((change) => change.label === label) ?? null;
+}
+
+function formatSummaryChange(change: ActivityLogChange | null) {
+  if (!change) {
+    return null;
+  }
+
+  return `${normalizeChangeValue(change.previousValue)} to ${normalizeChangeValue(change.nextValue)}`;
+}
+
+function getSummary(action: string, payload: ParsedActivityPayload) {
   switch (action) {
     case activityLogActions.transactionCreated:
       return "created a transaction";
-    case activityLogActions.transactionStatusChanged:
-      return "changed transaction status";
+    case activityLogActions.transactionStatusChanged: {
+      const statusChange = getPayloadChange(payload, "Status");
+      return statusChange ? `changed transaction status from ${formatSummaryChange(statusChange)}` : "changed transaction status";
+    }
     case activityLogActions.transactionClosed:
       return "closed a transaction";
+    case activityLogActions.transactionCancelled:
+      return "cancelled a transaction";
     case activityLogActions.transactionContactLinked:
-      return "linked a contact to a transaction";
+      return payload.contactName ? `linked ${payload.contactName} to a transaction` : "linked a contact to a transaction";
     case activityLogActions.transactionContactUnlinked:
-      return "unlinked a contact from a transaction";
+      return payload.contactName ? `unlinked ${payload.contactName} from a transaction` : "unlinked a contact from a transaction";
     case activityLogActions.transactionPrimaryContactChanged:
       return "changed the primary transaction contact";
     case activityLogActions.transactionFinanceUpdated:
-      return "updated transaction finance";
+      return payload.changes.length === 1 ? `updated ${payload.changes[0].label.toLowerCase()}` : "updated transaction finance";
     case activityLogActions.transactionTaskCreated:
       return "created a transaction task";
-    case activityLogActions.transactionTaskUpdated:
-      return "updated a transaction task";
+    case activityLogActions.transactionTaskUpdated: {
+      const statusChange = getPayloadChange(payload, "Status");
+      return statusChange ? `updated task status from ${formatSummaryChange(statusChange)}` : "updated a transaction task";
+    }
     case activityLogActions.transactionTaskCompleted:
       return "completed a transaction task";
+    case activityLogActions.transactionTaskReopened:
+      return "reopened a transaction task";
+    case activityLogActions.followUpTaskCreated:
+      return "created a follow-up task";
     case activityLogActions.contactCreated:
       return "created a contact";
     case activityLogActions.contactUpdated:
-      return "updated a contact";
+      return payload.changes.length === 1 ? `updated contact ${payload.changes[0].label.toLowerCase()}` : "updated a contact";
+    case activityLogActions.authLogin:
+      return "signed in";
+    case activityLogActions.authLogout:
+      return "signed out";
     default:
       return "recorded an activity event";
   }
@@ -344,6 +499,27 @@ function getViewMode(view: string | undefined): ActivityLogViewMode {
   return view === "activity" || view === "alerts" ? view : "all";
 }
 
+function getDetailSummary(payload: ParsedActivityPayload) {
+  const detailItems = payload.details;
+  const changeItems = payload.changes
+    .map(formatActivityChange)
+    .filter((detail): detail is string => Boolean(detail));
+
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const detail of [...changeItems, ...detailItems]) {
+    if (seen.has(detail)) {
+      continue;
+    }
+
+    seen.add(detail);
+    merged.push(detail);
+  }
+
+  return merged;
+}
+
 function formatActivityLogRecord(record: ActivityLogRecord): OfficeActivityLogEvent {
   const payload = getActivityPayload(record.payload);
 
@@ -352,11 +528,12 @@ function formatActivityLogRecord(record: ActivityLogRecord): OfficeActivityLogEv
     action: record.action,
     actionLabel: getActionLabel(record.action),
     actorDisplayName: getActorDisplayName(record),
-    summary: getSummary(record.action),
+    summary: getSummary(record.action, payload),
+    objectType: mapEntityTypeToObjectType(record.entityType),
     objectLabel: getObjectLabel(record, payload),
     href: getActivityHref(record, payload),
     timestampLabel: formatTimestamp(record.createdAt),
-    detailSummary: payload.details ?? []
+    detailSummary: getDetailSummary(payload)
   };
 }
 
@@ -376,22 +553,6 @@ function parseEndDate(value: string | undefined) {
 
   const date = new Date(`${value}T23:59:59.999Z`);
   return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function isDateInRange(date: Date | null | undefined, startDate: Date | null, endDate: Date | null) {
-  if (!date) {
-    return false;
-  }
-
-  if (startDate && date < startDate) {
-    return false;
-  }
-
-  if (endDate && date > endDate) {
-    return false;
-  }
-
-  return true;
 }
 
 function clampDateWindow(startDate: Date, endDate: Date, filterStartDate: Date | null, filterEndDate: Date | null) {
@@ -484,6 +645,7 @@ async function getActorOptions(records: ActivityLogRecord[]) {
 async function listOperationalAlerts(input: {
   organizationId: string;
   officeId?: string | null;
+  objectType: ActivityLogObjectType;
   startDate: Date | null;
   endDate: Date | null;
 }): Promise<OfficeOperationalAlert[]> {
@@ -503,7 +665,7 @@ async function listOperationalAlerts(input: {
 
   const [closingSoonTransactions, overdueTransactionTasks, contactsNeedingFollowUpSoon, overdueFollowUpTasks, financeIncompleteTransactions] =
     await Promise.all([
-      closingSoonWindow
+      closingSoonWindow && (input.objectType === "all" || input.objectType === "transaction")
         ? prisma.transaction.findMany({
             where: {
               organizationId: input.organizationId,
@@ -526,34 +688,36 @@ async function listOperationalAlerts(input: {
             orderBy: [{ closingDate: "asc" }]
           })
         : Promise.resolve([]),
-      prisma.transactionTask.findMany({
-        where: {
-          organizationId: input.organizationId,
-          status: {
-            in: [TransactionTaskStatus.todo, TransactionTaskStatus.in_progress]
-          },
-          dueAt: {
-            lt: now,
-            ...(input.startDate ? { gte: input.startDate } : {}),
-            ...(input.endDate ? { lte: input.endDate } : {})
-          },
-          transaction: input.officeId
-            ? {
-                officeId: input.officeId
-              }
-            : undefined
-        },
-        include: {
-          assigneeMembership: {
+      input.objectType === "all" || input.objectType === "task"
+        ? prisma.transactionTask.findMany({
+            where: {
+              organizationId: input.organizationId,
+              status: {
+                in: [TransactionTaskStatus.todo, TransactionTaskStatus.in_progress]
+              },
+              dueAt: {
+                lt: now,
+                ...(input.startDate ? { gte: input.startDate } : {}),
+                ...(input.endDate ? { lte: input.endDate } : {})
+              },
+              transaction: input.officeId
+                ? {
+                    officeId: input.officeId
+                  }
+                : undefined
+            },
             include: {
-              user: true
-            }
-          },
-          transaction: true
-        },
-        orderBy: [{ dueAt: "asc" }]
-      }),
-      followUpSoonWindow
+              assigneeMembership: {
+                include: {
+                  user: true
+                }
+              },
+              transaction: true
+            },
+            orderBy: [{ dueAt: "asc" }]
+          })
+        : Promise.resolve([]),
+      followUpSoonWindow && (input.objectType === "all" || input.objectType === "contact")
         ? prisma.client.findMany({
             where: {
               organizationId: input.organizationId,
@@ -579,80 +743,84 @@ async function listOperationalAlerts(input: {
             orderBy: [{ nextFollowUpAt: "asc" }]
           })
         : Promise.resolve([]),
-      prisma.followUpTask.findMany({
-        where: {
-          organizationId: input.organizationId,
-          status: {
-            in: [TaskStatus.queued, TaskStatus.in_progress]
-          },
-          dueAt: {
-            lt: now,
-            ...(input.startDate ? { gte: input.startDate } : {}),
-            ...(input.endDate ? { lte: input.endDate } : {})
-          },
-          ...(input.officeId
-            ? {
-                OR: [
-                  {
-                    assigneeMembership: {
-                      officeId: input.officeId
-                    }
-                  },
-                  {
-                    client: {
-                      ownerMembership: {
-                        officeId: input.officeId
+      input.objectType === "all" || input.objectType === "task"
+        ? prisma.followUpTask.findMany({
+            where: {
+              organizationId: input.organizationId,
+              status: {
+                in: [TaskStatus.queued, TaskStatus.in_progress]
+              },
+              dueAt: {
+                lt: now,
+                ...(input.startDate ? { gte: input.startDate } : {}),
+                ...(input.endDate ? { lte: input.endDate } : {})
+              },
+              ...(input.officeId
+                ? {
+                    OR: [
+                      {
+                        assigneeMembership: {
+                          officeId: input.officeId
+                        }
+                      },
+                      {
+                        client: {
+                          ownerMembership: {
+                            officeId: input.officeId
+                          }
+                        }
                       }
+                    ]
+                  }
+                : {})
+            },
+            include: {
+              assigneeMembership: {
+                include: {
+                  user: true
+                }
+              },
+              client: {
+                include: {
+                  ownerMembership: {
+                    include: {
+                      user: true
                     }
                   }
-                ]
+                }
               }
-            : {})
-        },
-        include: {
-          assigneeMembership: {
-            include: {
-              user: true
-            }
-          },
-          client: {
+            },
+            orderBy: [{ dueAt: "asc" }]
+          })
+        : Promise.resolve([]),
+      input.objectType === "all" || input.objectType === "transaction"
+        ? prisma.transaction.findMany({
+            where: {
+              organizationId: input.organizationId,
+              ...(input.officeId ? { officeId: input.officeId } : {}),
+              status: {
+                not: TransactionStatus.cancelled
+              },
+              OR: [{ grossCommission: null }, { officeNet: null }, { agentNet: null }],
+              ...(input.startDate || input.endDate
+                ? {
+                    updatedAt: {
+                      ...(input.startDate ? { gte: input.startDate } : {}),
+                      ...(input.endDate ? { lte: input.endDate } : {})
+                    }
+                  }
+                : {})
+            },
             include: {
               ownerMembership: {
                 include: {
                   user: true
                 }
               }
-            }
-          }
-        },
-        orderBy: [{ dueAt: "asc" }]
-      }),
-      prisma.transaction.findMany({
-        where: {
-          organizationId: input.organizationId,
-          ...(input.officeId ? { officeId: input.officeId } : {}),
-          status: {
-            not: TransactionStatus.cancelled
-          },
-          OR: [{ grossCommission: null }, { officeNet: null }, { agentNet: null }],
-          ...(input.startDate || input.endDate
-            ? {
-                updatedAt: {
-                  ...(input.startDate ? { gte: input.startDate } : {}),
-                  ...(input.endDate ? { lte: input.endDate } : {})
-                }
-              }
-            : {})
-        },
-        include: {
-          ownerMembership: {
-            include: {
-              user: true
-            }
-          }
-        },
-        orderBy: [{ updatedAt: "desc" }]
-      })
+            },
+            orderBy: [{ updatedAt: "desc" }]
+          })
+        : Promise.resolve([])
     ]);
 
   const alerts: Array<OfficeOperationalAlert & { sortAt: Date }> = [];
@@ -671,6 +839,7 @@ async function listOperationalAlerts(input: {
       typeLabel: "Transaction closing soon",
       severity,
       severityLabel: getSeverityLabel(severity),
+      objectType: "transaction",
       title: "Closing date approaching",
       summary: `${transaction.title} is scheduled to close soon.`,
       objectLabel: `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`,
@@ -696,6 +865,7 @@ async function listOperationalAlerts(input: {
       typeLabel: "Overdue transaction task",
       severity: "high",
       severityLabel: getSeverityLabel("high"),
+      objectType: "task",
       title: "Transaction task overdue",
       summary: `${task.title} is overdue and still open.`,
       objectLabel: `${task.transaction.title} · ${task.transaction.address}, ${task.transaction.city}, ${task.transaction.state}`,
@@ -721,6 +891,7 @@ async function listOperationalAlerts(input: {
       typeLabel: "Contact follow-up soon",
       severity: "medium",
       severityLabel: getSeverityLabel("medium"),
+      objectType: "contact",
       title: "Contact follow-up due soon",
       summary: `${client.fullName} needs follow-up soon.`,
       objectLabel: client.email ? `${client.fullName} · ${client.email}` : client.fullName,
@@ -746,6 +917,7 @@ async function listOperationalAlerts(input: {
       typeLabel: "Overdue follow-up task",
       severity: "high",
       severityLabel: getSeverityLabel("high"),
+      objectType: "task",
       title: "Follow-up task overdue",
       summary: `${task.title} is overdue and still assigned.`,
       objectLabel: task.client?.fullName ?? task.title,
@@ -776,6 +948,7 @@ async function listOperationalAlerts(input: {
       typeLabel: "Transaction finance incomplete",
       severity,
       severityLabel: getSeverityLabel(severity),
+      objectType: "transaction",
       title: "Transaction finance is incomplete",
       summary: `${transaction.title} is missing key finance values.`,
       objectLabel: `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`,
@@ -813,6 +986,7 @@ export async function getOfficeActivityLogSnapshot(input: GetOfficeActivityLogIn
   const selectedView = getViewMode(input.view);
   const selectedActivitySection = getActivitySectionDefinition(input.activitySection);
   const selectedAlertSection = getAlertSectionDefinition(input.alertSection);
+  const selectedObjectType = normalizeObjectType(input.objectType);
   const startDate = parseStartDate(input.startDate);
   const endDate = parseEndDate(input.endDate);
   const fetchWindow = Math.max(limit * 5, 1000);
@@ -848,10 +1022,15 @@ export async function getOfficeActivityLogSnapshot(input: GetOfficeActivityLogIn
     return getActivityPayload(record.payload).officeId === input.officeId;
   });
 
-  const actorOptions = await getActorOptions(officeScopedEvents);
+  const objectScopedEvents =
+    selectedObjectType === "all"
+      ? officeScopedEvents
+      : officeScopedEvents.filter((record) => mapEntityTypeToObjectType(record.entityType) === selectedObjectType);
+
+  const actorOptions = await getActorOptions(objectScopedEvents);
   const actorScopedEvents = input.actorMembershipId
-    ? officeScopedEvents.filter((record) => record.membershipId === input.actorMembershipId)
-    : officeScopedEvents;
+    ? objectScopedEvents.filter((record) => record.membershipId === input.actorMembershipId)
+    : objectScopedEvents;
   const latestActivityWindow = actorScopedEvents.slice(0, limit).map(formatActivityLogRecord);
 
   const activitySections = activityLogSectionDefinitions.map((section) => ({
@@ -870,6 +1049,7 @@ export async function getOfficeActivityLogSnapshot(input: GetOfficeActivityLogIn
   const derivedAlerts = await listOperationalAlerts({
     organizationId: input.organizationId,
     officeId: input.officeId,
+    objectType: selectedObjectType,
     startDate,
     endDate
   });
@@ -908,6 +1088,7 @@ export async function getOfficeActivityLogSnapshot(input: GetOfficeActivityLogIn
     alerts,
     filters: {
       actorMembershipId: input.actorMembershipId ?? "",
+      objectType: selectedObjectType,
       startDate: input.startDate ?? "",
       endDate: input.endDate ?? "",
       actorOptions

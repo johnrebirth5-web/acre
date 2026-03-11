@@ -55,8 +55,10 @@ export type {
   OfficeActivitySnapshot
 } from "./activity";
 export type {
+  ActivityLogChange,
   ActivityLogAction,
   ActivityAlertSectionKey,
+  ActivityLogObjectType,
   ActivityLogViewMode,
   ActivityLogPayload,
   ActivityLogSectionKey,

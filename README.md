@@ -75,13 +75,18 @@
   - 支持最小过滤：
     - `All / Activity only / Alerts only`
     - `actor`
+    - `object type`
     - `date range`
+  - 事件摘要会优先使用结构化 payload / changes，显示状态、finance、primary contact、task 状态等变更摘要
   - 当前已接入的真实事件包括：
     - transaction created / status changed / closed
+    - transaction cancelled
     - transaction contact linked / unlinked / primary changed
     - transaction finance updated
-    - transaction task created / updated / completed
+    - transaction task created / updated / completed / reopened
+    - follow-up task created
     - contact created / updated
+    - auth login / logout
   - 当前已接入的真实告警包括：
     - transaction closing soon
     - overdue transaction tasks

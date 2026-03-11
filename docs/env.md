@@ -8,7 +8,7 @@
 
 - 当前数据库相关代码使用 `DATABASE_URL`
 - 当前主页面和大多数 API 仍不依赖数据库，因此在“只跑前端和 mock API”时，即使没有真实数据库，也能运行
-- 但 `Office Pipeline`、`Office Transactions`、`Office Contacts`、transaction finance、本地登录和数据库 probe 已经依赖 `DATABASE_URL`
+- 但 `Office Pipeline`、`Office Transactions`、`Office Contacts`、transaction finance、本地登录、`/office/activity` 和数据库 probe 已经依赖 `DATABASE_URL`
 - transaction detail 下的 checklist/tasks 也已经依赖 `DATABASE_URL`
 - `Office Reports` 的 CSV 导出 route 也依赖 `DATABASE_URL`
 - 一旦执行 Prisma 相关命令，或访问这些数据库路径，`DATABASE_URL` 就变成必需项
@@ -33,7 +33,7 @@
 - 对 Prisma 命令是必填
 - 对数据库 probe route 是必填
 - 对只看 mock 页面本地运行是“可不填”
-- 对 `/office/pipeline`、`/office/transactions`、`/office/contacts`、`/login`、数据库 probe 是必填
+- 对 `/office/pipeline`、`/office/transactions`、`/office/contacts`、`/office/activity`、`/login`、数据库 probe 是必填
 - 对 transaction detail 下的 checklist/tasks 读写也是必填
 - 对 `/api/office/reports/export` 也是必填
 - 对 transaction detail 下的 finance 读写也是必填
@@ -53,6 +53,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/acre"
 - `/office/pipeline` 会失败
 - `/office/transactions` 会失败
 - `/office/contacts` 会失败
+- `/office/activity` 会失败
 - `/login` 和需要 session context 的 server-side 查询会失败
 - transaction detail 下的 checklist/tasks route 会失败
 - `/api/office/reports/export` 会失败

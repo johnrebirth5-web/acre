@@ -260,8 +260,10 @@ Trade-off：
 - 当前仓库已经落地了多条真实写入路径：
   - transaction create / status / finance
   - transaction contact link / unlink / primary change
-  - transaction task create / update / complete
+  - transaction task create / update / complete / reopen
+  - follow-up task create
   - contact create / update
+  - auth login / logout
 - 与其继续维护一个“运营 feed”，不如直接把这些真实写入统一沉淀到 `AuditLog`
 - 但也不能假装系统已经有完整 Brokermint 级 audit coverage，所以范围必须如实收口
 
@@ -272,6 +274,9 @@ Trade-off：
   - 右侧保留最新 200 条 event stream
   - 同页增加基于数据库状态实时派生的 alerts
   - 以 `AuditLog` 为主数据源，alerts 只作为第二数据源
+  - 事件按更宽的 taxonomy 分组，而不是把每个 action 暴露成碎片化小类
+  - 过滤器允许按 actor、object type、date range 收窄范围
+  - event summary 优先从结构化 payload / changes 生成，避免把文案散落到页面组件
 - 事件只覆盖当前仓库已经实现并真实写入的模块
 - 没有 write hook 的模块，不会伪造 event category
 - 没有真实底层模块的 alert 类型也不会伪造，比如 document/signature/invoice
@@ -280,6 +285,7 @@ Trade-off：
 
 - 当前 activity 还不是完整 back-office 审计产品，也不是完整通知中心
 - 但它已经是一个真实、actor-aware 的 activity log，并能把最关键的运营告警收进系统内
+- 当前还没有 documents / accounting / settings / invoice 这些模块的真实事件覆盖，所以页面不会假装这些分类已经可用
 
 ## 后续接手时最需要先理解的几个决策
 

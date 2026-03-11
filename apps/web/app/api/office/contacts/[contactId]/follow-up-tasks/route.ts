@@ -32,6 +32,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     organizationId: context.currentOrganization.id,
     clientId: contactId,
     assigneeMembershipId: context.currentMembership.id,
+    actorMembershipId: context.currentMembership.id,
+    actorOfficeId: context.currentOffice?.id,
     title,
     dueAt: String(body.dueAt ?? "")
   });

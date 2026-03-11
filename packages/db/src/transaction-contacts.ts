@@ -362,9 +362,12 @@ export async function linkContactToTransaction(
           contactName: client.fullName,
           transactionLabel,
           objectLabel: transactionLabel,
-          details: [
-            `Previous primary: ${previousPrimary?.client.fullName ?? "None"}`,
-            `New primary: ${client.fullName}`
+          changes: [
+            {
+              label: "Primary contact",
+              previousValue: previousPrimary?.client.fullName ?? "None",
+              nextValue: client.fullName
+            }
           ]
         }
       });
@@ -544,9 +547,12 @@ export async function setPrimaryTransactionContact(
         contactName: relation.client.fullName,
         transactionLabel,
         objectLabel: transactionLabel,
-        details: [
-          `Previous primary: ${previousPrimary?.client.fullName ?? "None"}`,
-          `New primary: ${relation.client.fullName}`
+        changes: [
+          {
+            label: "Primary contact",
+            previousValue: previousPrimary?.client.fullName ?? "None",
+            nextValue: relation.client.fullName
+          }
         ]
       }
     });

@@ -147,6 +147,18 @@ function buildTaskDetail(label: string, previousValue: string, nextValue: string
   return `${label}: ${previousValue || "—"} -> ${nextValue || "—"}`;
 }
 
+function buildTaskChange(label: string, previousValue: string, nextValue: string) {
+  if (previousValue === nextValue) {
+    return null;
+  }
+
+  return {
+    label,
+    previousValue: previousValue || "—",
+    nextValue: nextValue || "—"
+  };
+}
+
 async function getTransactionScope(organizationId: string, transactionId: string) {
   return prisma.transaction.findFirst({
     where: {
@@ -355,6 +367,16 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
       title: true,
       description: true,
       assigneeMembershipId: true,
+      assigneeMembership: {
+        select: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      },
       dueAt: true,
       status: true,
       sortOrder: true
@@ -377,6 +399,9 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
   const nextStatus = input.status !== undefined ? taskStatusDbMap[normalizeTaskStatus(input.status)] : existingTask.status;
   const nextSortOrder = input.sortOrder !== undefined ? input.sortOrder : existingTask.sortOrder;
   const nextAssigneeMembershipId = input.assigneeMembershipId !== undefined ? assigneeMembershipId : existingTask.assigneeMembershipId;
+  const previousAssigneeName = existingTask.assigneeMembership
+    ? `${existingTask.assigneeMembership.user.firstName} ${existingTask.assigneeMembership.user.lastName}`
+    : "Unassigned";
 
   const updatedTask = await prisma.$transaction(async (tx) => {
     const saved = await tx.transactionTask.update({
@@ -405,10 +430,24 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
       buildTaskDetail("Group", existingTask.checklistGroup, nextChecklistGroup),
       buildTaskDetail("Title", existingTask.title, nextTitle),
       buildTaskDetail("Description", existingTask.description ?? "", nextDescription ?? ""),
+      buildTaskDetail("Assignee", previousAssigneeName, saved.assigneeMembership ? `${saved.assigneeMembership.user.firstName} ${saved.assigneeMembership.user.lastName}` : "Unassigned"),
       buildTaskDetail("Due date", formatDateValue(existingTask.dueAt), formatDateValue(nextDueAt)),
       buildTaskDetail("Status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[nextStatus]),
       buildTaskDetail("Sort order", String(existingTask.sortOrder), String(nextSortOrder))
     ].filter((detail): detail is string => Boolean(detail));
+    const changes = [
+      buildTaskChange("Group", existingTask.checklistGroup, nextChecklistGroup),
+      buildTaskChange("Title", existingTask.title, nextTitle),
+      buildTaskChange("Description", existingTask.description ?? "", nextDescription ?? ""),
+      buildTaskChange(
+        "Assignee",
+        previousAssigneeName,
+        saved.assigneeMembership ? `${saved.assigneeMembership.user.firstName} ${saved.assigneeMembership.user.lastName}` : "Unassigned"
+      ),
+      buildTaskChange("Due date", formatDateValue(existingTask.dueAt), formatDateValue(nextDueAt)),
+      buildTaskChange("Status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[nextStatus]),
+      buildTaskChange("Sort order", String(existingTask.sortOrder), String(nextSortOrder))
+    ].filter((change): change is NonNullable<typeof change> => Boolean(change));
 
     if (existingTask.status !== "completed" && nextStatus === "completed") {
       await recordActivityLogEvent(tx, {
@@ -423,7 +462,25 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
           taskId: saved.id,
           taskTitle: saved.title,
           objectLabel: buildTaskObjectLabel(saved.title, buildTransactionObjectLabel(transaction)),
+          changes,
           details: details.length > 0 ? details : [`Status: ${taskStatusLabelMap[existingTask.status]} -> ${taskStatusLabelMap[nextStatus]}`]
+        }
+      });
+    } else if (existingTask.status === "completed" && nextStatus !== "completed") {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "transaction_task",
+        entityId: saved.id,
+        action: activityLogActions.transactionTaskReopened,
+        payload: {
+          officeId: transaction.officeId,
+          transactionId: input.transactionId,
+          taskId: saved.id,
+          taskTitle: saved.title,
+          objectLabel: buildTaskObjectLabel(saved.title, buildTransactionObjectLabel(transaction)),
+          changes,
+          details
         }
       });
     } else if (details.length > 0) {
@@ -439,6 +496,7 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
           taskId: saved.id,
           taskTitle: saved.title,
           objectLabel: buildTaskObjectLabel(saved.title, buildTransactionObjectLabel(transaction)),
+          changes,
           details
         }
       });
