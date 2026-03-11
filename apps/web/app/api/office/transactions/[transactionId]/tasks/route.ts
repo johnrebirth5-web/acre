@@ -1,4 +1,4 @@
-import { isOfficeRole } from "@acre/auth";
+import { canManageOfficeTasks } from "@acre/auth";
 import { createTransactionTask } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../../../lib/auth-session";
@@ -16,8 +16,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canManageOfficeTasks(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Task list access required." }, { status: 403 });
   }
 
   const { transactionId } = await params;
@@ -29,6 +29,9 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
         assigneeMembershipId?: string;
         dueAt?: string;
         status?: string;
+        requiresDocument?: boolean;
+        requiresDocumentApproval?: boolean;
+        requiresSecondaryApproval?: boolean;
       }
     | null;
 
@@ -38,21 +41,31 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Task title is required." }, { status: 400 });
   }
 
-  const task = await createTransactionTask({
-    organizationId: context.currentOrganization.id,
-    transactionId,
-    actorMembershipId: context.currentMembership.id,
-    checklistGroup: body?.checklistGroup ?? "",
-    title,
-    description: body?.description ?? "",
-    assigneeMembershipId: body?.assigneeMembershipId ?? "",
-    dueAt: body?.dueAt ?? "",
-    status: body?.status as never
-  });
+  try {
+    const task = await createTransactionTask({
+      organizationId: context.currentOrganization.id,
+      transactionId,
+      actorMembershipId: context.currentMembership.id,
+      checklistGroup: body?.checklistGroup ?? "",
+      title,
+      description: body?.description ?? "",
+      assigneeMembershipId: body?.assigneeMembershipId ?? "",
+      dueAt: body?.dueAt ?? "",
+      status: body?.status as never,
+      requiresDocument: body?.requiresDocument,
+      requiresDocumentApproval: body?.requiresDocumentApproval,
+      requiresSecondaryApproval: body?.requiresSecondaryApproval
+    });
 
-  if (!task) {
-    return NextResponse.json({ error: "Transaction not found or task could not be created." }, { status: 404 });
+    if (!task) {
+      return NextResponse.json({ error: "Transaction not found or task could not be created." }, { status: 404 });
+    }
+
+    return NextResponse.json({ task });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Task could not be created." },
+      { status: 400 }
+    );
   }
-
-  return NextResponse.json({ task });
 }

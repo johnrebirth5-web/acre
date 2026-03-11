@@ -8,12 +8,12 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Reports` 和 `Office Activity Log` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports` 和 `Office Activity Log` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 - `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；documents / approvals / accounting / settings 变更还没有真实事件源
 - `Activity` 当前还是一个受限访问的 account activity 模块，不把它当作所有 office 角色都能直接访问的普通页面；首版只允许 `office_admin` 和 `office_manager`
 
@@ -172,6 +172,7 @@
 - `Client`
 - `FollowUpTask`
 - `TransactionTask`
+- `TaskListView`
 - `Notification`
 - `Event`
 - `EventRsvp`
@@ -198,8 +199,16 @@
 - `createFollowUpTask`
 - `linkContactToTransaction`
 - `listTransactionTasks`
+- `listOfficeTasks`
+- `listTaskListViews`
 - `createTransactionTask`
 - `updateTransactionTask`
+- `completeTransactionTask`
+- `reopenTransactionTask`
+- `requestTransactionTaskReview`
+- `approveTransactionTask`
+- `rejectTransactionTask`
+- `saveTaskListView`
 - `getOfficeReportsSnapshot`
 
 ## 关键数据流
@@ -230,7 +239,7 @@
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
 8. detail 页面通过 transaction contact routes 做 link / unlink / set primary
-9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen
+9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen / review
 10. `/office/contacts` 调 `@acre/db` 的 contact service
 11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link
 12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
@@ -240,8 +249,11 @@
 16. `/office/activity` 顶部的内部评论也会写入 `AuditLog`，并出现在同一条 stream 里
 17. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
 18. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
-19. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-20. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+19. `/office/tasks` 读取 `TransactionTask + TaskListView`，按 built-in view、saved view 和 query-param filters 返回真实任务列表
+20. `/office/tasks` 的 create / edit / complete / reopen / request review / approve / reject 都直接写数据库，并同步写入 `AuditLog`
+21. `/api/office/tasks/views` 以 membership 维度持久化 saved views
+22. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+23. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
@@ -366,6 +378,36 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
   - `agentNet`
   - `financeNotes`
   - 当前直接存放在 `Transaction` 行上，而不是独立 finance 子系统
+- `Office Tasks` 现在已经从 transaction detail 内嵌区块扩成独立模块：
+  - `TransactionTask`
+  - `TaskListView`
+  - built-in views:
+    - `Requires attention`
+    - `All transactions`
+  - per-membership saved views
+  - filters:
+    - transaction status
+    - assignee
+    - due window
+    - no due date
+    - compliance status
+    - transaction
+    - keyword search
+  - 最小合规工作流字段：
+    - requires document
+    - requires review
+    - requires secondary approval
+    - review status
+    - compliance status
+  - 任务动作：
+    - create
+    - edit
+    - complete
+    - reopen
+    - request review
+    - approve
+    - reject
+  - transaction detail tasks section 与 `/office/tasks` 共用同一套数据库和 service，不另建第二套 task 系统
 
 更高级的 CRM 自动化、提醒编排、批量任务、线索分配仍未实现。
 

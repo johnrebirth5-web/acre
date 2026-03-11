@@ -18,7 +18,8 @@ export const databaseModules = [
   "audit_logs",
   "transactions",
   "transaction_contacts",
-  "transaction_tasks"
+  "transaction_tasks",
+  "task_list_views"
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
@@ -39,9 +40,19 @@ export {
   unlinkContactFromTransaction
 } from "./transaction-contacts";
 export {
+  approveTransactionTask,
+  completeTransactionTask,
   createTransactionTask,
+  listOfficeTaskAssigneeOptions,
+  listOfficeTaskTransactionOptions,
+  listOfficeTasks,
+  listTaskListViews,
   listTransactionTaskAssigneeOptions,
   listTransactionTasks,
+  rejectTransactionTask,
+  reopenTransactionTask,
+  requestTransactionTaskReview,
+  saveTaskListView,
   updateTransactionTask
 } from "./transaction-tasks";
 export { createTransaction, getTransactionById, listTransactions, updateTransactionFinance, updateTransactionStatus } from "./transactions";
@@ -97,9 +108,23 @@ export type {
 export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
 export type {
   CreateTransactionTaskInput,
+  ListOfficeTasksInput,
+  OfficeTaskDueWindow,
+  OfficeTaskListFilters,
+  OfficeTaskListSnapshot,
+  OfficeTaskListSort,
+  OfficeTaskListView,
+  OfficeTaskListViewKey,
+  OfficeTaskListVisibleColumn,
+  OfficeTaskOperationalStatus,
+  OfficeTaskOperationalStatusTone,
+  OfficeTaskTransactionOption,
   OfficeTransactionTask,
   OfficeTransactionTaskAssigneeOption,
+  OfficeTransactionTaskComplianceStatus,
+  OfficeTransactionTaskReviewStatus,
   OfficeTransactionTaskStatus,
+  SaveTaskListViewInput,
   UpdateTransactionTaskInput
 } from "./transaction-tasks";
 export type {

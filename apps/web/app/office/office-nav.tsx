@@ -28,7 +28,7 @@ const navGroups: NavGroup[] = [
   {
     title: "To Do",
     icon: "◔",
-    items: [{ label: "Approve docs" }, { label: "Task list" }]
+    items: [{ label: "Approve docs" }, { label: "Task list", href: "/office/tasks" }]
   },
   {
     title: "Settings",
@@ -114,6 +114,9 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
       <nav className="mobile-rail office-mobile-rail">
         <Link className={pathname === "/office/dashboard" ? "is-active" : ""} href="/office/dashboard">
           Dash
+        </Link>
+        <Link className={pathname === "/office/tasks" ? "is-active" : ""} href="/office/tasks">
+          Tasks
         </Link>
         <Link className={pathname === "/office/transactions" ? "is-active" : ""} href="/office/transactions">
           Trans

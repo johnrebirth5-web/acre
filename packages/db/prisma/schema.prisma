@@ -101,7 +101,27 @@ enum TransactionContactRole {
 enum TransactionTaskStatus {
   todo
   in_progress
+  review_requested
   completed
+  reopened
+}
+
+enum TransactionTaskReviewStatus {
+  not_required
+  pending
+  review_requested
+  first_approved
+  second_review
+  approved
+  rejected
+}
+
+enum TransactionTaskComplianceStatus {
+  not_applicable
+  pending
+  in_review
+  approved
+  rejected
 }
 
 model Organization {
@@ -124,6 +144,7 @@ model Organization {
   transactions  Transaction[]
   transactionContacts TransactionContact[]
   transactionTasks TransactionTask[]
+  taskListViews TaskListView[]
 }
 
 model Office {
@@ -142,6 +163,7 @@ model Office {
   resources      Resource[]
   vendors        Vendor[]
   transactions   Transaction[]
+  taskListViews  TaskListView[]
 
   @@unique([organizationId, slug])
 }
@@ -181,7 +203,12 @@ model Membership {
   eventRsvps        EventRsvp[]
   auditLogs         AuditLog[]
   transactionsOwned Transaction[]
-  transactionTasksAssigned TransactionTask[]
+  transactionTasksAssigned TransactionTask[]         @relation("TransactionTaskAssignee")
+  transactionTasksCompleted TransactionTask[]        @relation("TransactionTaskCompletedBy")
+  transactionTasksFirstApproved TransactionTask[]    @relation("TransactionTaskFirstApprovedBy")
+  transactionTasksSecondApproved TransactionTask[]   @relation("TransactionTaskSecondApprovedBy")
+  transactionTasksRejected TransactionTask[]         @relation("TransactionTaskRejectedBy")
+  taskListViews TaskListView[]
 
   @@unique([organizationId, userId])
 }
@@ -339,26 +366,68 @@ model TransactionContact {
 }
 
 model TransactionTask {
-  id                 String                @id @default(cuid())
-  organizationId     String
-  transactionId      String
-  checklistGroup     String                @default("General")
-  title              String
-  description        String?
-  assigneeMembershipId String?
-  dueAt              DateTime?
-  status             TransactionTaskStatus @default(todo)
-  sortOrder          Int                   @default(0)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  transaction        Transaction           @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  assigneeMembership Membership?           @relation(fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
+  id                        String                          @id @default(cuid())
+  organizationId            String
+  transactionId             String
+  checklistGroup            String                          @default("General")
+  title                     String
+  description               String?
+  assigneeMembershipId      String?
+  dueAt                     DateTime?
+  status                    TransactionTaskStatus           @default(todo)
+  requiresDocument          Boolean                         @default(false)
+  requiresDocumentApproval  Boolean                         @default(false)
+  requiresSecondaryApproval Boolean                         @default(false)
+  reviewStatus              TransactionTaskReviewStatus     @default(not_required)
+  complianceStatus          TransactionTaskComplianceStatus @default(not_applicable)
+  sortOrder                 Int                             @default(0)
+  completedAt               DateTime?
+  completedByMembershipId   String?
+  submittedForReviewAt      DateTime?
+  firstApprovedAt           DateTime?
+  firstApprovedByMembershipId String?
+  secondApprovedAt          DateTime?
+  secondApprovedByMembershipId String?
+  rejectedAt                DateTime?
+  rejectedByMembershipId    String?
+  reopenedAt                DateTime?
+  createdAt                 DateTime                        @default(now())
+  updatedAt                 DateTime                        @updatedAt
+  organization              Organization                    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction               Transaction                     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  assigneeMembership        Membership?                     @relation("TransactionTaskAssignee", fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
+  completedByMembership     Membership?                     @relation("TransactionTaskCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
+  firstApprovedByMembership Membership?                     @relation("TransactionTaskFirstApprovedBy", fields: [firstApprovedByMembershipId], references: [id], onDelete: SetNull)
+  secondApprovedByMembership Membership?                    @relation("TransactionTaskSecondApprovedBy", fields: [secondApprovedByMembershipId], references: [id], onDelete: SetNull)
+  rejectedByMembership      Membership?                     @relation("TransactionTaskRejectedBy", fields: [rejectedByMembershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, transactionId])
   @@index([organizationId, assigneeMembershipId])
   @@index([organizationId, transactionId, status])
   @@index([organizationId, transactionId, sortOrder])
+  @@index([organizationId, dueAt])
+  @@index([organizationId, complianceStatus])
+}
+
+model TaskListView {
+  id             String       @id @default(cuid())
+  organizationId String
+  officeId       String?
+  membershipId   String
+  name           String
+  isSystem       Boolean      @default(false)
+  isShared       Boolean      @default(false)
+  filters        Json
+  visibleColumns Json?
+  sort           Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, membershipId, name])
+  @@index([organizationId, membershipId, officeId])
 }
 
 model FollowUpTask {

@@ -13,6 +13,9 @@ export const activityLogActions = {
   transactionFinanceUpdated: "transaction.finance_updated",
   transactionTaskCreated: "transaction.task_created",
   transactionTaskUpdated: "transaction.task_updated",
+  transactionTaskReviewRequested: "transaction.task_review_requested",
+  transactionTaskApproved: "transaction.task_approved",
+  transactionTaskRejected: "transaction.task_rejected",
   transactionTaskCompleted: "transaction.task_completed",
   transactionTaskReopened: "transaction.task_reopened",
   followUpTaskCreated: "follow_up_task.created",
@@ -212,6 +215,9 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.finance_updated": "Transaction finance updated",
   "transaction.task_created": "Task created",
   "transaction.task_updated": "Task updated",
+  "transaction.task_review_requested": "Task review requested",
+  "transaction.task_approved": "Task approved",
+  "transaction.task_rejected": "Task rejected",
   "transaction.task_completed": "Task completed",
   "transaction.task_reopened": "Task reopened",
   "follow_up_task.created": "Follow-up task created",
@@ -249,6 +255,9 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
     matches: (action) =>
       action === activityLogActions.transactionTaskCreated ||
       action === activityLogActions.transactionTaskUpdated ||
+      action === activityLogActions.transactionTaskReviewRequested ||
+      action === activityLogActions.transactionTaskApproved ||
+      action === activityLogActions.transactionTaskRejected ||
       action === activityLogActions.transactionTaskCompleted ||
       action === activityLogActions.transactionTaskReopened ||
       action === activityLogActions.followUpTaskCreated
@@ -423,7 +432,9 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
   }
 
   if (record.entityType === "transaction_task" && payload.transactionId) {
-    return `/office/transactions/${payload.transactionId}#tasks`;
+    return payload.taskId
+      ? `/office/transactions/${payload.transactionId}#transaction-task-${payload.taskId}`
+      : `/office/transactions/${payload.transactionId}#transaction-tasks`;
   }
 
   if (record.entityType === "follow_up_task" && payload.contactId) {
@@ -502,9 +513,15 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
     case activityLogActions.transactionTaskCreated:
       return "created a transaction task";
     case activityLogActions.transactionTaskUpdated: {
-      const statusChange = getPayloadChange(payload, "Status");
+      const statusChange = getPayloadChange(payload, "Workflow status") ?? getPayloadChange(payload, "Status");
       return statusChange ? `updated task status from ${formatSummaryChange(statusChange)}` : "updated a transaction task";
     }
+    case activityLogActions.transactionTaskReviewRequested:
+      return "requested review for a transaction task";
+    case activityLogActions.transactionTaskApproved:
+      return "approved a transaction task";
+    case activityLogActions.transactionTaskRejected:
+      return "rejected a transaction task";
     case activityLogActions.transactionTaskCompleted:
       return "completed a transaction task";
     case activityLogActions.transactionTaskReopened:
@@ -734,7 +751,12 @@ async function listOperationalAlerts(input: {
             where: {
               organizationId: input.organizationId,
               status: {
-                in: [TransactionTaskStatus.todo, TransactionTaskStatus.in_progress]
+                in: [
+                  TransactionTaskStatus.todo,
+                  TransactionTaskStatus.in_progress,
+                  TransactionTaskStatus.review_requested,
+                  TransactionTaskStatus.reopened
+                ]
               },
               dueAt: {
                 lt: now,

@@ -21,6 +21,7 @@
   - `Pipeline`
   - `Transactions`
   - `Contacts`
+  - `Tasks`
   - `Reports`
   - `Activity`
   - `Library`
@@ -51,6 +52,35 @@
   - transaction detail 现在有最小真实 `Checklist / Tasks` 区块，可创建、编辑并切换完成状态
   - transaction detail 现在有最小真实 `Finance` 区块，可编辑 gross commission / referral fee / office net / agent net / finance notes
   - 已有 status update 写路径
+- `Office Tasks` 现在是一个独立的真实数据库工作流模块：
+  - 路由：`/office/tasks`
+  - 内置视图：
+    - `Requires attention`
+    - `All transactions`
+  - 支持个人 saved views，按 membership 持久化
+  - 支持过滤：
+    - transaction status
+    - assignee
+    - due date window
+    - no due date
+    - compliance status
+    - transaction
+    - keyword search
+  - 支持任务动作：
+    - create
+    - edit
+    - complete
+    - reopen
+    - request review
+    - approve
+    - reject
+  - 支持最小合规工作流字段：
+    - requires document
+    - requires review
+    - requires secondary approval
+    - review status
+    - compliance status
+  - 变更会回流到 transaction detail 的 tasks section，同一套数据不会分叉
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
   - 支持搜索、创建、编辑和基础 stage 筛选
@@ -118,6 +148,7 @@
   - `/office/pipeline`
   - `/office/transactions`
   - `/office/contacts`
+  - `/office/tasks`
   - `/office/reports`
   - `/office/activity`
   - `/office/company`
@@ -135,6 +166,8 @@
   - `/api/office/transactions/:transactionId/contacts/:contactLinkId`
   - `/api/office/transactions/:transactionId/tasks`
   - `/api/office/transactions/:transactionId/tasks/:taskId`
+  - `/api/office/transactions/:transactionId/tasks/:taskId/workflow`
+  - `/api/office/tasks/views`
   - `/api/office/contacts`
   - `/api/office/contacts/:contactId`
   - `/api/office/contacts/:contactId/follow-up-tasks`
@@ -164,7 +197,7 @@
 当前未实现 / 计划中：
 
 - `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
-- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
+- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
 - 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
 - 未实现 `Brokermint` 中更深层的交易详情子页、审批流、checklists、accounting ledger、buyer offers
 - 写操作接口当前只覆盖：

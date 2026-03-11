@@ -1,0 +1,717 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Fragment, useMemo, useState } from "react";
+import type {
+  OfficeTaskListSnapshot,
+  OfficeTransactionTask,
+  OfficeTransactionTaskAssigneeOption,
+  OfficeTransactionTaskComplianceStatus,
+  OfficeTransactionTaskStatus
+} from "@acre/db";
+
+type OfficeTasksClientProps = {
+  snapshot: OfficeTaskListSnapshot;
+  canReviewTasks: boolean;
+};
+
+type TaskEditState = {
+  checklistGroup: string;
+  title: string;
+  description: string;
+  assigneeMembershipId: string;
+  dueAt: string;
+  status: OfficeTransactionTaskStatus;
+  requiresDocument: boolean;
+  requiresDocumentApproval: boolean;
+  requiresSecondaryApproval: boolean;
+};
+
+type CreateTaskState = TaskEditState & {
+  transactionId: string;
+};
+
+const taskStatusOptions: OfficeTransactionTaskStatus[] = ["Todo", "In progress", "Review requested", "Completed", "Reopened"];
+const dueWindowOptions = [
+  { value: "", label: "Any due date" },
+  { value: "past_due", label: "Past due" },
+  { value: "today", label: "Today" },
+  { value: "current_week", label: "Current week" },
+  { value: "next_week", label: "Next week" },
+  { value: "next_2_weeks", label: "Next 2 weeks" }
+] as const;
+const complianceStatusOptions: OfficeTransactionTaskComplianceStatus[] = ["Pending", "In review", "Approved", "Rejected", "Not applicable"];
+
+function buildTaskEditState(task: OfficeTransactionTask): TaskEditState {
+  return {
+    checklistGroup: task.checklistGroup,
+    title: task.title,
+    description: task.description,
+    assigneeMembershipId: task.assigneeMembershipId ?? "",
+    dueAt: task.dueAt,
+    status: task.status,
+    requiresDocument: task.requiresDocument,
+    requiresDocumentApproval: task.requiresDocumentApproval,
+    requiresSecondaryApproval: task.requiresSecondaryApproval
+  };
+}
+
+function buildEmptyCreateState(
+  transactionId: string,
+  assigneeOptions: OfficeTransactionTaskAssigneeOption[]
+): CreateTaskState {
+  return {
+    transactionId,
+    checklistGroup: "General",
+    title: "",
+    description: "",
+    assigneeMembershipId: assigneeOptions[0]?.id ?? "",
+    dueAt: "",
+    status: "Todo",
+    requiresDocument: false,
+    requiresDocumentApproval: false,
+    requiresSecondaryApproval: false
+  };
+}
+
+function formatDateTimeLabel(value: string) {
+  if (!value) {
+    return "—";
+  }
+
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClientProps) {
+  const router = useRouter();
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [taskStates, setTaskStates] = useState<Record<string, TaskEditState>>(
+    Object.fromEntries(snapshot.tasks.map((task) => [task.id, buildTaskEditState(task)]))
+  );
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [saveViewName, setSaveViewName] = useState("");
+  const [isSavingView, setIsSavingView] = useState(false);
+  const initialTransactionId = snapshot.filters.transactionId || snapshot.transactionOptions[0]?.id || "";
+  const [newTaskState, setNewTaskState] = useState<CreateTaskState>(buildEmptyCreateState(initialTransactionId, snapshot.assigneeOptions));
+  const showOwnerColumn = snapshot.visibleColumns.includes("owner");
+  const attentionSummary = useMemo(
+    () => [
+      { label: "Overdue", value: snapshot.summary.overdueCount },
+      { label: "Due soon", value: snapshot.summary.dueSoonCount },
+      { label: "Review queue", value: snapshot.summary.reviewQueueCount },
+      { label: "Completed in view", value: snapshot.summary.completedCount }
+    ],
+    [snapshot.summary]
+  );
+
+  function updateTaskField(taskId: string, field: keyof TaskEditState, value: string | boolean) {
+    setTaskStates((current) => ({
+      ...current,
+      [taskId]: {
+        ...(current[taskId] ?? buildTaskEditState(snapshot.tasks.find((task) => task.id === taskId)!)),
+        [field]: value
+      }
+    }));
+  }
+
+  function updateCreateField(field: keyof CreateTaskState, value: string | boolean) {
+    setNewTaskState((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  async function handleCreateTask() {
+    if (!newTaskState.transactionId || !newTaskState.title.trim()) {
+      setError("Transaction and task title are required.");
+      return;
+    }
+
+    setPendingAction("create");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/office/transactions/${newTaskState.transactionId}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(newTaskState)
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to create task.");
+      }
+
+      setNewTaskState(buildEmptyCreateState(newTaskState.transactionId, snapshot.assigneeOptions));
+      router.refresh();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create task.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleSaveTask(task: OfficeTransactionTask) {
+    const state = taskStates[task.id];
+
+    if (!state?.title.trim()) {
+      setError("Task title is required.");
+      return;
+    }
+
+    setPendingAction(`save:${task.id}`);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/office/transactions/${task.transactionId}/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(state)
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to update task.");
+      }
+
+      router.refresh();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to update task.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleWorkflowAction(task: OfficeTransactionTask, action: "complete" | "reopen" | "request_review" | "approve" | "reject") {
+    setPendingAction(`${action}:${task.id}`);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/office/transactions/${task.transactionId}/tasks/${task.id}/workflow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ action })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to update task workflow.");
+      }
+
+      router.refresh();
+    } catch (workflowError) {
+      setError(workflowError instanceof Error ? workflowError.message : "Failed to update task workflow.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleSaveCurrentView() {
+    if (!saveViewName.trim()) {
+      setError("View name is required.");
+      return;
+    }
+
+    setIsSavingView(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/office/tasks/views", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: saveViewName,
+          filters: snapshot.filters,
+          visibleColumns: snapshot.visibleColumns,
+          sort: snapshot.sort
+        })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to save view.");
+      }
+
+      const body = (await response.json()) as { view?: { id: string } };
+
+      if (body.view?.id) {
+        router.push(`/office/tasks?view=${body.view.id}`);
+      } else {
+        router.refresh();
+      }
+
+      setSaveViewName("");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save view.");
+    } finally {
+      setIsSavingView(false);
+    }
+  }
+
+  return (
+    <div className="office-task-list-page">
+      <form className="office-task-filter-form bm-table-card" method="get">
+        <div className="office-task-filter-grid">
+          <label className="office-task-filter-field">
+            <span>Current view</span>
+            <select defaultValue={snapshot.selectedViewKey} name="view">
+              {snapshot.viewOptions.map((view) => (
+                <option key={view.id} value={view.key}>
+                  {view.name}
+                  {view.isSystem ? " (System)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="office-task-filter-field">
+            <span>Transaction status</span>
+            <select defaultValue={snapshot.filters.transactionStatus} name="transactionStatus">
+              <option value="All">All statuses</option>
+              <option value="Opportunity">Opportunity</option>
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Closed">Closed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </label>
+
+          <label className="office-task-filter-field">
+            <span>Assignee</span>
+            <select defaultValue={snapshot.filters.assigneeMembershipId} name="assigneeMembershipId">
+              <option value="">All assignees</option>
+              {snapshot.assigneeOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="office-task-filter-field">
+            <span>Due date</span>
+            <select defaultValue={snapshot.filters.dueWindow} name="dueWindow">
+              {dueWindowOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="office-task-filter-field">
+            <span>Transaction</span>
+            <select defaultValue={snapshot.filters.transactionId} name="transactionId">
+              <option value="">All transactions</option>
+              {snapshot.transactionOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="office-task-filter-field office-task-filter-field-wide">
+            <span>Search</span>
+            <input defaultValue={snapshot.filters.q} name="q" placeholder="Task, transaction, assignee..." type="text" />
+          </label>
+
+          <fieldset className="office-task-compliance-filter">
+            <legend>Compliance status</legend>
+            <div className="office-task-compliance-options">
+              {complianceStatusOptions.map((status) => (
+                <label key={status}>
+                  <input defaultChecked={snapshot.filters.complianceStatuses.includes(status)} name="complianceStatus" type="checkbox" value={status} />
+                  <span>{status}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className="office-task-boolean-filters">
+            <label>
+              <input defaultChecked={snapshot.filters.noDueDate} name="noDueDate" type="checkbox" value="1" />
+              <span>No due date only</span>
+            </label>
+            <label>
+              <input defaultChecked={snapshot.filters.includeCompleted} name="includeCompleted" type="checkbox" value="1" />
+              <span>Include completed</span>
+            </label>
+          </div>
+
+          <div className="office-task-filter-actions">
+            <button className="office-button" type="submit">
+              Apply filters
+            </button>
+            <Link className="office-button office-button-secondary" href="/office/tasks">
+              Reset
+            </Link>
+          </div>
+        </div>
+      </form>
+
+      <section className="office-kpi-grid office-kpi-grid-compact">
+        {attentionSummary.map((item) => (
+          <article className="office-kpi-card" key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <section className="bm-table-card office-task-view-save-card">
+        <div className="office-task-view-save-row">
+          <div>
+            <strong>{snapshot.selectedViewName}</strong>
+            <p>Built-in views stay fixed. Save the current filter set as a personal custom view.</p>
+          </div>
+          <div className="office-task-view-save-controls">
+            <input onChange={(event) => setSaveViewName(event.target.value)} placeholder="Save current view as..." value={saveViewName} />
+            <button className="bm-create-button" disabled={isSavingView} onClick={handleSaveCurrentView} type="button">
+              {isSavingView ? "Saving..." : "Save view"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="bm-detail-card office-task-create-card">
+        <div className="bm-card-head">
+          <h3>New task</h3>
+          <span>Create a task directly into the office task list.</span>
+        </div>
+
+        <div className="office-task-edit-grid">
+          <label className="bm-detail-field">
+            <span>Transaction</span>
+            <select onChange={(event) => updateCreateField("transactionId", event.target.value)} value={newTaskState.transactionId}>
+              <option value="">Select transaction</option>
+              {snapshot.transactionOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="bm-detail-field">
+            <span>Checklist group</span>
+            <input onChange={(event) => updateCreateField("checklistGroup", event.target.value)} type="text" value={newTaskState.checklistGroup} />
+          </label>
+          <label className="bm-detail-field bm-detail-field-wide">
+            <span>Task title</span>
+            <input onChange={(event) => updateCreateField("title", event.target.value)} type="text" value={newTaskState.title} />
+          </label>
+          <label className="bm-detail-field bm-detail-field-wide">
+            <span>Description</span>
+            <textarea onChange={(event) => updateCreateField("description", event.target.value)} rows={3} value={newTaskState.description} />
+          </label>
+          <label className="bm-detail-field">
+            <span>Assignee</span>
+            <select onChange={(event) => updateCreateField("assigneeMembershipId", event.target.value)} value={newTaskState.assigneeMembershipId}>
+              <option value="">Unassigned</option>
+              {snapshot.assigneeOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="bm-detail-field">
+            <span>Due date</span>
+            <input onChange={(event) => updateCreateField("dueAt", event.target.value)} type="date" value={newTaskState.dueAt} />
+          </label>
+          <label className="bm-detail-field">
+            <span>Workflow status</span>
+            <select onChange={(event) => updateCreateField("status", event.target.value)} value={newTaskState.status}>
+              {taskStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="office-task-checkbox-row bm-detail-field bm-detail-field-wide">
+            <span>Compliance rules</span>
+            <label>
+              <input
+                checked={newTaskState.requiresDocument}
+                onChange={(event) => updateCreateField("requiresDocument", event.target.checked)}
+                type="checkbox"
+              />
+              <span>Requires document</span>
+            </label>
+            <label>
+              <input
+                checked={newTaskState.requiresDocumentApproval}
+                onChange={(event) => updateCreateField("requiresDocumentApproval", event.target.checked)}
+                type="checkbox"
+              />
+              <span>Requires review</span>
+            </label>
+            <label>
+              <input
+                checked={newTaskState.requiresSecondaryApproval}
+                onChange={(event) => updateCreateField("requiresSecondaryApproval", event.target.checked)}
+                type="checkbox"
+              />
+              <span>Requires secondary approval</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="office-task-create-actions">
+          <button className="bm-create-button" disabled={pendingAction === "create"} onClick={handleCreateTask} type="button">
+            {pendingAction === "create" ? "Creating..." : "Create task"}
+          </button>
+        </div>
+      </section>
+
+      <section className="bm-table-card office-task-list-card">
+        <div className="bm-card-head">
+          <h3>Task list</h3>
+          <span>{snapshot.taskCount} task rows in the current view</span>
+        </div>
+
+        {error ? <p className="bm-transaction-submit-error office-task-inline-error">{error}</p> : null}
+
+        <div className="office-task-table-wrap">
+          <table className="office-task-table">
+            <thead>
+              <tr>
+                <th>Task / title</th>
+                <th>Transaction</th>
+                <th>Checklist group</th>
+                <th>Assignee</th>
+                <th>Due date</th>
+                <th>Task Status</th>
+                <th>Transaction status</th>
+                {showOwnerColumn ? <th>User / owner</th> : null}
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.tasks.length ? (
+                snapshot.tasks.map((task) => {
+                  const formState = taskStates[task.id] ?? buildTaskEditState(task);
+                  const isExpanded = expandedTaskId === task.id;
+
+                  return (
+                    <Fragment key={task.id}>
+                      <tr key={task.id}>
+                        <td>
+                          <button
+                            className="office-task-title-button"
+                            onClick={() => setExpandedTaskId((current) => (current === task.id ? null : task.id))}
+                            type="button"
+                          >
+                            {task.title}
+                          </button>
+                          <span className="office-task-meta-copy">{task.description || task.reviewStatus}</span>
+                        </td>
+                        <td>
+                          <Link href={task.transactionHref}>{task.transactionLabel}</Link>
+                        </td>
+                        <td>{task.checklistGroup}</td>
+                        <td>{task.assigneeName}</td>
+                        <td>{task.dueAt || "No due date"}</td>
+                        <td>
+                          <span className={`bm-status-pill bm-task-status-${task.taskStatusTone}`}>{task.taskStatusLabel}</span>
+                        </td>
+                        <td>
+                          <span className={`bm-transaction-status bm-transaction-status-${task.transactionStatus.toLowerCase()}`}>{task.transactionStatus.toLowerCase()}</span>
+                        </td>
+                        {showOwnerColumn ? <td>{task.ownerName}</td> : null}
+                        <td>
+                          <div className="office-task-action-strip">
+                            {task.canCompleteDirectly ? (
+                              <button
+                                className="bm-view-toggle"
+                                disabled={pendingAction === `complete:${task.id}`}
+                                onClick={() => handleWorkflowAction(task, "complete")}
+                                type="button"
+                              >
+                                Complete
+                              </button>
+                            ) : null}
+                            {task.canRequestReview ? (
+                              <button
+                                className="bm-view-toggle"
+                                disabled={pendingAction === `request_review:${task.id}`}
+                                onClick={() => handleWorkflowAction(task, "request_review")}
+                                type="button"
+                              >
+                                Request review
+                              </button>
+                            ) : null}
+                            {task.canApprove && canReviewTasks ? (
+                              <button
+                                className="bm-view-toggle"
+                                disabled={pendingAction === `approve:${task.id}`}
+                                onClick={() => handleWorkflowAction(task, "approve")}
+                                type="button"
+                              >
+                                Approve
+                              </button>
+                            ) : null}
+                            {task.canReject && canReviewTasks ? (
+                              <button
+                                className="bm-view-toggle"
+                                disabled={pendingAction === `reject:${task.id}`}
+                                onClick={() => handleWorkflowAction(task, "reject")}
+                                type="button"
+                              >
+                                Reject
+                              </button>
+                            ) : null}
+                            {task.canReopen ? (
+                              <button
+                                className="bm-view-toggle"
+                                disabled={pendingAction === `reopen:${task.id}`}
+                                onClick={() => handleWorkflowAction(task, "reopen")}
+                                type="button"
+                              >
+                                Reopen
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+
+                      {isExpanded ? (
+                        <tr className="office-task-edit-row" key={`${task.id}-editor`}>
+                          <td colSpan={showOwnerColumn ? 9 : 8}>
+                            <div className="office-task-edit-grid">
+                              <label className="bm-detail-field">
+                                <span>Checklist group</span>
+                                <input
+                                  onChange={(event) => updateTaskField(task.id, "checklistGroup", event.target.value)}
+                                  type="text"
+                                  value={formState.checklistGroup}
+                                />
+                              </label>
+                              <label className="bm-detail-field bm-detail-field-wide">
+                                <span>Task title</span>
+                                <input onChange={(event) => updateTaskField(task.id, "title", event.target.value)} type="text" value={formState.title} />
+                              </label>
+                              <label className="bm-detail-field bm-detail-field-wide">
+                                <span>Description</span>
+                                <textarea
+                                  onChange={(event) => updateTaskField(task.id, "description", event.target.value)}
+                                  rows={3}
+                                  value={formState.description}
+                                />
+                              </label>
+                              <label className="bm-detail-field">
+                                <span>Assignee</span>
+                                <select
+                                  onChange={(event) => updateTaskField(task.id, "assigneeMembershipId", event.target.value)}
+                                  value={formState.assigneeMembershipId}
+                                >
+                                  <option value="">Unassigned</option>
+                                  {snapshot.assigneeOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="bm-detail-field">
+                                <span>Due date</span>
+                                <input onChange={(event) => updateTaskField(task.id, "dueAt", event.target.value)} type="date" value={formState.dueAt} />
+                              </label>
+                              <label className="bm-detail-field">
+                                <span>Workflow status</span>
+                                <select onChange={(event) => updateTaskField(task.id, "status", event.target.value)} value={formState.status}>
+                                  {taskStatusOptions.map((status) => (
+                                    <option key={status} value={status}>
+                                      {status}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+
+                              <div className="office-task-checkbox-row bm-detail-field bm-detail-field-wide">
+                                <span>Compliance rules</span>
+                                <label>
+                                  <input
+                                    checked={formState.requiresDocument}
+                                    onChange={(event) => updateTaskField(task.id, "requiresDocument", event.target.checked)}
+                                    type="checkbox"
+                                  />
+                                  <span>Requires document</span>
+                                </label>
+                                <label>
+                                  <input
+                                    checked={formState.requiresDocumentApproval}
+                                    onChange={(event) => updateTaskField(task.id, "requiresDocumentApproval", event.target.checked)}
+                                    type="checkbox"
+                                  />
+                                  <span>Requires review</span>
+                                </label>
+                                <label>
+                                  <input
+                                    checked={formState.requiresSecondaryApproval}
+                                    onChange={(event) => updateTaskField(task.id, "requiresSecondaryApproval", event.target.checked)}
+                                    type="checkbox"
+                                  />
+                                  <span>Requires secondary approval</span>
+                                </label>
+                              </div>
+                            </div>
+
+                            <div className="office-task-detail-meta">
+                              <span>Review status: {task.reviewStatus}</span>
+                              <span>Compliance status: {task.complianceStatus}</span>
+                              <span>Completed at: {formatDateTimeLabel(task.completedAt)}</span>
+                              <span>Submitted for review: {formatDateTimeLabel(task.submittedForReviewAt)}</span>
+                            </div>
+
+                            <div className="office-task-edit-actions">
+                              <button
+                                className="bm-create-button"
+                                disabled={pendingAction === `save:${task.id}`}
+                                onClick={() => handleSaveTask(task)}
+                                type="button"
+                              >
+                                {pendingAction === `save:${task.id}` ? "Saving..." : "Save task"}
+                              </button>
+                              <Link className="bm-view-toggle" href={task.transactionHref}>
+                                Open transaction
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={showOwnerColumn ? 9 : 8}>
+                    <div className="bm-pipeline-empty">No tasks matched the current filters.</div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}

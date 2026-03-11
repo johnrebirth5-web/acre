@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { OfficeTransactionTask, OfficeTransactionTaskAssigneeOption, OfficeTransactionTaskStatus } from "@acre/db";
@@ -17,9 +18,12 @@ type TaskFormState = {
   assigneeMembershipId: string;
   dueAt: string;
   status: OfficeTransactionTaskStatus;
+  requiresDocument: boolean;
+  requiresDocumentApproval: boolean;
+  requiresSecondaryApproval: boolean;
 };
 
-const taskStatusOptions: OfficeTransactionTaskStatus[] = ["Todo", "In progress", "Completed"];
+const taskStatusOptions: OfficeTransactionTaskStatus[] = ["Todo", "In progress", "Review requested", "Completed", "Reopened"];
 
 function buildTaskState(task: OfficeTransactionTask): TaskFormState {
   return {
@@ -28,7 +32,10 @@ function buildTaskState(task: OfficeTransactionTask): TaskFormState {
     description: task.description,
     assigneeMembershipId: task.assigneeMembershipId ?? "",
     dueAt: task.dueAt,
-    status: task.status
+    status: task.status,
+    requiresDocument: task.requiresDocument,
+    requiresDocumentApproval: task.requiresDocumentApproval,
+    requiresSecondaryApproval: task.requiresSecondaryApproval
   };
 }
 
@@ -43,7 +50,10 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
     description: "",
     assigneeMembershipId: assigneeOptions[0]?.id ?? "",
     dueAt: "",
-    status: "Todo"
+    status: "Todo",
+    requiresDocument: false,
+    requiresDocumentApproval: false,
+    requiresSecondaryApproval: false
   });
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -59,7 +69,7 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
     return groups;
   }, {});
 
-  function updateTaskField(taskId: string, field: keyof TaskFormState, value: string) {
+  function updateTaskField(taskId: string, field: keyof TaskFormState, value: string | boolean) {
     setTaskStates((current) => ({
       ...current,
       [taskId]: {
@@ -69,7 +79,7 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
     }));
   }
 
-  function updateNewTaskField(field: keyof TaskFormState, value: string) {
+  function updateNewTaskField(field: keyof TaskFormState, value: string | boolean) {
     setNewTaskState((current) => ({
       ...current,
       [field]: value
@@ -105,7 +115,10 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
         description: "",
         assigneeMembershipId: assigneeOptions[0]?.id ?? "",
         dueAt: "",
-        status: "Todo"
+        status: "Todo",
+        requiresDocument: false,
+        requiresDocumentApproval: false,
+        requiresSecondaryApproval: false
       });
       router.refresh();
     } catch (createError) {
@@ -148,53 +161,39 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
     }
   }
 
-  async function handleToggleComplete(taskId: string) {
-    const taskState = taskStates[taskId];
-
-    if (!taskState) {
-      return;
-    }
-
-    const nextStatus: OfficeTransactionTaskStatus = taskState.status === "Completed" ? "Todo" : "Completed";
-
-    setPendingAction(`toggle:${taskId}`);
+  async function handleWorkflowAction(taskId: string, action: "complete" | "reopen" | "request_review" | "approve" | "reject") {
+    setPendingAction(`${action}:${taskId}`);
     setError("");
 
     try {
-      const response = await fetch(`/api/office/transactions/${transactionId}/tasks/${taskId}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/office/transactions/${transactionId}/tasks/${taskId}/workflow`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          status: nextStatus
-        })
+        body: JSON.stringify({ action })
       });
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "Failed to update task status.");
+        throw new Error(body?.error ?? "Failed to update task workflow.");
       }
 
-      setTaskStates((current) => ({
-        ...current,
-        [taskId]: {
-          ...current[taskId],
-          status: nextStatus
-        }
-      }));
       router.refresh();
-    } catch (toggleError) {
-      setError(toggleError instanceof Error ? toggleError.message : "Failed to update task status.");
+    } catch (workflowError) {
+      setError(workflowError instanceof Error ? workflowError.message : "Failed to update task workflow.");
     } finally {
       setPendingAction(null);
     }
   }
 
   return (
-    <section className="bm-detail-card">
+    <section className="bm-detail-card" id="transaction-tasks">
       <div className="bm-card-head">
         <h3>Checklist / Tasks</h3>
+        <Link className="bm-view-toggle" href={`/office/tasks?transactionId=${transactionId}`}>
+          Open Task List
+        </Link>
       </div>
 
       <div className="bm-transaction-task-groups">
@@ -209,24 +208,66 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
               <div className="bm-transaction-task-list">
                 {groupTasks.map((task) => {
                   const formState = taskStates[task.id] ?? buildTaskState(task);
-                  const isCompleted = formState.status === "Completed";
 
                   return (
-                    <article className="bm-transaction-task-row" key={task.id}>
+                    <article className="bm-transaction-task-row" id={`transaction-task-${task.id}`} key={task.id}>
                       <div className="bm-transaction-task-top">
                         <div className="bm-transaction-task-status">
-                          <span className={`bm-status-pill bm-task-status-${formState.status.toLowerCase().replace(/\s+/g, "-")}`}>{formState.status}</span>
+                          <span className={`bm-status-pill bm-task-status-${task.taskStatusTone}`}>{task.taskStatusLabel}</span>
                           <strong>{task.assigneeName}</strong>
+                          <span>{task.complianceStatus}</span>
                         </div>
                         <div className="bm-transaction-task-actions">
-                          <button
-                            className="bm-view-toggle"
-                            disabled={pendingAction === `toggle:${task.id}`}
-                            onClick={() => handleToggleComplete(task.id)}
-                            type="button"
-                          >
-                            {pendingAction === `toggle:${task.id}` ? "Saving..." : isCompleted ? "Mark incomplete" : "Mark complete"}
-                          </button>
+                          {task.canCompleteDirectly ? (
+                            <button
+                              className="bm-view-toggle"
+                              disabled={pendingAction === `complete:${task.id}`}
+                              onClick={() => handleWorkflowAction(task.id, "complete")}
+                              type="button"
+                            >
+                              {pendingAction === `complete:${task.id}` ? "Saving..." : "Complete"}
+                            </button>
+                          ) : null}
+                          {task.canRequestReview ? (
+                            <button
+                              className="bm-view-toggle"
+                              disabled={pendingAction === `request_review:${task.id}`}
+                              onClick={() => handleWorkflowAction(task.id, "request_review")}
+                              type="button"
+                            >
+                              {pendingAction === `request_review:${task.id}` ? "Saving..." : "Request review"}
+                            </button>
+                          ) : null}
+                          {task.canApprove ? (
+                            <button
+                              className="bm-view-toggle"
+                              disabled={pendingAction === `approve:${task.id}`}
+                              onClick={() => handleWorkflowAction(task.id, "approve")}
+                              type="button"
+                            >
+                              {pendingAction === `approve:${task.id}` ? "Saving..." : "Approve"}
+                            </button>
+                          ) : null}
+                          {task.canReject ? (
+                            <button
+                              className="bm-view-toggle"
+                              disabled={pendingAction === `reject:${task.id}`}
+                              onClick={() => handleWorkflowAction(task.id, "reject")}
+                              type="button"
+                            >
+                              {pendingAction === `reject:${task.id}` ? "Saving..." : "Reject"}
+                            </button>
+                          ) : null}
+                          {task.canReopen ? (
+                            <button
+                              className="bm-view-toggle"
+                              disabled={pendingAction === `reopen:${task.id}`}
+                              onClick={() => handleWorkflowAction(task.id, "reopen")}
+                              type="button"
+                            >
+                              {pendingAction === `reopen:${task.id}` ? "Saving..." : "Reopen"}
+                            </button>
+                          ) : null}
                           <button
                             className="bm-create-button"
                             disabled={pendingAction === `save:${task.id}`}
@@ -270,7 +311,7 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                           <input onChange={(event) => updateTaskField(task.id, "dueAt", event.target.value)} type="date" value={formState.dueAt} />
                         </label>
                         <label className="bm-detail-field">
-                          <span>Status</span>
+                          <span>Workflow status</span>
                           <select onChange={(event) => updateTaskField(task.id, "status", event.target.value)} value={formState.status}>
                             {taskStatusOptions.map((status) => (
                               <option key={status} value={status}>
@@ -279,6 +320,12 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                             ))}
                           </select>
                         </label>
+                        <div className="bm-detail-field">
+                          <span>Review state</span>
+                          <strong>
+                            {task.reviewStatus} / {task.complianceStatus}
+                          </strong>
+                        </div>
                         <label className="bm-detail-field bm-detail-field-wide">
                           <span>Description</span>
                           <textarea
@@ -287,6 +334,33 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                             value={formState.description}
                           />
                         </label>
+                        <div className="bm-detail-field bm-detail-field-wide office-task-checkbox-row">
+                          <span>Compliance rules</span>
+                          <label>
+                            <input
+                              checked={formState.requiresDocument}
+                              onChange={(event) => updateTaskField(task.id, "requiresDocument", event.target.checked)}
+                              type="checkbox"
+                            />
+                            <span>Requires document</span>
+                          </label>
+                          <label>
+                            <input
+                              checked={formState.requiresDocumentApproval}
+                              onChange={(event) => updateTaskField(task.id, "requiresDocumentApproval", event.target.checked)}
+                              type="checkbox"
+                            />
+                            <span>Requires review</span>
+                          </label>
+                          <label>
+                            <input
+                              checked={formState.requiresSecondaryApproval}
+                              onChange={(event) => updateTaskField(task.id, "requiresSecondaryApproval", event.target.checked)}
+                              type="checkbox"
+                            />
+                            <span>Requires secondary approval</span>
+                          </label>
+                        </div>
                       </div>
                     </article>
                   );
@@ -332,7 +406,7 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
             <input onChange={(event) => updateNewTaskField("dueAt", event.target.value)} type="date" value={newTaskState.dueAt} />
           </label>
           <label className="bm-detail-field">
-            <span>Status</span>
+            <span>Workflow status</span>
             <select onChange={(event) => updateNewTaskField("status", event.target.value)} value={newTaskState.status}>
               {taskStatusOptions.map((status) => (
                 <option key={status} value={status}>
@@ -345,13 +419,41 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
             <span>Description</span>
             <textarea onChange={(event) => updateNewTaskField("description", event.target.value)} rows={3} value={newTaskState.description} />
           </label>
+          <div className="bm-detail-field bm-detail-field-wide office-task-checkbox-row">
+            <span>Compliance rules</span>
+            <label>
+              <input
+                checked={newTaskState.requiresDocument}
+                onChange={(event) => updateNewTaskField("requiresDocument", event.target.checked)}
+                type="checkbox"
+              />
+              <span>Requires document</span>
+            </label>
+            <label>
+              <input
+                checked={newTaskState.requiresDocumentApproval}
+                onChange={(event) => updateNewTaskField("requiresDocumentApproval", event.target.checked)}
+                type="checkbox"
+              />
+              <span>Requires review</span>
+            </label>
+            <label>
+              <input
+                checked={newTaskState.requiresSecondaryApproval}
+                onChange={(event) => updateNewTaskField("requiresSecondaryApproval", event.target.checked)}
+                type="checkbox"
+              />
+              <span>Requires secondary approval</span>
+            </label>
+          </div>
         </div>
 
-        <div className="bm-transaction-status-form">
+        {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
+
+        <div className="bm-transaction-task-actions">
           <button className="bm-create-button" disabled={pendingAction === "create"} onClick={handleCreateTask} type="button">
-            {pendingAction === "create" ? "Saving..." : "Create task"}
+            {pendingAction === "create" ? "Creating..." : "Create task"}
           </button>
-          {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
         </div>
       </div>
     </section>

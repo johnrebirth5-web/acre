@@ -2412,9 +2412,29 @@ select {
   color: #365d9a;
 }
 
+.bm-task-status-pending {
+  background: #f2f4f8;
+  color: #556271;
+}
+
+.bm-task-status-review {
+  background: #fff5e8;
+  color: #8b5a12;
+}
+
+.bm-task-status-rejected {
+  background: #fff0f0;
+  color: #9b4343;
+}
+
 .bm-task-status-completed {
   background: #eef8f0;
   color: #3c7454;
+}
+
+.bm-task-status-reopened {
+  background: #eef3ff;
+  color: #365d9a;
 }
 
 .bm-status-pill-primary {
@@ -2472,6 +2492,234 @@ select {
 
 .bm-contact-form-grid .bm-transaction-modal-field.is-span-4 {
   grid-column: span 4;
+}
+
+.office-task-list-page {
+  display: grid;
+  gap: 20px;
+}
+
+.office-task-filter-form,
+.office-task-view-save-card,
+.office-task-list-card {
+  padding: 18px 20px;
+}
+
+.office-task-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.office-task-filter-field,
+.office-task-compliance-filter {
+  display: grid;
+  gap: 6px;
+}
+
+.office-task-filter-field span,
+.office-task-compliance-filter legend {
+  color: #68788f;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.office-task-filter-field input,
+.office-task-filter-field select {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d0d0d0;
+  background: #ffffff;
+  color: #404040;
+  font-size: 0.78rem;
+}
+
+.office-task-filter-field-wide {
+  grid-column: span 2;
+}
+
+.office-task-compliance-filter {
+  grid-column: span 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.office-task-compliance-options,
+.office-task-boolean-filters,
+.office-task-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.office-task-compliance-options label,
+.office-task-boolean-filters label,
+.office-task-checkbox-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4e5f78;
+  font-size: 0.75rem;
+}
+
+.office-task-filter-actions,
+.office-task-create-actions,
+.office-task-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.office-task-filter-actions {
+  grid-column: span 2;
+  align-self: end;
+}
+
+.office-kpi-grid-compact .office-kpi-card {
+  min-height: 0;
+}
+
+.office-task-view-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.office-task-view-save-row strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #1f2d44;
+}
+
+.office-task-view-save-row p {
+  margin: 0;
+  color: #6a778b;
+  font-size: 0.78rem;
+}
+
+.office-task-view-save-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.office-task-view-save-controls input {
+  height: 38px;
+  min-width: 220px;
+  padding: 0 12px;
+  border: 1px solid #d0d0d0;
+  background: #ffffff;
+  color: #404040;
+  font-size: 0.78rem;
+}
+
+.office-task-create-card {
+  display: grid;
+  gap: 14px;
+}
+
+.office-task-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.office-task-edit-grid .bm-detail-field {
+  margin: 0;
+}
+
+.office-task-edit-grid textarea {
+  min-height: 88px;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  background: #ffffff;
+  color: #4a4a4a;
+  font-size: 0.76rem;
+}
+
+.office-task-list-card {
+  overflow: hidden;
+}
+
+.office-task-table-wrap {
+  overflow-x: auto;
+}
+
+.office-task-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.office-task-table th,
+.office-task-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #ebebeb;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.76rem;
+  color: #4b586b;
+}
+
+.office-task-table th {
+  color: #6a778b;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.office-task-title-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0f62db;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.office-task-meta-copy {
+  display: block;
+  margin-top: 6px;
+  color: #6a778b;
+}
+
+.office-task-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.office-task-edit-row td {
+  padding: 0;
+  background: #fafafa;
+}
+
+.office-task-edit-row .office-task-edit-grid,
+.office-task-edit-row .office-task-detail-meta,
+.office-task-edit-row .office-task-edit-actions {
+  padding: 16px 18px;
+}
+
+.office-task-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid #ebebeb;
+  color: #6a778b;
+  font-size: 0.72rem;
+}
+
+.office-task-inline-error {
+  margin-bottom: 12px;
 }
 
 .bm-detail-field-wide {

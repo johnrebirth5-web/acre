@@ -650,7 +650,22 @@ async function main() {
       description: "Confirm executed contract PDF is available from the buyer side.",
       assigneeEmail: "jane@acre.com",
       dueAt: new Date("2026-03-08T16:00:00.000Z"),
-      status: "todo",
+      status: "review_requested",
+      requiresDocument: true,
+      requiresDocumentApproval: true,
+      requiresSecondaryApproval: false,
+      reviewStatus: "review_requested",
+      complianceStatus: "in_review",
+      completedAt: null,
+      completedByEmail: null,
+      submittedForReviewAt: new Date("2026-03-07T15:30:00.000Z"),
+      firstApprovedAt: null,
+      firstApprovedByEmail: null,
+      secondApprovedAt: null,
+      secondApprovedByEmail: null,
+      rejectedAt: null,
+      rejectedByEmail: null,
+      reopenedAt: null,
       sortOrder: 0
     },
     {
@@ -662,6 +677,21 @@ async function main() {
       assigneeEmail: "jane@acre.com",
       dueAt: new Date("2026-03-16T15:00:00.000Z"),
       status: "in_progress",
+      requiresDocument: false,
+      requiresDocumentApproval: false,
+      requiresSecondaryApproval: false,
+      reviewStatus: "not_required",
+      complianceStatus: "not_applicable",
+      completedAt: null,
+      completedByEmail: null,
+      submittedForReviewAt: null,
+      firstApprovedAt: null,
+      firstApprovedByEmail: null,
+      secondApprovedAt: null,
+      secondApprovedByEmail: null,
+      rejectedAt: null,
+      rejectedByEmail: null,
+      reopenedAt: null,
       sortOrder: 1
     },
     {
@@ -673,12 +703,31 @@ async function main() {
       assigneeEmail: "simon@acre.com",
       dueAt: new Date("2026-03-18T17:00:00.000Z"),
       status: "completed",
+      requiresDocument: true,
+      requiresDocumentApproval: true,
+      requiresSecondaryApproval: true,
+      reviewStatus: "approved",
+      complianceStatus: "approved",
+      completedAt: new Date("2026-03-09T16:30:00.000Z"),
+      completedByEmail: "simon@acre.com",
+      submittedForReviewAt: new Date("2026-03-08T19:00:00.000Z"),
+      firstApprovedAt: new Date("2026-03-09T13:00:00.000Z"),
+      firstApprovedByEmail: "naomi@acre.com",
+      secondApprovedAt: new Date("2026-03-09T16:00:00.000Z"),
+      secondApprovedByEmail: "simon@acre.com",
+      rejectedAt: null,
+      rejectedByEmail: null,
+      reopenedAt: null,
       sortOrder: 0
     }
   ];
 
   for (const task of seededTransactionTasks) {
     const assigneeMembership = membershipByEmail.get(task.assigneeEmail) ?? null;
+    const completedByMembership = task.completedByEmail ? membershipByEmail.get(task.completedByEmail) ?? null : null;
+    const firstApprovedByMembership = task.firstApprovedByEmail ? membershipByEmail.get(task.firstApprovedByEmail) ?? null : null;
+    const secondApprovedByMembership = task.secondApprovedByEmail ? membershipByEmail.get(task.secondApprovedByEmail) ?? null : null;
+    const rejectedByMembership = task.rejectedByEmail ? membershipByEmail.get(task.rejectedByEmail) ?? null : null;
 
     await prisma.transactionTask.upsert({
       where: { id: task.id },
@@ -691,6 +740,21 @@ async function main() {
         assigneeMembershipId: assigneeMembership?.id ?? null,
         dueAt: task.dueAt,
         status: task.status,
+        requiresDocument: task.requiresDocument,
+        requiresDocumentApproval: task.requiresDocumentApproval,
+        requiresSecondaryApproval: task.requiresSecondaryApproval,
+        reviewStatus: task.reviewStatus,
+        complianceStatus: task.complianceStatus,
+        completedAt: task.completedAt,
+        completedByMembershipId: completedByMembership?.id ?? null,
+        submittedForReviewAt: task.submittedForReviewAt,
+        firstApprovedAt: task.firstApprovedAt,
+        firstApprovedByMembershipId: firstApprovedByMembership?.id ?? null,
+        secondApprovedAt: task.secondApprovedAt,
+        secondApprovedByMembershipId: secondApprovedByMembership?.id ?? null,
+        rejectedAt: task.rejectedAt,
+        rejectedByMembershipId: rejectedByMembership?.id ?? null,
+        reopenedAt: task.reopenedAt,
         sortOrder: task.sortOrder
       },
       create: {
@@ -703,6 +767,21 @@ async function main() {
         assigneeMembershipId: assigneeMembership?.id ?? null,
         dueAt: task.dueAt,
         status: task.status,
+        requiresDocument: task.requiresDocument,
+        requiresDocumentApproval: task.requiresDocumentApproval,
+        requiresSecondaryApproval: task.requiresSecondaryApproval,
+        reviewStatus: task.reviewStatus,
+        complianceStatus: task.complianceStatus,
+        completedAt: task.completedAt,
+        completedByMembershipId: completedByMembership?.id ?? null,
+        submittedForReviewAt: task.submittedForReviewAt,
+        firstApprovedAt: task.firstApprovedAt,
+        firstApprovedByMembershipId: firstApprovedByMembership?.id ?? null,
+        secondApprovedAt: task.secondApprovedAt,
+        secondApprovedByMembershipId: secondApprovedByMembership?.id ?? null,
+        rejectedAt: task.rejectedAt,
+        rejectedByMembershipId: rejectedByMembership?.id ?? null,
+        reopenedAt: task.reopenedAt,
         sortOrder: task.sortOrder
       }
     });
