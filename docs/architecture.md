@@ -55,7 +55,11 @@
     - 页面支持 `actor / object type / date range` 过滤
     - 事件摘要通过集中 formatter 读取结构化 payload / changes，而不是把文案散在 UI 里
     - 顶部 `Add comment` 会通过 `/api/office/activity/comments` 写入 `AuditLog`，评论和普通事件共用同一条活动流
-- 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
+- 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction workspace 数据：
+  - 左侧 funnel summary rail
+  - 右侧 unified transaction list
+  - `Closed / Cancelled` 月度 rollup
+  - query-param 驱动的 search / side / owner / metric mode 过滤
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
 - 当前已有最小本地登录 / 登出 / cookie session
@@ -122,7 +126,7 @@
 
 - organization / offices / members
 - listings / clients / events / notifications / resources / vendors
-- transactions / pipeline buckets
+- transactions / legacy pipeline snapshot helpers
 - `getAgentDashboardSnapshot`
 - `getOfficeDashboardSnapshot`
 - `listListings`
@@ -187,7 +191,7 @@
 - `getSeededWorkspaceSnapshot`
 - `getOfficeDashboardBusinessSnapshot`
 - `getOfficeActivityLogSnapshot`
-- `getOfficePipelineBuckets`
+- `getOfficePipelineWorkspaceSnapshot`
 - `listTransactions`
 - `getTransactionById`
 - `createTransaction`
@@ -232,7 +236,7 @@
 
 1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
 2. `/office/activity` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeActivityLogSnapshot`
-3. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineBuckets`
+3. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineWorkspaceSnapshot`
 4. `/office/transactions` 调 `@acre/db` 的 transaction service
 5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
 6. `/office/transactions/:transactionId` 调 `getTransactionById`

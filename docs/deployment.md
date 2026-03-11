@@ -60,7 +60,7 @@ npm run db:seed
 
 但注意：
 
-- 现在 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
+- 现在 `Dashboard` 的业务指标、`Pipeline workspace`、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
 - `/office/tasks` 现在也依赖真实数据库中的 `TransactionTask`、`TaskListView` 和当前 office session
 - `/office/activity` 现在也依赖真实数据库中的 `AuditLog` 和实时派生 alerts 查询
 - `Transactions` detail 里的 finance 保存也已经依赖真实数据库 migration 和写路径

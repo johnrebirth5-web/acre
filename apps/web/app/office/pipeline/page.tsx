@@ -1,54 +1,293 @@
 import Link from "next/link";
-import { getOfficePipelineBuckets } from "@acre/db";
+import { getOfficePipelineWorkspaceSnapshot } from "@acre/db";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
-export default async function OfficePipelinePage() {
+type PipelinePageSearchParams = {
+  search?: string;
+  representing?: string;
+  ownerMembershipId?: string;
+  metricMode?: string;
+  stage?: string;
+  historyStatus?: string;
+  historyMonth?: string;
+};
+
+type PipelinePageProps = {
+  searchParams?: Promise<PipelinePageSearchParams>;
+};
+
+function buildPipelineHref(
+  currentFilters: {
+    search: string;
+    representing: string;
+    ownerMembershipId: string;
+    metricMode: string;
+    stage: string;
+    historyStatus: string;
+    historyMonth: string;
+  },
+  overrides: Partial<Record<keyof PipelinePageSearchParams, string | null>>
+) {
+  const params = new URLSearchParams();
+  const nextFilters = {
+    ...currentFilters,
+    ...overrides
+  };
+
+  Object.entries(nextFilters).forEach(([key, value]) => {
+    if (!value || value === "all") {
+      return;
+    }
+
+    params.set(key, value);
+  });
+
+  const queryString = params.toString();
+  return `/office/pipeline${queryString ? `?${queryString}` : ""}`;
+}
+
+export default async function OfficePipelinePage(props: PipelinePageProps) {
   const context = await requireOfficeSession();
-  const buckets = await getOfficePipelineBuckets({
+  const searchParams = (await props.searchParams) ?? {};
+  const snapshot = await getOfficePipelineWorkspaceSnapshot({
     organizationId: context.currentOrganization.id,
-    officeId: context.currentOffice?.id
+    officeId: context.currentOffice?.id,
+    search: searchParams.search,
+    representing: searchParams.representing,
+    ownerMembershipId: searchParams.ownerMembershipId,
+    metricMode: searchParams.metricMode,
+    stage: searchParams.stage,
+    historyStatus: searchParams.historyStatus,
+    historyMonth: searchParams.historyMonth
+  });
+
+  const hrefBaseFilters = {
+    search: snapshot.filters.search,
+    representing: snapshot.filters.representing,
+    ownerMembershipId: snapshot.filters.ownerMembershipId,
+    metricMode: snapshot.filters.metricMode,
+    stage: snapshot.filters.stage,
+    historyStatus: snapshot.filters.historyStatus,
+    historyMonth: snapshot.filters.historyMonth
+  };
+
+  const allTransactionsHref = buildPipelineHref(hrefBaseFilters, {
+    stage: null,
+    historyStatus: null,
+    historyMonth: null
   });
 
   return (
     <div className="bm-page">
-      <section className="bm-page-toolbar">
-        <div className="bm-page-heading">
-          <h2>Pipeline</h2>
-          <p>High-level opportunity, active, pending, closed, and cancelled transaction volume.</p>
+      <section className="office-page-header">
+        <div>
+          <span className="office-eyebrow">Pipeline</span>
+          <h2>Pipeline workspace</h2>
+          <p>Left-side funnel rollups, real monthly closed / cancelled history, and one unified transaction list.</p>
         </div>
-        <div className="bm-toolbar-actions">
-          <span className="bm-view-toggle is-active">Volume</span>
-          <span className="bm-view-toggle">Closing date</span>
+        <div className="office-button-row">
+          <Link className="office-button office-button-secondary" href={allTransactionsHref}>
+            Show all transactions
+          </Link>
         </div>
       </section>
 
-      <section className="bm-pipeline-board">
-        {buckets.map((bucket) => (
-          <article className="bm-pipeline-column" key={bucket.status}>
-            <header className="bm-pipeline-header">
-              <h3>{bucket.status}</h3>
-              <strong>{bucket.count}</strong>
-            </header>
-            <p className="bm-pipeline-volume">{bucket.volumeLabel}</p>
+      <form className="office-report-filters office-pipeline-filters" method="get">
+        <label className="office-report-filter">
+          <span>Search</span>
+          <input defaultValue={snapshot.filters.search} name="search" placeholder="Address, owner, city..." type="search" />
+        </label>
+        <label className="office-report-filter">
+          <span>Side / representing</span>
+          <select defaultValue={snapshot.filters.representing} name="representing">
+            <option value="all">All sides</option>
+            <option value="buyer">Buyer</option>
+            <option value="seller">Seller</option>
+            <option value="both">Both</option>
+            <option value="tenant">Tenant</option>
+            <option value="landlord">Landlord</option>
+          </select>
+        </label>
+        <label className="office-report-filter">
+          <span>Metric mode</span>
+          <select defaultValue={snapshot.filters.metricMode} name="metricMode">
+            <option value="transaction_volume">Transaction volume</option>
+            <option value="office_net">Office net</option>
+          </select>
+        </label>
+        <label className="office-report-filter">
+          <span>Owner / agent</span>
+          <select defaultValue={snapshot.filters.ownerMembershipId} name="ownerMembershipId">
+            <option value="">All owners</option>
+            {snapshot.filters.ownerOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="office-report-filter-actions">
+          <button className="office-button" type="submit">
+            Apply filters
+          </button>
+          <Link className="office-button office-button-secondary" href="/office/pipeline">
+            Reset
+          </Link>
+        </div>
+        {snapshot.filters.stage ? <input name="stage" type="hidden" value={snapshot.filters.stage} /> : null}
+        {snapshot.filters.historyStatus ? <input name="historyStatus" type="hidden" value={snapshot.filters.historyStatus} /> : null}
+        {snapshot.filters.historyMonth ? <input name="historyMonth" type="hidden" value={snapshot.filters.historyMonth} /> : null}
+      </form>
 
-            <div className="bm-pipeline-list">
-              {bucket.transactions.length > 0 ? (
-                bucket.transactions.map((transaction) => (
-                  <Link className="bm-pipeline-item" href={`/office/transactions/${transaction.id}`} key={transaction.id}>
-                    <strong>{transaction.address}</strong>
-                    <span>{transaction.price}</span>
-                    <p>
-                      {transaction.owner} · {transaction.representing}
-                    </p>
-                    {transaction.importantDate ? <p>{transaction.importantDate}</p> : null}
+      <section className="office-pipeline-layout">
+        <aside className="office-pipeline-rail">
+          <section className="office-pipeline-rail-card">
+            <div className="office-pipeline-rail-copy">
+              <span className="office-eyebrow">Current funnel</span>
+              <h3>Live stages</h3>
+              <p>{snapshot.metricModeLabel} updates the totals shown for every stage and history bucket.</p>
+            </div>
+
+            <Link
+              className={`office-pipeline-rail-link ${snapshot.selection.kind === "all" ? "is-active" : ""}`}
+              href={allTransactionsHref}
+            >
+              <div>
+                <strong>All transactions</strong>
+                <span>{snapshot.allTransactionsSummary.count} records</span>
+              </div>
+              <em>{snapshot.allTransactionsSummary.metricLabel}</em>
+            </Link>
+
+            <div className="office-pipeline-rail-list">
+              {snapshot.funnelBuckets.map((bucket) => (
+                <Link
+                  className={`office-pipeline-rail-link ${snapshot.filters.stage === bucket.status ? "is-active" : ""}`}
+                  href={buildPipelineHref(hrefBaseFilters, {
+                    stage: bucket.status,
+                    historyStatus: null,
+                    historyMonth: null
+                  })}
+                  key={bucket.status}
+                >
+                  <div>
+                    <strong>{bucket.status}</strong>
+                    <span>{bucket.count} records</span>
+                  </div>
+                  <em>{bucket.metricLabel}</em>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="office-pipeline-rail-card">
+            <div className="office-pipeline-rail-copy">
+              <span className="office-eyebrow">Closed / cancelled</span>
+              <h3>Recent monthly rollups</h3>
+              <p>Uses closing date when available. Otherwise the rollup falls back to the transaction updated date.</p>
+            </div>
+
+            {snapshot.historyMonths.length > 0 ? (
+              <div className="office-pipeline-history-list">
+                {snapshot.historyMonths.map((month) => (
+                  <article className="office-pipeline-history-month" key={month.monthKey}>
+                    <header>
+                      <strong>{month.label}</strong>
+                    </header>
+                    <div className="office-pipeline-history-buckets">
+                      {month.buckets.map((bucket) => (
+                        <Link
+                          className={`office-pipeline-history-link ${
+                            snapshot.filters.historyStatus === bucket.status && snapshot.filters.historyMonth === month.monthKey ? "is-active" : ""
+                          }`}
+                          href={buildPipelineHref(hrefBaseFilters, {
+                            stage: null,
+                            historyStatus: bucket.status,
+                            historyMonth: month.monthKey
+                          })}
+                          key={`${month.monthKey}-${bucket.status}`}
+                        >
+                          <span>{bucket.status}</span>
+                          <strong>{bucket.count}</strong>
+                          <em>{bucket.metricLabel}</em>
+                        </Link>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="office-report-empty">No closed or cancelled records matched the current top-level filters in the recent history window.</p>
+            )}
+          </section>
+        </aside>
+
+        <section className="office-pipeline-panel">
+          <div className="office-pipeline-panel-header">
+            <div className="office-pipeline-panel-copy">
+              <span className="office-eyebrow">Selection</span>
+              <h3>{snapshot.selection.label}</h3>
+              <p>{snapshot.selection.note}</p>
+            </div>
+            <div className="office-pipeline-headline">
+              <article className="office-pipeline-headline-card">
+                <span>Transactions</span>
+                <strong>{snapshot.listSummary.totalCount}</strong>
+              </article>
+              <article className="office-pipeline-headline-card office-pipeline-headline-card-accent">
+                <span>{snapshot.metricModeLabel}</span>
+                <strong>{snapshot.listSummary.metricLabel}</strong>
+              </article>
+            </div>
+          </div>
+
+          <div className="office-pipeline-table">
+            <div className="office-pipeline-table-head">
+              <span>Transaction</span>
+              <span>Market</span>
+              <span>Status</span>
+              <span>Side</span>
+              <span>Owner</span>
+              <span>Price</span>
+              <span>{snapshot.metricModeLabel}</span>
+              <span>Key date</span>
+              <span>Updated</span>
+            </div>
+
+            <div className="office-pipeline-table-body">
+              {snapshot.rows.length > 0 ? (
+                snapshot.rows.map((transaction) => (
+                  <Link className="office-pipeline-row" href={`/office/transactions/${transaction.id}`} key={transaction.id}>
+                    <span className="office-pipeline-row-main">
+                      <strong>{transaction.title}</strong>
+                      <small>{transaction.addressLine}</small>
+                    </span>
+                    <span>{transaction.cityState}</span>
+                    <span>
+                      <span className={`bm-status-pill bm-status-${transaction.status.toLowerCase()}`}>{transaction.status}</span>
+                    </span>
+                    <span>{transaction.representing}</span>
+                    <span>{transaction.owner}</span>
+                    <span>{transaction.priceLabel}</span>
+                    <span>{transaction.metricValueLabel}</span>
+                    <span>{transaction.closingOrImportantLabel}</span>
+                    <span>{transaction.updatedLabel}</span>
                   </Link>
                 ))
               ) : (
-                <div className="bm-pipeline-empty">No transactions in this stage.</div>
+                <div className="office-pipeline-empty">
+                  <strong>No transactions matched the current pipeline selection.</strong>
+                  <p>Adjust the top filters or clear the stage / history selection to widen the result set.</p>
+                </div>
               )}
             </div>
-          </article>
-        ))}
+          </div>
+
+          <p className="office-pipeline-footnote">
+            Current metric mode: <strong>{snapshot.metricModeLabel}</strong>. Office gross is not shown yet because the current schema only stores
+            reliable office net values.
+          </p>
+        </section>
       </section>
     </div>
   );

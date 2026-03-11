@@ -29,7 +29,7 @@ export { findActiveMembershipContextByEmail, getSessionMembershipContext } from 
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
 export { createContact, createFollowUpTask, getContactById, linkContactToTransaction, listContacts, updateContact } from "./contacts";
-export { getOfficePipelineBuckets } from "./pipeline";
+export { getOfficePipelineWorkspaceSnapshot } from "./pipeline";
 export { getOfficeReportsSnapshot, listOfficeReportTransactionsForExport } from "./reports";
 export {
   getDefaultTransactionContactRole,
@@ -96,7 +96,19 @@ export type {
   OfficeTransactionLinkOption,
   SaveContactInput
 } from "./contacts";
-export type { GetOfficePipelineBucketsInput, OfficePipelineBucket, OfficePipelineItem, OfficePipelineStatus } from "./pipeline";
+export type {
+  GetOfficePipelineWorkspaceInput,
+  OfficePipelineFunnelBucket,
+  OfficePipelineHistoryBucket,
+  OfficePipelineHistoryMonth,
+  OfficePipelineHistoryStatus,
+  OfficePipelineMetricMode,
+  OfficePipelineOwnerOption,
+  OfficePipelineRepresentingFilter,
+  OfficePipelineStatus,
+  OfficePipelineWorkspaceRow,
+  OfficePipelineWorkspaceSnapshot
+} from "./pipeline";
 export type {
   GetOfficeReportsSnapshotInput,
   OfficeReportOwnerMetric,

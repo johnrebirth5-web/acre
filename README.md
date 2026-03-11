@@ -37,10 +37,20 @@
   - `Back Office Agent Training Links`
   - `Recent Transactions`（真实数据库）
 - `Pipeline` 现在也已接入真实数据库：
-  - 按 `Opportunity / Active / Pending / Closed / Cancelled` 返回真实 transaction bucket
-  - 每列包含真实 count、total volume、transaction cards
-  - card 可进入真实 transaction detail
-  - `Closing date` toggle 目前仍是纯视觉占位
+  - 页面已经从简单 bucket board 改成 `pipeline workspace`
+  - 左侧是 `Opportunity / Active / Pending` 漏斗汇总和最近几个月的 `Closed / Cancelled` 月度 rollup
+  - 右侧是统一的真实 transaction list，而不是按列拆开的 card board
+  - 支持 query-param 驱动的顶层过滤：
+    - `side / representing`
+    - `metric mode`
+    - `owner / agent`
+    - `search`
+  - 当前 metric mode 只支持真实可得的数据：
+    - `Transaction volume`
+    - `Office net`
+  - `Office gross` 还没有接入，因为当前 schema 里没有足够可靠的独立口径
+  - `Closed / Cancelled` 月度历史优先使用 `closingDate`，没有时回退到 `updatedAt`
+  - transaction row 可进入真实 transaction detail
 - `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
 - `Transactions` 现在是当前第一个接入真实数据库的 `Office` 模块：
   - 列表页使用 PostgreSQL / Prisma 读取真实 transaction 数据
