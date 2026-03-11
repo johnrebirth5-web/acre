@@ -64,7 +64,15 @@ export {
   saveTaskListView,
   updateTransactionTask
 } from "./transaction-tasks";
-export { createTransaction, getTransactionById, listTransactions, updateTransactionFinance, updateTransactionStatus } from "./transactions";
+export {
+  createTransaction,
+  getTransactionById,
+  listTransactions,
+  officeTransactionsPageDefaults,
+  officeTransactionsPageLimits,
+  updateTransactionFinance,
+  updateTransactionStatus
+} from "./transactions";
 export type { SessionMembershipContext } from "./auth";
 export type {
   GetOfficeActivitySnapshotInput,

@@ -25,6 +25,10 @@ export type OfficeTransactionSummary = {
 export type OfficeTransactionListResult = {
   transactions: OfficeTransactionRecord[];
   summary: OfficeTransactionSummary;
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
 };
 
 export type OfficeTransactionDetail = {
@@ -70,6 +74,8 @@ export type ListTransactionsInput = {
   officeId?: string | null;
   search?: string;
   status?: OfficeTransactionStatus | "All";
+  page?: number;
+  pageSize?: number;
 };
 
 export type CreateTransactionInput = {
@@ -169,6 +175,10 @@ const representingLabelMap: Record<TransactionRepresenting, string> = {
   tenant: "tenant",
   landlord: "landlord"
 };
+
+const defaultTransactionsPage = 1;
+const defaultTransactionsPageSize = 20;
+const maxTransactionsPageSize = 100;
 
 function formatCurrency(value: Prisma.Decimal | number | string | null | undefined) {
   const numericValue = Number(value ?? 0);
@@ -271,6 +281,22 @@ function buildTransactionObjectLabel(transaction: {
   state: string;
 }) {
   return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
+}
+
+function getSearchMatchingTransactionStatuses(query: string) {
+  const normalizedQuery = query.toLowerCase();
+
+  return Object.entries(transactionStatusLabelMap)
+    .filter(([, label]) => label.toLowerCase().includes(normalizedQuery))
+    .map(([status]) => status as TransactionStatus);
+}
+
+function getSearchMatchingRepresentingValues(query: string) {
+  const normalizedQuery = query.toLowerCase();
+
+  return Object.entries(representingLabelMap)
+    .filter(([, label]) => label.toLowerCase().includes(normalizedQuery))
+    .map(([representing]) => representing as TransactionRepresenting);
 }
 
 function mapTransactionRecord(
@@ -405,13 +431,12 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
   const where: Prisma.TransactionWhereInput = {
     organizationId: input.organizationId
   };
-  const summaryWhere: Prisma.TransactionWhereInput = {
-    organizationId: input.organizationId
-  };
+  const requestedPage = Number.isFinite(input.page) ? Number(input.page) : defaultTransactionsPage;
+  const requestedPageSize = Number.isFinite(input.pageSize) ? Number(input.pageSize) : defaultTransactionsPageSize;
+  const pageSize = Math.min(Math.max(Math.trunc(requestedPageSize) || defaultTransactionsPageSize, 1), maxTransactionsPageSize);
 
   if (input.officeId) {
     where.officeId = input.officeId;
-    summaryWhere.officeId = input.officeId;
   }
 
   if (input.status && input.status !== "All") {
@@ -420,6 +445,8 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
 
   if (input.search?.trim()) {
     const query = input.search.trim();
+    const matchingStatuses = getSearchMatchingTransactionStatuses(query);
+    const matchingRepresentingValues = getSearchMatchingRepresentingValues(query);
 
     where.OR = [
       { title: { contains: query, mode: "insensitive" } },
@@ -436,11 +463,31 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
             ]
           }
         }
-      }
+      },
+      {
+        transactionContacts: {
+          some: {
+            client: {
+              OR: [
+                { fullName: { contains: query, mode: "insensitive" } },
+                { email: { contains: query, mode: "insensitive" } },
+                { phone: { contains: query, mode: "insensitive" } }
+              ]
+            }
+          }
+        }
+      },
+      ...(matchingStatuses.length > 0 ? [{ status: { in: matchingStatuses } }] : []),
+      ...(matchingRepresentingValues.length > 0 ? [{ representing: { in: matchingRepresentingValues } }] : [])
     ];
   }
 
-  const [transactions, totalCount, financeAggregate] = await Promise.all([
+  const totalCount = await prisma.transaction.count({
+    where
+  });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = Math.min(Math.max(Math.trunc(requestedPage) || defaultTransactionsPage, 1), totalPages);
+  const [transactions, financeAggregate] = await Promise.all([
     prisma.transaction.findMany({
       where,
       include: {
@@ -450,13 +497,12 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
           }
         }
       },
-      orderBy: [{ createdAt: "desc" }]
-    }),
-    prisma.transaction.count({
-      where: summaryWhere
+      orderBy: [{ createdAt: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize
     }),
     prisma.transaction.aggregate({
-      where: summaryWhere,
+      where,
       _sum: {
         officeNet: true
       }
@@ -468,9 +514,22 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
     summary: {
       totalCount,
       totalNetIncome: formatCurrency(financeAggregate._sum.officeNet)
-    }
+    },
+    totalCount,
+    totalPages,
+    page,
+    pageSize
   };
 }
+
+export const officeTransactionsPageDefaults = {
+  page: defaultTransactionsPage,
+  pageSize: defaultTransactionsPageSize
+} as const;
+
+export const officeTransactionsPageLimits = {
+  maxPageSize: maxTransactionsPageSize
+} as const;
 
 export async function getTransactionById(organizationId: string, transactionId: string): Promise<OfficeTransactionDetail | null> {
   const transaction = await prisma.transaction.findFirst({

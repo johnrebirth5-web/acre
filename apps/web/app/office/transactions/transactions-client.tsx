@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import type { OfficeTransactionRecord, OfficeTransactionSummary } from "@acre/db";
+import type { OfficeTransactionRecord, OfficeTransactionStatus, OfficeTransactionSummary } from "@acre/db";
 
 type TransactionsClientProps = {
   transactions: OfficeTransactionRecord[];
   summary: OfficeTransactionSummary;
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+  filters: {
+    q: string;
+    status: OfficeTransactionStatus | "All";
+  };
 };
 
 type InlineSelectProps = {
@@ -37,6 +45,7 @@ const topTypeOptions = ["Sales", "Sales (listing)", "Rental/Leasing", "Rental (l
 const topStatusOptions = ["Opportunity", "Active", "Pending", "Closed", "Cancelled"];
 const topRepresentingOptions = ["Buyer", "Seller", "Both"];
 const listStatusOptions = ["All", "Opportunity", "Active", "Pending", "Closed", "Cancelled"] as const;
+const pageSizeOptions = [10, 20, 50, 100] as const;
 
 const primaryFields: ModalField[] = [
   { label: "Address", name: "address" },
@@ -105,14 +114,50 @@ function InlineSelect({ label, name, value, onChange, options }: InlineSelectPro
   );
 }
 
-export function TransactionsClient({ transactions, summary }: TransactionsClientProps) {
+function normalizeStatusFilter(value: string): (typeof listStatusOptions)[number] {
+  return listStatusOptions.includes(value as (typeof listStatusOptions)[number]) ? (value as (typeof listStatusOptions)[number]) : "All";
+}
+
+function buildTransactionsHref(
+  pathname: string,
+  params: {
+    q: string;
+    status: string;
+    page: number;
+    pageSize: number;
+  }
+) {
+  const searchParams = new URLSearchParams();
+
+  if (params.q.trim()) {
+    searchParams.set("q", params.q.trim());
+  }
+
+  if (params.status && params.status !== "All") {
+    searchParams.set("status", params.status);
+  }
+
+  if (params.page > 1) {
+    searchParams.set("page", String(params.page));
+  }
+
+  if (params.pageSize !== 20) {
+    searchParams.set("pageSize", String(params.pageSize));
+  }
+
+  const query = searchParams.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
+export function TransactionsClient({ transactions, summary, totalCount, totalPages, page, pageSize, filters }: TransactionsClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState("");
   const [transactionStatus, setTransactionStatus] = useState("");
   const [representing, setRepresenting] = useState("");
-  const [statusFilter, setStatusFilter] = useState<(typeof listStatusOptions)[number]>("All");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<(typeof listStatusOptions)[number]>(normalizeStatusFilter(filters.status));
+  const [searchQuery, setSearchQuery] = useState(filters.q);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [formVersion, setFormVersion] = useState(0);
@@ -129,20 +174,58 @@ export function TransactionsClient({ transactions, summary }: TransactionsClient
     };
   }, [isModalOpen]);
 
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const filteredTransactions = transactions.filter((transaction) => {
-    if (statusFilter !== "All" && transaction.status !== statusFilter) {
-      return false;
+  useEffect(() => {
+    setSearchQuery(filters.q);
+  }, [filters.q]);
+
+  useEffect(() => {
+    setStatusFilter(normalizeStatusFilter(filters.status));
+  }, [filters.status]);
+
+  useEffect(() => {
+    if (searchQuery === filters.q) {
+      return;
     }
 
-    if (!normalizedSearch) {
-      return true;
-    }
+    const timeoutId = window.setTimeout(() => {
+      router.push(
+        buildTransactionsHref(pathname, {
+          q: searchQuery,
+          status: statusFilter,
+          page: 1,
+          pageSize
+        })
+      );
+    }, 250);
 
-    const haystack = [transaction.address, transaction.owner, transaction.representing, transaction.status].join(" ").toLowerCase();
+    return () => window.clearTimeout(timeoutId);
+  }, [filters.q, pageSize, pathname, router, searchQuery, statusFilter]);
 
-    return haystack.includes(normalizedSearch);
-  });
+  const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = totalCount === 0 ? 0 : Math.min(page * pageSize, totalCount);
+
+  function handleStatusFilterChange(nextStatus: (typeof listStatusOptions)[number]) {
+    setStatusFilter(nextStatus);
+    router.push(
+      buildTransactionsHref(pathname, {
+        q: searchQuery,
+        status: nextStatus,
+        page: 1,
+        pageSize
+      })
+    );
+  }
+
+  function handlePageSizeChange(nextPageSize: number) {
+    router.push(
+      buildTransactionsHref(pathname, {
+        q: searchQuery,
+        status: statusFilter,
+        page: 1,
+        pageSize: nextPageSize
+      })
+    );
+  }
 
   async function handleCreateTransaction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -171,6 +254,14 @@ export function TransactionsClient({ transactions, summary }: TransactionsClient
       setTransactionType("");
       setTransactionStatus("");
       setRepresenting("");
+      router.push(
+        buildTransactionsHref(pathname, {
+          q: searchQuery,
+          status: statusFilter,
+          page: 1,
+          pageSize
+        })
+      );
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to create transaction.");
@@ -210,7 +301,7 @@ export function TransactionsClient({ transactions, summary }: TransactionsClient
           <div className="bm-transactions-list-head">
             <div className="bm-transactions-current-view">
               <span>current view:</span>
-              <select aria-label="Filter transactions by status" onChange={(event) => setStatusFilter(event.target.value as (typeof listStatusOptions)[number])} value={statusFilter}>
+              <select aria-label="Filter transactions by status" onChange={(event) => handleStatusFilterChange(event.target.value as (typeof listStatusOptions)[number])} value={statusFilter}>
                 {listStatusOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
@@ -233,7 +324,7 @@ export function TransactionsClient({ transactions, summary }: TransactionsClient
           </div>
 
           <div className="bm-transactions-rows">
-            {filteredTransactions.map((transaction) => (
+            {transactions.map((transaction) => (
               <article className="bm-transactions-row" key={transaction.id}>
                 <span className={`bm-transaction-home-icon${transaction.isFlagged ? " is-flagged" : ""}`}>⌂</span>
                 <strong className={transaction.isFlagged ? "is-flagged" : ""}>
@@ -243,18 +334,70 @@ export function TransactionsClient({ transactions, summary }: TransactionsClient
                 <span>{transaction.owner}</span>
                 <span>{transaction.representing}</span>
                 <span className={`bm-transaction-status bm-transaction-status-${transaction.status.toLowerCase()}`}>{transaction.status.toLowerCase()}</span>
-                <span>{transaction.importantDate}</span>
+                <span>{transaction.importantDate || "—"}</span>
               </article>
             ))}
+
+            {transactions.length === 0 ? (
+              <div className="bm-transactions-empty">
+                <p>No transactions matched the current search and status filters.</p>
+              </div>
+            ) : null}
           </div>
 
           <footer className="bm-transactions-footer">
             <span>
-              {filteredTransactions.length === 0 ? "0" : `1-${filteredTransactions.length}`} of {summary.totalCount}
+              {pageStart}-{pageEnd} of {totalCount}
             </span>
-            <div className="bm-transactions-pager">
-              <button type="button">«</button>
-              <button type="button">»</button>
+            <div className="bm-transactions-footer-controls">
+              <label className="bm-transactions-page-size">
+                <span>Rows</span>
+                <select onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={pageSize}>
+                  {pageSizeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="bm-transactions-pager">
+                {page > 1 ? (
+                  <Link
+                    className="bm-transactions-page-button"
+                    href={buildTransactionsHref(pathname, {
+                      q: filters.q,
+                      status: filters.status,
+                      page: page - 1,
+                      pageSize
+                    })}
+                  >
+                    «
+                  </Link>
+                ) : (
+                  <span className="bm-transactions-page-button is-disabled">«</span>
+                )}
+
+                <span className="bm-transactions-page-indicator">
+                  Page {page} / {totalPages}
+                </span>
+
+                {page < totalPages ? (
+                  <Link
+                    className="bm-transactions-page-button"
+                    href={buildTransactionsHref(pathname, {
+                      q: filters.q,
+                      status: filters.status,
+                      page: page + 1,
+                      pageSize
+                    })}
+                  >
+                    »
+                  </Link>
+                ) : (
+                  <span className="bm-transactions-page-button is-disabled">»</span>
+                )}
+              </div>
             </div>
           </footer>
         </section>

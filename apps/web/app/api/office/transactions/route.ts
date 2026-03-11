@@ -3,6 +3,11 @@ import { createTransaction, listTransactions, type OfficeTransactionStatus } fro
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../lib/auth-session";
 
+const transactionStatusOptions = ["All", "Opportunity", "Active", "Pending", "Closed", "Cancelled"] as const;
+const defaultTransactionsPage = 1;
+const defaultTransactionsPageSize = 20;
+const maxTransactionsPageSize = 100;
+
 function parseAdditionalFields(body: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(body).filter(([key, value]) => {
@@ -38,6 +43,20 @@ function parseAdditionalFields(body: Record<string, unknown>) {
   ) as Record<string, string>;
 }
 
+function parsePositiveInteger(value: string | null, fallback: number, max?: number) {
+  if (!value || !value.trim()) {
+    return fallback;
+  }
+
+  const numeric = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(numeric) || numeric < 1) {
+    return null;
+  }
+
+  return max ? Math.min(numeric, max) : numeric;
+}
+
 export async function GET(request: NextRequest) {
   const context = await getRequestSessionContext(request);
 
@@ -52,12 +71,28 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("q") ?? undefined;
   const status = searchParams.get("status") ?? "All";
+  const page = parsePositiveInteger(searchParams.get("page"), defaultTransactionsPage);
+  const pageSize = parsePositiveInteger(
+    searchParams.get("pageSize"),
+    defaultTransactionsPageSize,
+    maxTransactionsPageSize
+  );
+
+  if (page === null || pageSize === null) {
+    return NextResponse.json({ error: "page and pageSize must be positive integers." }, { status: 400 });
+  }
+
+  if (!transactionStatusOptions.includes(status as (typeof transactionStatusOptions)[number])) {
+    return NextResponse.json({ error: "Unsupported transaction status filter." }, { status: 400 });
+  }
 
   const result = await listTransactions({
     organizationId: context.currentOrganization.id,
     officeId: context.currentOffice?.id,
     search,
-    status: status === "All" ? "All" : (status as OfficeTransactionStatus)
+    status: status === "All" ? "All" : (status as OfficeTransactionStatus),
+    page,
+    pageSize
   });
 
   return NextResponse.json(result);

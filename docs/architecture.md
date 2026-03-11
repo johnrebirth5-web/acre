@@ -237,8 +237,8 @@
 1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
 2. `/office/activity` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeActivityLogSnapshot`
 3. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineWorkspaceSnapshot`
-4. `/office/transactions` 调 `@acre/db` 的 transaction service
-5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库
+4. `/office/transactions` 调 `@acre/db` 的 transaction service，并按 query-param 驱动的 `q / status / page / pageSize` 做服务端过滤和分页
+5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库；`GET /api/office/transactions` 也接受 `q / status / page / pageSize`
 6. `/office/transactions/:transactionId` 调 `getTransactionById`
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段

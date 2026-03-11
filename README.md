@@ -54,7 +54,12 @@
 - `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
 - `Transactions` 现在是当前第一个接入真实数据库的 `Office` 模块：
   - 列表页使用 PostgreSQL / Prisma 读取真实 transaction 数据
-  - 支持搜索和状态筛选
+  - 列表页现在使用 URL 驱动的服务端查询：
+    - `q`
+    - `status`
+    - `page`
+    - `pageSize`
+  - 支持搜索、状态筛选和服务端分页
   - 顶部 `MY NET INCOME` 现在按真实 `officeNet` 聚合，不再硬编码 `$ 0`
   - `Create Transaction` modal 会真实写入数据库
   - 已有 transaction detail 页面

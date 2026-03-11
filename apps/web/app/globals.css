@@ -1899,22 +1899,63 @@ select {
   font-size: 0.72rem;
 }
 
+.bm-transactions-footer-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bm-transactions-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #505050;
+}
+
+.bm-transactions-page-size select {
+  height: 28px;
+  border: 1px solid #d2d2d2;
+  background: #f7f7f7;
+  color: #4f4f4f;
+  font-size: 0.72rem;
+}
+
 .bm-transactions-pager {
   display: flex;
   align-items: center;
 }
 
-.bm-transactions-pager button {
+.bm-transactions-page-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 24px;
   border: 1px solid #d2d2d2;
   background: #f7f7f7;
   color: #5a5a5a;
   font-size: 0.72rem;
+  text-decoration: none;
 }
 
-.bm-transactions-pager button + button {
+.bm-transactions-page-button + .bm-transactions-page-button {
   border-left: 0;
+}
+
+.bm-transactions-page-button.is-disabled {
+  background: #f0f0f0;
+  color: #b2b2b2;
+}
+
+.bm-transactions-page-indicator {
+  min-width: 72px;
+  text-align: center;
+}
+
+.bm-transactions-empty {
+  padding: 16px 0 4px;
+  color: #6d6d6d;
+  font-size: 0.74rem;
 }
 
 .bm-modal-overlay {
@@ -4037,6 +4078,12 @@ select {
 
   .bm-contacts-footer,
   .bm-contacts-footer-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bm-transactions-footer,
+  .bm-transactions-footer-controls {
     align-items: stretch;
     flex-direction: column;
   }
