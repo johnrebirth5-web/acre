@@ -64,6 +64,7 @@ npm run db:seed
 - `/office/activity` 现在也依赖真实数据库中的 `AuditLog` 和实时派生 alerts 查询
 - `Transactions` detail 里的 finance 保存也已经依赖真实数据库 migration 和写路径
 - `Reports` 的 CSV 导出 route 也依赖真实数据库和有效 office session
+- `/api/office/activity/comments` 也依赖真实数据库和有效 office session
 - 所以当前并不存在“完整生产部署”
 
 ## 构建与发布

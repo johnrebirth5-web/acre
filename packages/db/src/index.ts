@@ -23,7 +23,7 @@ export const databaseModules = [
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
 export { getOfficeActivitySnapshot } from "./activity";
-export { activityLogActions, getOfficeActivityLogSnapshot, recordActivityLogEvent } from "./activity-log";
+export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnapshot, recordActivityLogEvent } from "./activity-log";
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
@@ -58,6 +58,7 @@ export type {
   ActivityLogChange,
   ActivityLogAction,
   ActivityAlertSectionKey,
+  AddOfficeActivityCommentInput,
   ActivityLogObjectType,
   ActivityLogViewMode,
   ActivityLogPayload,

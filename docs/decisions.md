@@ -276,6 +276,8 @@ Trade-off：
   - 以 `AuditLog` 为主数据源，alerts 只作为第二数据源
   - 事件按更宽的 taxonomy 分组，而不是把每个 action 暴露成碎片化小类
   - 过滤器允许按 actor、object type、date range 收窄范围
+  - 顶部 `Add comment` 也直接写进 `AuditLog`，不再额外造第二套 comment store
+  - 首版访问权限收紧为 `office_admin / office_manager`
   - event summary 优先从结构化 payload / changes 生成，避免把文案散落到页面组件
 - 事件只覆盖当前仓库已经实现并真实写入的模块
 - 没有 write hook 的模块，不会伪造 event category

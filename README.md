@@ -70,6 +70,7 @@
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源
   - 同页整合 `Activity Log + Operational Alerts`
+  - `office_admin` 和 `office_manager` 可以访问；当前不把它当作所有 office 角色都可见的普通页面
   - 支持左侧事件分类和告警分类，右侧分别显示审计事件流和实时告警
   - 默认显示当前 scope 内最新 `200` 条记录
   - 支持最小过滤：
@@ -77,6 +78,15 @@
     - `actor`
     - `object type`
     - `date range`
+  - 支持顶部 `Add comment`，评论会作为 `AuditLog` 事件进入同一条活动流
+  - 当前页面级分类包括：
+    - `Transactions`
+    - `Contacts`
+    - `Tasks / Checklists`
+    - `Finance / Commissions`
+    - `Authentication`
+    - `Comments`
+    - `Operational alerts`
   - 事件摘要会优先使用结构化 payload / changes，显示状态、finance、primary contact、task 状态等变更摘要
   - 当前已接入的真实事件包括：
     - transaction created / status changed / closed
@@ -129,6 +139,7 @@
   - `/api/office/contacts/:contactId`
   - `/api/office/contacts/:contactId/follow-up-tasks`
   - `/api/office/contacts/:contactId/transactions/:transactionId`
+  - `/api/office/activity/comments`
   - `/api/listings`
   - `/api/clients`
   - `/api/events`

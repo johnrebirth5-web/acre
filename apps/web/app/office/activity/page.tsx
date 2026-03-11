@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { canAccessAccountActivity } from "@acre/auth";
 import { Badge } from "@acre/ui";
 import { getOfficeActivityLogSnapshot } from "@acre/db";
+import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
+import { ActivityCommentComposer } from "./activity-comment-composer";
 
 type OfficeActivityPageProps = {
   searchParams?: Promise<{
@@ -50,6 +53,11 @@ function buildActivityHref(currentSearchParams: ActivitySearchParams, nextSearch
 
 export default async function OfficeActivityPage(props: OfficeActivityPageProps) {
   const context = await requireOfficeSession();
+
+  if (!canAccessAccountActivity(context.currentMembership.role)) {
+    redirect("/office/dashboard");
+  }
+
   const searchParams = (await props.searchParams) ?? {};
   const snapshot = await getOfficeActivityLogSnapshot({
     organizationId: context.currentOrganization.id,
@@ -73,6 +81,10 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
           <p>Audit-backed activity records remain the source of truth. Operational alerts are derived live from current transaction, task, and contact state.</p>
         </div>
         <div className="bm-toolbar-actions">
+          <ActivityCommentComposer
+            officeId={context.currentOffice?.id ?? null}
+            scopeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
+          />
           <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
           <span className="bm-view-toggle is-active">{snapshot.latestWindowLabel}</span>
         </div>
@@ -130,6 +142,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
               <option value="transaction">Transactions</option>
               <option value="contact">Contacts</option>
               <option value="task">Tasks</option>
+              <option value="comment">Comments</option>
               <option value="auth">Authentication</option>
             </select>
           </label>
@@ -241,7 +254,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                         </div>
 
                         <div className="bm-activity-record-meta">
-                          <span className="bm-status-pill bm-status-pill-primary">{event.actionLabel}</span>
+                          <span className={`bm-status-pill ${event.isComment ? "bm-status-pill-neutral" : "bm-status-pill-primary"}`}>{event.actionLabel}</span>
                           <time>{event.timestampLabel}</time>
                         </div>
                       </div>

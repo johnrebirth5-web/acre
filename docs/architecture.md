@@ -15,6 +15,7 @@
 - 但还没有复杂权限管理或数据级权限
 - `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 - `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；documents / approvals / accounting / settings 变更还没有真实事件源
+- `Activity` 当前还是一个受限访问的 account activity 模块，不把它当作所有 office 角色都能直接访问的普通页面；首版只允许 `office_admin` 和 `office_manager`
 
 ## 技术栈
 
@@ -53,6 +54,7 @@
     - `AuditLog` 是唯一活动事件源
     - 页面支持 `actor / object type / date range` 过滤
     - 事件摘要通过集中 formatter 读取结构化 payload / changes，而不是把文案散在 UI 里
+    - 顶部 `Add comment` 会通过 `/api/office/activity/comments` 写入 `AuditLog`，评论和普通事件共用同一条活动流
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction buckets
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
@@ -235,10 +237,11 @@
 13. `/office/activity` 读取 `AuditLog`，并结合 transaction / task / contact / follow-up 的实时数据库状态派生 operational alerts
 14. transaction / contact / finance / task 的真实写入路径会同步写入 `AuditLog`
 15. auth login / logout 和 follow-up task create 也会写入 `AuditLog`
-16. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
-17. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
-18. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-19. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+16. `/office/activity` 顶部的内部评论也会写入 `AuditLog`，并出现在同一条 stream 里
+17. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
+18. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+19. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+20. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 

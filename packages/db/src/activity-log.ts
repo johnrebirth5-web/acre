@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Prisma, TaskStatus, TransactionStatus, TransactionTaskStatus } from "@prisma/client";
 import { prisma } from "./client";
 
@@ -17,14 +18,15 @@ export const activityLogActions = {
   followUpTaskCreated: "follow_up_task.created",
   contactCreated: "contact.created",
   contactUpdated: "contact.updated",
+  activityCommentAdded: "activity.comment_added",
   authLogin: "auth.login",
   authLogout: "auth.logout"
 } as const;
 
 export type ActivityLogAction = (typeof activityLogActions)[keyof typeof activityLogActions];
 export type ActivityLogViewMode = "all" | "activity" | "alerts";
-export type ActivityLogEntityType = "transaction" | "contact" | "transaction_task" | "follow_up_task" | "session";
-export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "auth";
+export type ActivityLogEntityType = "transaction" | "contact" | "transaction_task" | "follow_up_task" | "activity_comment" | "session";
+export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "comment" | "auth";
 
 export type ActivityLogChange = {
   label: string;
@@ -41,18 +43,20 @@ export type ActivityLogPayload = {
   contactName?: string;
   taskId?: string;
   taskTitle?: string;
+  commentBody?: string;
+  contextHref?: string;
   details?: string[];
   changes?: ActivityLogChange[];
 };
 
 export type ActivityLogSectionKey =
   | "all"
-  | "transaction-lifecycle"
-  | "transaction-contacts"
-  | "transaction-finance"
-  | "task-workflow"
-  | "contact-workflow"
-  | "authentication";
+  | "transactions"
+  | "contacts"
+  | "tasks-checklists"
+  | "finance-commissions"
+  | "authentication"
+  | "comments";
 
 export type ActivityAlertSectionKey =
   | "all"
@@ -81,6 +85,7 @@ export type OfficeActivityLogEvent = {
   actorDisplayName: string;
   summary: string;
   objectType: Exclude<ActivityLogObjectType, "all">;
+  isComment: boolean;
   objectLabel: string;
   href: string | null;
   timestampLabel: string;
@@ -120,6 +125,15 @@ export type GetOfficeActivityLogInput = {
   startDate?: string;
   endDate?: string;
   limit?: number;
+};
+
+export type AddOfficeActivityCommentInput = {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  scopeLabel: string;
+  body: string;
+  contextHref?: string | null;
 };
 
 export type OfficeActivityLogSnapshot = {
@@ -203,6 +217,7 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "follow_up_task.created": "Follow-up task created",
   "contact.created": "Contact created",
   "contact.updated": "Contact updated",
+  "activity.comment_added": "Comment added",
   "auth.login": "Sign in",
   "auth.logout": "Sign out"
 };
@@ -210,30 +225,27 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
 const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
   { key: "all", label: "All events", matches: () => true },
   {
-    key: "transaction-lifecycle",
-    label: "Transaction lifecycle",
+    key: "transactions",
+    label: "Transactions",
     matches: (action) =>
       action === activityLogActions.transactionCreated ||
       action === activityLogActions.transactionStatusChanged ||
       action === activityLogActions.transactionClosed ||
-      action === activityLogActions.transactionCancelled
-  },
-  {
-    key: "transaction-contacts",
-    label: "Transaction contacts",
-    matches: (action) =>
+      action === activityLogActions.transactionCancelled ||
       action === activityLogActions.transactionContactLinked ||
       action === activityLogActions.transactionContactUnlinked ||
       action === activityLogActions.transactionPrimaryContactChanged
   },
   {
-    key: "transaction-finance",
-    label: "Transaction finance",
-    matches: (action) => action === activityLogActions.transactionFinanceUpdated
+    key: "contacts",
+    label: "Contacts",
+    matches: (action) =>
+      action === activityLogActions.contactCreated ||
+      action === activityLogActions.contactUpdated
   },
   {
-    key: "task-workflow",
-    label: "Task workflow",
+    key: "tasks-checklists",
+    label: "Tasks / Checklists",
     matches: (action) =>
       action === activityLogActions.transactionTaskCreated ||
       action === activityLogActions.transactionTaskUpdated ||
@@ -242,17 +254,20 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.followUpTaskCreated
   },
   {
-    key: "contact-workflow",
-    label: "Contact workflow",
-    matches: (action) =>
-      action === activityLogActions.contactCreated ||
-      action === activityLogActions.contactUpdated
+    key: "finance-commissions",
+    label: "Finance / Commissions",
+    matches: (action) => action === activityLogActions.transactionFinanceUpdated
   },
   {
     key: "authentication",
     label: "Authentication",
     matches: (action) =>
       action === activityLogActions.authLogin || action === activityLogActions.authLogout
+  },
+  {
+    key: "comments",
+    label: "Comments",
+    matches: (action) => action === activityLogActions.activityCommentAdded
   }
 ];
 
@@ -351,6 +366,8 @@ function getActivityPayload(payload: Prisma.JsonValue | null): ParsedActivityPay
     contactName: parsePayloadString(payload, "contactName"),
     taskId: parsePayloadString(payload, "taskId"),
     taskTitle: parsePayloadString(payload, "taskTitle"),
+    commentBody: parsePayloadString(payload, "commentBody"),
+    contextHref: parsePayloadString(payload, "contextHref"),
     details: parsePayloadDetails(payload),
     changes: parsePayloadChanges(payload)
   };
@@ -365,6 +382,8 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
     case "transaction_task":
     case "follow_up_task":
       return "task";
+    case "activity_comment":
+      return "comment";
     case "session":
       return "auth";
     default:
@@ -373,7 +392,7 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
 }
 
 function normalizeObjectType(value: string | undefined): ActivityLogObjectType {
-  if (value === "transaction" || value === "contact" || value === "task" || value === "auth") {
+  if (value === "transaction" || value === "contact" || value === "task" || value === "comment" || value === "auth") {
     return value;
   }
 
@@ -382,7 +401,21 @@ function normalizeObjectType(value: string | undefined): ActivityLogObjectType {
 
 function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPayload) {
   if (record.entityType === "transaction") {
-    return `/office/transactions/${payload.transactionId ?? record.entityId}`;
+    const transactionId = payload.transactionId ?? record.entityId;
+
+    if (record.action === activityLogActions.transactionFinanceUpdated) {
+      return `/office/transactions/${transactionId}#finance`;
+    }
+
+    if (
+      record.action === activityLogActions.transactionContactLinked ||
+      record.action === activityLogActions.transactionContactUnlinked ||
+      record.action === activityLogActions.transactionPrimaryContactChanged
+    ) {
+      return `/office/transactions/${transactionId}#contacts`;
+    }
+
+    return `/office/transactions/${transactionId}`;
   }
 
   if (record.entityType === "contact") {
@@ -390,11 +423,15 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
   }
 
   if (record.entityType === "transaction_task" && payload.transactionId) {
-    return `/office/transactions/${payload.transactionId}`;
+    return `/office/transactions/${payload.transactionId}#tasks`;
   }
 
   if (record.entityType === "follow_up_task" && payload.contactId) {
-    return `/office/contacts/${payload.contactId}`;
+    return `/office/contacts/${payload.contactId}#follow-up-tasks`;
+  }
+
+  if (record.entityType === "activity_comment") {
+    return payload.contextHref ?? null;
   }
 
   return null;
@@ -478,6 +515,8 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "created a contact";
     case activityLogActions.contactUpdated:
       return payload.changes.length === 1 ? `updated contact ${payload.changes[0].label.toLowerCase()}` : "updated a contact";
+    case activityLogActions.activityCommentAdded:
+      return "added an internal comment";
     case activityLogActions.authLogin:
       return "signed in";
     case activityLogActions.authLogout:
@@ -504,11 +543,12 @@ function getDetailSummary(payload: ParsedActivityPayload) {
   const changeItems = payload.changes
     .map(formatActivityChange)
     .filter((detail): detail is string => Boolean(detail));
+  const commentItems = payload.commentBody?.trim() ? [payload.commentBody.trim()] : [];
 
   const seen = new Set<string>();
   const merged: string[] = [];
 
-  for (const detail of [...changeItems, ...detailItems]) {
+  for (const detail of [...commentItems, ...changeItems, ...detailItems]) {
     if (seen.has(detail)) {
       continue;
     }
@@ -530,6 +570,7 @@ function formatActivityLogRecord(record: ActivityLogRecord): OfficeActivityLogEv
     actorDisplayName: getActorDisplayName(record),
     summary: getSummary(record.action, payload),
     objectType: mapEntityTypeToObjectType(record.entityType),
+    isComment: record.action === activityLogActions.activityCommentAdded,
     objectLabel: getObjectLabel(record, payload),
     href: getActivityHref(record, payload),
     timestampLabel: formatTimestamp(record.createdAt),
@@ -977,6 +1018,29 @@ export async function recordActivityLogEvent(writer: AuditLogWriter, input: Reco
       entityId: input.entityId,
       action: input.action,
       payload
+    }
+  });
+}
+
+export async function addOfficeActivityComment(input: AddOfficeActivityCommentInput) {
+  const body = input.body.trim();
+
+  if (!body) {
+    throw new Error("Comment body is required.");
+  }
+
+  await recordActivityLogEvent(prisma, {
+    organizationId: input.organizationId,
+    membershipId: input.membershipId,
+    entityType: "activity_comment",
+    entityId: randomUUID(),
+    action: activityLogActions.activityCommentAdded,
+    payload: {
+      officeId: input.officeId ?? null,
+      objectLabel: `${input.scopeLabel} · Internal comment`,
+      commentBody: body,
+      contextHref: input.contextHref ?? undefined,
+      details: []
     }
   });
 }

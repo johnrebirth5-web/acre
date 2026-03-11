@@ -2,6 +2,7 @@ export type UserRole = "agent" | "office_manager" | "office_admin";
 
 export type AppPermission =
   | "dashboard:view"
+  | "activity:view"
   | "listings:view"
   | "listings:manage"
   | "listings:publish"
@@ -45,6 +46,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   agent: ["dashboard:view", "listings:view", "clients:view", "clients:manage", "events:view", "resources:view", "notifications:view", "ai:use"],
   office_manager: [
     "dashboard:view",
+    "activity:view",
     "listings:view",
     "listings:manage",
     "listings:publish",
@@ -58,6 +60,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   ],
   office_admin: [
     "dashboard:view",
+    "activity:view",
     "listings:view",
     "listings:manage",
     "listings:publish",
@@ -89,6 +92,10 @@ export function can(role: UserRole, permission: AppPermission): boolean {
 
 export function isOfficeRole(role: UserRole): boolean {
   return role === "office_manager" || role === "office_admin";
+}
+
+export function canAccessAccountActivity(role: UserRole): boolean {
+  return can(role, "activity:view");
 }
 
 export function getDefaultAppPath(role: UserRole): string {
