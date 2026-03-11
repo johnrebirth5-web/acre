@@ -3,6 +3,8 @@ export type UserRole = "agent" | "office_manager" | "office_admin";
 export type AppPermission =
   | "dashboard:view"
   | "activity:view"
+  | "accounting:view"
+  | "accounting:manage"
   | "tasks:view"
   | "tasks:manage"
   | "tasks:review"
@@ -50,6 +52,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_manager: [
     "dashboard:view",
     "activity:view",
+    "accounting:view",
+    "accounting:manage",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -67,6 +71,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_admin: [
     "dashboard:view",
     "activity:view",
+    "accounting:view",
+    "accounting:manage",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -105,6 +111,14 @@ export function isOfficeRole(role: UserRole): boolean {
 
 export function canAccessAccountActivity(role: UserRole): boolean {
   return can(role, "activity:view");
+}
+
+export function canAccessOfficeAccounting(role: UserRole): boolean {
+  return can(role, "accounting:view");
+}
+
+export function canManageOfficeAccounting(role: UserRole): boolean {
+  return can(role, "accounting:manage");
 }
 
 export function canAccessOfficeTasks(role: UserRole): boolean {

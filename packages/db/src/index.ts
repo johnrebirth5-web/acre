@@ -19,7 +19,12 @@ export const databaseModules = [
   "transactions",
   "transaction_contacts",
   "transaction_tasks",
-  "task_list_views"
+  "task_list_views",
+  "ledger_accounts",
+  "accounting_transactions",
+  "accounting_transaction_line_items",
+  "general_ledger_entries",
+  "earnest_money_records"
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
@@ -27,6 +32,14 @@ export { getOfficeActivitySnapshot } from "./activity";
 export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnapshot, recordActivityLogEvent } from "./activity-log";
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
+export {
+  accountingSystemAccountCodes,
+  createAccountingTransaction,
+  createEarnestMoneyRecord,
+  getOfficeAccountingSnapshot,
+  updateAccountingTransaction,
+  updateEarnestMoneyRecord
+} from "./accounting";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
 export {
   createContact,
@@ -74,6 +87,25 @@ export {
   updateTransactionStatus
 } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
+export type {
+  AccountingTransactionLineItemInput,
+  CreateEarnestMoneyRecordInput,
+  GetOfficeAccountingSnapshotInput,
+  OfficeAccountingFilters,
+  OfficeAccountingLineItemRecord,
+  OfficeAccountingMemberOption,
+  OfficeAccountingOverview,
+  OfficeAccountingSnapshot,
+  OfficeAccountingTransactionDetail,
+  OfficeAccountingTransactionOption,
+  OfficeAccountingTransactionRow,
+  OfficeEarnestMoneyRecord,
+  OfficeGeneralLedgerEntryRecord,
+  OfficeLedgerAccountOption,
+  OfficeLedgerAccountRecord,
+  SaveAccountingTransactionInput,
+  UpdateEarnestMoneyRecordInput
+} from "./accounting";
 export type {
   GetOfficeActivitySnapshotInput,
   OfficeActivityEvent,

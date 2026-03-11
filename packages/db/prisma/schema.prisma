@@ -124,6 +124,59 @@ enum TransactionTaskComplianceStatus {
   rejected
 }
 
+enum LedgerAccountType {
+  asset
+  liability
+  equity
+  income
+  expense
+  contra_income
+  contra_expense
+}
+
+enum AccountingTransactionType {
+  invoice
+  bill
+  credit_memo
+  deposit
+  received_payment
+  made_payment
+  journal_entry
+  transfer
+  refund
+}
+
+enum AccountingTransactionStatus {
+  draft
+  open
+  posted
+  completed
+  void
+}
+
+enum AccountingLineEntrySide {
+  debit
+  credit
+}
+
+enum AccountingPaymentMethod {
+  ach
+  check
+  wire
+  cash
+  internal_transfer
+  other
+}
+
+enum EarnestMoneyStatus {
+  not_received
+  overdue
+  pending_bank_deposit
+  fully_deposited
+  distribute_balance
+  complete
+}
+
 model Organization {
   id            String         @id @default(cuid())
   name          String
@@ -145,6 +198,11 @@ model Organization {
   transactionContacts TransactionContact[]
   transactionTasks TransactionTask[]
   taskListViews TaskListView[]
+  ledgerAccounts LedgerAccount[]
+  accountingTransactions AccountingTransaction[]
+  accountingTransactionLineItems AccountingTransactionLineItem[]
+  generalLedgerEntries GeneralLedgerEntry[]
+  earnestMoneyRecords EarnestMoneyRecord[]
 }
 
 model Office {
@@ -164,6 +222,11 @@ model Office {
   vendors        Vendor[]
   transactions   Transaction[]
   taskListViews  TaskListView[]
+  ledgerAccounts LedgerAccount[]
+  accountingTransactions AccountingTransaction[]
+  accountingTransactionLineItems AccountingTransactionLineItem[]
+  generalLedgerEntries GeneralLedgerEntry[]
+  earnestMoneyRecords EarnestMoneyRecord[]
 
   @@unique([organizationId, slug])
 }
@@ -209,6 +272,9 @@ model Membership {
   transactionTasksSecondApproved TransactionTask[]   @relation("TransactionTaskSecondApprovedBy")
   transactionTasksRejected TransactionTask[]         @relation("TransactionTaskRejectedBy")
   taskListViews TaskListView[]
+  accountingTransactionsCreated AccountingTransaction[] @relation("AccountingTransactionCreatedBy")
+  accountingTransactionsRelated AccountingTransaction[] @relation("AccountingTransactionRelatedMembership")
+  earnestMoneyRecordsCreated EarnestMoneyRecord[] @relation("EarnestMoneyCreatedBy")
 
   @@unique([organizationId, userId])
 }
@@ -253,6 +319,10 @@ model Transaction {
   primaryClient               Client?                  @relation("TransactionPrimaryClient", fields: [primaryClientId], references: [id], onDelete: SetNull)
   transactionContacts         TransactionContact[]
   tasks                       TransactionTask[]
+  accountingTransactions      AccountingTransaction[]
+  accountingTransactionLineItems AccountingTransactionLineItem[]
+  generalLedgerEntries        GeneralLedgerEntry[]
+  earnestMoneyRecords         EarnestMoneyRecord[]
 
   @@index([organizationId, status])
   @@index([organizationId, officeId])
@@ -556,4 +626,139 @@ model AuditLog {
   membership     Membership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, entityType])
+}
+
+model LedgerAccount {
+  id             String           @id @default(cuid())
+  organizationId String
+  officeId       String?
+  code           String?
+  name           String
+  accountType    LedgerAccountType
+  isSystem       Boolean          @default(false)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?          @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  lineItems      AccountingTransactionLineItem[]
+  generalLedgerEntries GeneralLedgerEntry[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, officeId, accountType])
+  @@index([organizationId, isActive])
+}
+
+model AccountingTransaction {
+  id                    String                      @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  relatedTransactionId  String?
+  relatedMembershipId   String?
+  type                  AccountingTransactionType
+  status                AccountingTransactionStatus @default(draft)
+  accountingDate        DateTime
+  dueDate               DateTime?
+  paymentMethod         AccountingPaymentMethod?
+  referenceNumber       String?
+  counterpartyName      String?
+  memo                  String?
+  notes                 String?
+  totalAmount           Decimal                     @db.Decimal(12, 2)
+  createdByMembershipId String
+  postedAt              DateTime?
+  externalSyncStatus    String?
+  externalReferenceId   String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  organization          Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?                     @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  relatedTransaction    Transaction?                @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
+  relatedMembership     Membership?                 @relation("AccountingTransactionRelatedMembership", fields: [relatedMembershipId], references: [id], onDelete: SetNull)
+  createdByMembership   Membership                  @relation("AccountingTransactionCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  lineItems             AccountingTransactionLineItem[]
+  ledgerEntries         GeneralLedgerEntry[]
+
+  @@index([organizationId, officeId, type])
+  @@index([organizationId, officeId, status])
+  @@index([organizationId, relatedTransactionId])
+  @@index([organizationId, relatedMembershipId])
+  @@index([organizationId, accountingDate])
+}
+
+model AccountingTransactionLineItem {
+  id                    String                  @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  accountingTransactionId String
+  relatedTransactionId  String?
+  ledgerAccountId       String
+  description           String?
+  entrySide             AccountingLineEntrySide
+  amount                Decimal                 @db.Decimal(12, 2)
+  sortOrder             Int                     @default(0)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?                 @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  accountingTransaction AccountingTransaction   @relation(fields: [accountingTransactionId], references: [id], onDelete: Cascade)
+  relatedTransaction    Transaction?            @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
+  ledgerAccount         LedgerAccount           @relation(fields: [ledgerAccountId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, accountingTransactionId])
+  @@index([organizationId, ledgerAccountId])
+  @@index([organizationId, relatedTransactionId])
+}
+
+model GeneralLedgerEntry {
+  id                    String                @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  accountingTransactionId String
+  relatedTransactionId  String?
+  accountId             String
+  entryDate             DateTime
+  debitAmount           Decimal               @default(0) @db.Decimal(12, 2)
+  creditAmount          Decimal               @default(0) @db.Decimal(12, 2)
+  memo                  String?
+  createdAt             DateTime              @default(now())
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  accountingTransaction AccountingTransaction @relation(fields: [accountingTransactionId], references: [id], onDelete: Cascade)
+  relatedTransaction    Transaction?          @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
+  account               LedgerAccount         @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, officeId, entryDate])
+  @@index([organizationId, accountingTransactionId])
+  @@index([organizationId, relatedTransactionId])
+  @@index([organizationId, accountId])
+}
+
+model EarnestMoneyRecord {
+  id                    String             @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  transactionId         String
+  expectedAmount        Decimal            @db.Decimal(12, 2)
+  dueAt                 DateTime
+  receivedAmount        Decimal            @default(0) @db.Decimal(12, 2)
+  refundedAmount        Decimal            @default(0) @db.Decimal(12, 2)
+  paymentDate           DateTime?
+  depositDate           DateTime?
+  heldByOffice          Boolean            @default(true)
+  heldExternally        Boolean            @default(false)
+  trackInLedger         Boolean            @default(true)
+  status                EarnestMoneyStatus @default(not_received)
+  notes                 String?
+  createdByMembershipId String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  organization          Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?            @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction           Transaction        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  createdByMembership   Membership?        @relation("EarnestMoneyCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+
+  @@unique([transactionId])
+  @@index([organizationId, officeId, status])
+  @@index([organizationId, dueAt])
 }

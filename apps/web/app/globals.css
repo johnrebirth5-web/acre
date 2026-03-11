@@ -1086,6 +1086,23 @@ select {
 }
 
 @media (max-width: 1100px) {
+  .bm-accounting-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bm-accounting-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .office-table-row-accounting,
+  .office-table-row-ledger,
+  .office-table-row-emd,
+  .office-table-row-chart,
+  .office-table-row-accounting-lines,
+  .office-table-row-accounting-lines-manual {
+    min-width: 860px;
+  }
+
   .office-company-strip,
   .office-report-filters,
   .office-kpi-grid,
@@ -1112,6 +1129,10 @@ select {
 }
 
 @media (max-width: 820px) {
+  .bm-accounting-form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .office-app-shell {
     padding: 12px;
   }
@@ -3042,6 +3063,123 @@ select {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.bm-accounting-grid {
+  align-items: start;
+}
+
+.office-table-row-accounting {
+  grid-template-columns: 110px 110px minmax(0, 1.2fr) 110px 110px minmax(0, 1.1fr) 110px;
+}
+
+.office-table-row-ledger {
+  grid-template-columns: 110px minmax(0, 1.3fr) 110px 110px minmax(0, 1fr);
+}
+
+.office-table-row-emd {
+  grid-template-columns: minmax(0, 1.5fr) 110px 110px 120px 150px 140px;
+}
+
+.office-table-row-chart {
+  grid-template-columns: 110px minmax(0, 1.4fr) 150px 100px;
+}
+
+.office-table-row-accounting-lines {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) 120px 80px;
+}
+
+.office-table-row-accounting-lines-manual {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 120px 120px 80px;
+}
+
+.office-table-row-accounting select,
+.office-table-row-ledger select,
+.office-table-row-emd select,
+.office-table-row-chart select,
+.office-table-row-accounting-lines select,
+.office-table-row-accounting-lines-manual select,
+.office-table-row-accounting-lines input,
+.office-table-row-accounting-lines-manual input {
+  min-height: 34px;
+  border: 1px solid #d3d3d3;
+  background: #fff;
+  color: #3d3d3d;
+  font: inherit;
+  padding: 0 10px;
+}
+
+.bm-accounting-form,
+.bm-accounting-form-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.bm-accounting-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bm-accounting-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bm-accounting-line-items {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e2e5ea;
+  background: #fafbfd;
+}
+
+.bm-accounting-inline-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bm-accounting-empty {
+  padding: 18px 16px;
+  color: #6d7784;
+  font-size: 0.9rem;
+}
+
+.bm-accounting-empty p {
+  margin: 0;
+}
+
+.bm-accounting-modal {
+  width: min(1120px, calc(100vw - 56px));
+}
+
+.bm-accounting-modal-body {
+  gap: 18px;
+}
+
+.bm-emd-modal {
+  width: min(900px, calc(100vw - 56px));
+}
+
+.bm-detail-field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+}
+
+.bm-detail-field-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.bm-detail-field-checkbox span {
+  margin: 0;
 }
 
 .bm-activity-sections-card,

@@ -271,6 +271,8 @@ Trade-off：
   - transaction task create / update / complete / reopen
   - follow-up task create
   - contact create / update
+  - accounting transaction create / update
+  - EMD create / update
   - auth login / logout
 - 与其继续维护一个“运营 feed”，不如直接把这些真实写入统一沉淀到 `AuditLog`
 - 但也不能假装系统已经有完整 Brokermint 级 audit coverage，所以范围必须如实收口
@@ -295,7 +297,48 @@ Trade-off：
 
 - 当前 activity 还不是完整 back-office 审计产品，也不是完整通知中心
 - 但它已经是一个真实、actor-aware 的 activity log，并能把最关键的运营告警收进系统内
-- 当前还没有 documents / accounting / settings / invoice 这些模块的真实事件覆盖，所以页面不会假装这些分类已经可用
+- 当前还没有 documents / settings / team / invoice payment lifecycle 这些模块的完整真实事件覆盖，所以页面不会假装这些分类已经可用
+
+## 关键决策 6：Accounting 先做 transaction-side accounting MVP，不做通用会计平台
+
+原因：
+
+- 目标参考是 `BoldTrail / Brokermint` 的 back-office transactional accounting
+- 当前最需要的是围绕 transaction、agent、brokerage financial workflow 的 accounting foundation
+- 如果现在直接做通用小企业会计系统，范围会失控，而且和当前产品目标不匹配
+
+影响：
+
+- 现在先引入：
+  - `LedgerAccount`
+  - `AccountingTransaction`
+  - `AccountingTransactionLineItem`
+  - `GeneralLedgerEntry`
+  - `EarnestMoneyRecord`
+- 支持的 transaction types 明确限定在：
+  - `invoice`
+  - `bill`
+  - `credit_memo`
+  - `deposit`
+  - `received_payment`
+  - `made_payment`
+  - `journal_entry`
+  - `transfer`
+  - `refund`
+- posting 规则保持显式、可审查，而不是抽象成通用 accounting engine
+- EMD 作为真实地产会计概念被单独建模，不混进普通 finance notes
+
+Trade-off：
+
+- 当前 accounting 已经是真实数据库模块，但仍然不是完整会计产品
+- 没有：
+  - QuickBooks sync
+  - bank reconciliation
+  - payroll
+  - office rent / utilities accounting
+  - ACH payout / payment gateways
+  - full commission-plan engine
+- 这样做的好处是后续还能继续长，而不用重推翻当前 schema foundation
 
 ## 后续接手时最需要先理解的几个决策
 

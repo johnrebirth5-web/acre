@@ -25,6 +25,144 @@ async function upsertUser({ email, firstName, lastName }) {
   });
 }
 
+async function upsertLedgerAccount({ organizationId, officeId, code, name, accountType, isSystem = true, isActive = true }) {
+  return prisma.ledgerAccount.upsert({
+    where: {
+      organizationId_code: {
+        organizationId,
+        code
+      }
+    },
+    update: {
+      officeId,
+      name,
+      accountType,
+      isSystem,
+      isActive
+    },
+    create: {
+      organizationId,
+      officeId,
+      code,
+      name,
+      accountType,
+      isSystem,
+      isActive
+    }
+  });
+}
+
+async function upsertAccountingTransactionWithPostings({
+  id,
+  organizationId,
+  officeId,
+  relatedTransactionId,
+  relatedMembershipId,
+  type,
+  status,
+  accountingDate,
+  dueDate,
+  paymentMethod,
+  referenceNumber,
+  counterpartyName,
+  memo,
+  notes,
+  totalAmount,
+  createdByMembershipId,
+  postedAt,
+  lineItems,
+  ledgerEntries
+}) {
+  const transaction = await prisma.accountingTransaction.upsert({
+    where: { id },
+    update: {
+      organizationId,
+      officeId,
+      relatedTransactionId,
+      relatedMembershipId,
+      type,
+      status,
+      accountingDate,
+      dueDate,
+      paymentMethod,
+      referenceNumber,
+      counterpartyName,
+      memo,
+      notes,
+      totalAmount,
+      createdByMembershipId,
+      postedAt
+    },
+    create: {
+      id,
+      organizationId,
+      officeId,
+      relatedTransactionId,
+      relatedMembershipId,
+      type,
+      status,
+      accountingDate,
+      dueDate,
+      paymentMethod,
+      referenceNumber,
+      counterpartyName,
+      memo,
+      notes,
+      totalAmount,
+      createdByMembershipId,
+      postedAt
+    }
+  });
+
+  await prisma.accountingTransactionLineItem.deleteMany({
+    where: {
+      accountingTransactionId: id
+    }
+  });
+
+  await prisma.generalLedgerEntry.deleteMany({
+    where: {
+      accountingTransactionId: id
+    }
+  });
+
+  if (lineItems.length) {
+    await prisma.accountingTransactionLineItem.createMany({
+      data: lineItems.map((lineItem, index) => ({
+        id: lineItem.id,
+        organizationId,
+        officeId,
+        accountingTransactionId: id,
+        relatedTransactionId,
+        ledgerAccountId: lineItem.ledgerAccountId,
+        description: lineItem.description ?? null,
+        entrySide: lineItem.entrySide,
+        amount: lineItem.amount,
+        sortOrder: lineItem.sortOrder ?? index
+      }))
+    });
+  }
+
+  if (ledgerEntries.length) {
+    await prisma.generalLedgerEntry.createMany({
+      data: ledgerEntries.map((entry) => ({
+        id: entry.id,
+        organizationId,
+        officeId,
+        accountingTransactionId: id,
+        relatedTransactionId,
+        accountId: entry.accountId,
+        entryDate: entry.entryDate,
+        debitAmount: entry.debitAmount,
+        creditAmount: entry.creditAmount,
+        memo: entry.memo ?? null
+      }))
+    });
+  }
+
+  return transaction;
+}
+
 async function main() {
   const organization = await prisma.organization.upsert({
     where: { slug: "acre" },
@@ -787,6 +925,488 @@ async function main() {
     });
   }
 
+  const seededLedgerAccounts = [
+    { code: "1000", name: "Operating Bank", accountType: "asset" },
+    { code: "1010", name: "Earnest Money Holding Bank", accountType: "asset" },
+    { code: "1100", name: "Accounts Receivable", accountType: "asset" },
+    { code: "2000", name: "Accounts Payable", accountType: "liability" },
+    { code: "2100", name: "Earnest Money Liability", accountType: "liability" },
+    { code: "4000", name: "Commission Income", accountType: "income" },
+    { code: "4050", name: "Refund / Contra Revenue", accountType: "contra_income" },
+    { code: "5000", name: "Agent Commission Expense", accountType: "expense" },
+    { code: "5100", name: "Referral Expense", accountType: "expense" }
+  ];
+
+  const ledgerAccountByCode = new Map();
+
+  for (const account of seededLedgerAccounts) {
+    const savedAccount = await upsertLedgerAccount({
+      organizationId: organization.id,
+      officeId: office.id,
+      code: account.code,
+      name: account.name,
+      accountType: account.accountType,
+      isSystem: true,
+      isActive: true
+    });
+
+    ledgerAccountByCode.set(account.code, savedAccount);
+  }
+
+  const seededAccountingTransactions = [
+    {
+      id: "seed-acct-invoice-parson",
+      relatedTransactionId: "seed-tx-3820-parson",
+      relatedMembershipEmail: "naomi@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "invoice",
+      status: "open",
+      accountingDate: new Date("2026-03-01T00:00:00.000Z"),
+      dueDate: new Date("2026-03-10T00:00:00.000Z"),
+      paymentMethod: null,
+      referenceNumber: "INV-3820-01",
+      counterpartyName: "Queenie Cao",
+      memo: "Listing commission invoice",
+      notes: "Seeded listing-side invoice.",
+      totalAmount: "18750",
+      lineItems: [
+        {
+          id: "seed-acct-li-invoice-parson",
+          ledgerAccountCode: "4000",
+          description: "Listing commission income",
+          entrySide: "credit",
+          amount: "18750"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-gl-invoice-parson-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-03-01T00:00:00.000Z"),
+          debitAmount: "18750",
+          creditAmount: "0",
+          memo: "Invoice INV-3820-01"
+        },
+        {
+          id: "seed-gl-invoice-parson-income",
+          accountCode: "4000",
+          entryDate: new Date("2026-03-01T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "18750",
+          memo: "Invoice INV-3820-01"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-payment-parson",
+      relatedTransactionId: "seed-tx-3820-parson",
+      relatedMembershipEmail: "naomi@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "received_payment",
+      status: "completed",
+      accountingDate: new Date("2026-03-05T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: "wire",
+      referenceNumber: "PAY-3820-01",
+      counterpartyName: "Title Company",
+      memo: "Wire received for listing commission",
+      notes: "Seeded received payment.",
+      totalAmount: "18750",
+      lineItems: [],
+      ledgerEntries: [
+        {
+          id: "seed-gl-payment-parson-bank",
+          accountCode: "1000",
+          entryDate: new Date("2026-03-05T00:00:00.000Z"),
+          debitAmount: "18750",
+          creditAmount: "0",
+          memo: "Received payment PAY-3820-01"
+        },
+        {
+          id: "seed-gl-payment-parson-ar",
+          accountCode: "1100",
+          entryDate: new Date("2026-03-05T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "18750",
+          memo: "Received payment PAY-3820-01"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-bill-referral",
+      relatedTransactionId: "seed-tx-3820-parson",
+      relatedMembershipEmail: "naomi@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "bill",
+      status: "open",
+      accountingDate: new Date("2026-03-04T00:00:00.000Z"),
+      dueDate: new Date("2026-03-12T00:00:00.000Z"),
+      paymentMethod: null,
+      referenceNumber: "BILL-3820-REF",
+      counterpartyName: "Acre Referral Desk",
+      memo: "Referral fee payable",
+      notes: "Seeded referral expense bill.",
+      totalAmount: "2500",
+      lineItems: [
+        {
+          id: "seed-acct-li-bill-referral",
+          ledgerAccountCode: "5100",
+          description: "Referral expense",
+          entrySide: "debit",
+          amount: "2500"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-gl-bill-referral-expense",
+          accountCode: "5100",
+          entryDate: new Date("2026-03-04T00:00:00.000Z"),
+          debitAmount: "2500",
+          creditAmount: "0",
+          memo: "Bill BILL-3820-REF"
+        },
+        {
+          id: "seed-gl-bill-referral-ap",
+          accountCode: "2000",
+          entryDate: new Date("2026-03-04T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "2500",
+          memo: "Bill BILL-3820-REF"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-payment-referral",
+      relatedTransactionId: "seed-tx-3820-parson",
+      relatedMembershipEmail: "naomi@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "made_payment",
+      status: "completed",
+      accountingDate: new Date("2026-03-09T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: "check",
+      referenceNumber: "CHK-3820-REF",
+      counterpartyName: "Acre Referral Desk",
+      memo: "Referral fee paid",
+      notes: "Seeded referral payment.",
+      totalAmount: "2500",
+      lineItems: [],
+      ledgerEntries: [
+        {
+          id: "seed-gl-payment-referral-ap",
+          accountCode: "2000",
+          entryDate: new Date("2026-03-09T00:00:00.000Z"),
+          debitAmount: "2500",
+          creditAmount: "0",
+          memo: "Made payment CHK-3820-REF"
+        },
+        {
+          id: "seed-gl-payment-referral-bank",
+          accountCode: "1000",
+          entryDate: new Date("2026-03-09T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "2500",
+          memo: "Made payment CHK-3820-REF"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-deposit-emd-70",
+      relatedTransactionId: "seed-tx-70-christopher",
+      relatedMembershipEmail: "naomi@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "deposit",
+      status: "posted",
+      accountingDate: new Date("2026-03-04T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: "check",
+      referenceNumber: "EMD-70-DEP",
+      counterpartyName: "Earnest Money Holding",
+      memo: "Earnest money deposited to holding bank",
+      notes: "Seeded EMD deposit.",
+      totalAmount: "5000",
+      lineItems: [
+        {
+          id: "seed-acct-li-deposit-emd-70",
+          ledgerAccountCode: "2100",
+          description: "Earnest money liability",
+          entrySide: "credit",
+          amount: "5000"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-gl-deposit-emd-70-bank",
+          accountCode: "1010",
+          entryDate: new Date("2026-03-04T00:00:00.000Z"),
+          debitAmount: "5000",
+          creditAmount: "0",
+          memo: "Deposit EMD-70-DEP"
+        },
+        {
+          id: "seed-gl-deposit-emd-70-liability",
+          accountCode: "2100",
+          entryDate: new Date("2026-03-04T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "5000",
+          memo: "Deposit EMD-70-DEP"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-refund-broker-credit",
+      relatedTransactionId: "seed-tx-70-christopher",
+      relatedMembershipEmail: "naomi@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "refund",
+      status: "completed",
+      accountingDate: new Date("2026-03-10T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: "check",
+      referenceNumber: "RFND-70-001",
+      counterpartyName: "Brokerage client credit",
+      memo: "Client refund",
+      notes: "Seeded refund entry.",
+      totalAmount: "500",
+      lineItems: [
+        {
+          id: "seed-acct-li-refund-70",
+          ledgerAccountCode: "4050",
+          description: "Contra revenue refund",
+          entrySide: "debit",
+          amount: "500"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-gl-refund-70-contra",
+          accountCode: "4050",
+          entryDate: new Date("2026-03-10T00:00:00.000Z"),
+          debitAmount: "500",
+          creditAmount: "0",
+          memo: "Refund RFND-70-001"
+        },
+        {
+          id: "seed-gl-refund-70-bank",
+          accountCode: "1000",
+          entryDate: new Date("2026-03-10T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "500",
+          memo: "Refund RFND-70-001"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-journal-adjustment",
+      relatedTransactionId: "seed-tx-graham-court",
+      relatedMembershipEmail: "jane@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "journal_entry",
+      status: "posted",
+      accountingDate: new Date("2026-03-06T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: null,
+      referenceNumber: "JE-2026-03-01",
+      counterpartyName: "Internal adjustment",
+      memo: "Manual journal adjustment",
+      notes: "Seeded journal entry for view coverage.",
+      totalAmount: "300",
+      lineItems: [
+        {
+          id: "seed-acct-li-je-debit",
+          ledgerAccountCode: "5100",
+          description: "Manual adjustment debit",
+          entrySide: "debit",
+          amount: "300"
+        },
+        {
+          id: "seed-acct-li-je-credit",
+          ledgerAccountCode: "4050",
+          description: "Manual adjustment credit",
+          entrySide: "credit",
+          amount: "300"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-gl-je-debit",
+          accountCode: "5100",
+          entryDate: new Date("2026-03-06T00:00:00.000Z"),
+          debitAmount: "300",
+          creditAmount: "0",
+          memo: "Journal entry JE-2026-03-01"
+        },
+        {
+          id: "seed-gl-je-credit",
+          accountCode: "4050",
+          entryDate: new Date("2026-03-06T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "300",
+          memo: "Journal entry JE-2026-03-01"
+        }
+      ]
+    },
+    {
+      id: "seed-acct-transfer-liquidity",
+      relatedTransactionId: "seed-tx-45-10-court-square",
+      relatedMembershipEmail: "simon@acre.com",
+      createdByEmail: "naomi@acre.com",
+      type: "transfer",
+      status: "posted",
+      accountingDate: new Date("2026-03-11T00:00:00.000Z"),
+      dueDate: null,
+      paymentMethod: "internal_transfer",
+      referenceNumber: "XFER-2026-03",
+      counterpartyName: "Internal bank transfer",
+      memo: "Transfer between operating and earnest money accounts",
+      notes: "Seeded transfer for accounting type coverage.",
+      totalAmount: "1000",
+      lineItems: [
+        {
+          id: "seed-acct-li-transfer-debit",
+          ledgerAccountCode: "1000",
+          description: "Operating bank increase",
+          entrySide: "debit",
+          amount: "1000"
+        },
+        {
+          id: "seed-acct-li-transfer-credit",
+          ledgerAccountCode: "1010",
+          description: "Earnest money bank decrease",
+          entrySide: "credit",
+          amount: "1000"
+        }
+      ],
+      ledgerEntries: [
+        {
+          id: "seed-gl-transfer-debit",
+          accountCode: "1000",
+          entryDate: new Date("2026-03-11T00:00:00.000Z"),
+          debitAmount: "1000",
+          creditAmount: "0",
+          memo: "Transfer XFER-2026-03"
+        },
+        {
+          id: "seed-gl-transfer-credit",
+          accountCode: "1010",
+          entryDate: new Date("2026-03-11T00:00:00.000Z"),
+          debitAmount: "0",
+          creditAmount: "1000",
+          memo: "Transfer XFER-2026-03"
+        }
+      ]
+    }
+  ];
+
+  for (const accountingTransaction of seededAccountingTransactions) {
+    const relatedMembership = accountingTransaction.relatedMembershipEmail
+      ? membershipByEmail.get(accountingTransaction.relatedMembershipEmail) ?? null
+      : null;
+    const createdByMembership = membershipByEmail.get(accountingTransaction.createdByEmail) ?? null;
+
+    await upsertAccountingTransactionWithPostings({
+      id: accountingTransaction.id,
+      organizationId: organization.id,
+      officeId: office.id,
+      relatedTransactionId: accountingTransaction.relatedTransactionId ?? null,
+      relatedMembershipId: relatedMembership?.id ?? null,
+      type: accountingTransaction.type,
+      status: accountingTransaction.status,
+      accountingDate: accountingTransaction.accountingDate,
+      dueDate: accountingTransaction.dueDate ?? null,
+      paymentMethod: accountingTransaction.paymentMethod ?? null,
+      referenceNumber: accountingTransaction.referenceNumber,
+      counterpartyName: accountingTransaction.counterpartyName,
+      memo: accountingTransaction.memo,
+      notes: accountingTransaction.notes,
+      totalAmount: accountingTransaction.totalAmount,
+      createdByMembershipId: createdByMembership.id,
+      postedAt: ["draft", "void"].includes(accountingTransaction.status) ? null : accountingTransaction.accountingDate,
+      lineItems: accountingTransaction.lineItems.map((lineItem) => ({
+        ...lineItem,
+        ledgerAccountId: ledgerAccountByCode.get(lineItem.ledgerAccountCode).id
+      })),
+      ledgerEntries: accountingTransaction.ledgerEntries.map((entry) => ({
+        ...entry,
+        accountId: ledgerAccountByCode.get(entry.accountCode).id
+      }))
+    });
+  }
+
+  const seededEarnestMoneyRecords = [
+    {
+      id: "seed-emd-graham",
+      transactionId: "seed-tx-graham-court",
+      expectedAmount: "15000",
+      dueAt: new Date("2026-03-05T00:00:00.000Z"),
+      receivedAmount: "0",
+      refundedAmount: "0",
+      paymentDate: null,
+      depositDate: null,
+      heldByOffice: true,
+      heldExternally: false,
+      trackInLedger: true,
+      status: "overdue",
+      notes: "Buyer still owes earnest money."
+    },
+    {
+      id: "seed-emd-70-christopher",
+      transactionId: "seed-tx-70-christopher",
+      expectedAmount: "5000",
+      dueAt: new Date("2026-03-02T00:00:00.000Z"),
+      receivedAmount: "5000",
+      refundedAmount: "0",
+      paymentDate: new Date("2026-03-03T00:00:00.000Z"),
+      depositDate: new Date("2026-03-04T00:00:00.000Z"),
+      heldByOffice: true,
+      heldExternally: false,
+      trackInLedger: true,
+      status: "fully_deposited",
+      notes: "Earnest money received and deposited."
+    }
+  ];
+
+  for (const record of seededEarnestMoneyRecords) {
+    await prisma.earnestMoneyRecord.upsert({
+      where: { id: record.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: record.transactionId,
+        expectedAmount: record.expectedAmount,
+        dueAt: record.dueAt,
+        receivedAmount: record.receivedAmount,
+        refundedAmount: record.refundedAmount,
+        paymentDate: record.paymentDate,
+        depositDate: record.depositDate,
+        heldByOffice: record.heldByOffice,
+        heldExternally: record.heldExternally,
+        trackInLedger: record.trackInLedger,
+        status: record.status,
+        notes: record.notes,
+        createdByMembershipId: membershipByEmail.get("naomi@acre.com")?.id ?? null
+      },
+      create: {
+        id: record.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: record.transactionId,
+        expectedAmount: record.expectedAmount,
+        dueAt: record.dueAt,
+        receivedAmount: record.receivedAmount,
+        refundedAmount: record.refundedAmount,
+        paymentDate: record.paymentDate,
+        depositDate: record.depositDate,
+        heldByOffice: record.heldByOffice,
+        heldExternally: record.heldExternally,
+        trackInLedger: record.trackInLedger,
+        status: record.status,
+        notes: record.notes,
+        createdByMembershipId: membershipByEmail.get("naomi@acre.com")?.id ?? null
+      }
+    });
+  }
+
   const seededAuditLogs = [
     {
       id: "seed-audit-transaction-created-graham",
@@ -939,6 +1559,92 @@ async function main() {
         objectLabel: "Iris Chen · iris@example.com",
         details: ["Stage: New -> Nurture", "Notes: rental timing updated"]
       }
+    },
+    {
+      id: "seed-audit-accounting-invoice-parson",
+      membershipEmail: "naomi@acre.com",
+      entityType: "accounting_transaction",
+      entityId: "seed-acct-invoice-parson",
+      action: "accounting.invoice_created",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-3820-parson",
+        transactionLabel: "3820 Parson Blvd · 3820 Parson Blvd, Flushing, NY",
+        objectLabel: "Invoice INV-3820-01",
+        details: ["Type: Invoice", "Status: Open", "Amount: $18,750"]
+      }
+    },
+    {
+      id: "seed-audit-accounting-payment-parson",
+      membershipEmail: "naomi@acre.com",
+      entityType: "accounting_transaction",
+      entityId: "seed-acct-payment-parson",
+      action: "accounting.payment_received",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-3820-parson",
+        transactionLabel: "3820 Parson Blvd · 3820 Parson Blvd, Flushing, NY",
+        objectLabel: "Received payment PAY-3820-01",
+        details: ["Type: Received payment", "Status: Completed", "Amount: $18,750"]
+      }
+    },
+    {
+      id: "seed-audit-accounting-bill-referral",
+      membershipEmail: "naomi@acre.com",
+      entityType: "accounting_transaction",
+      entityId: "seed-acct-bill-referral",
+      action: "accounting.bill_created",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-3820-parson",
+        transactionLabel: "3820 Parson Blvd · 3820 Parson Blvd, Flushing, NY",
+        objectLabel: "Bill BILL-3820-REF",
+        details: ["Type: Bill", "Status: Open", "Amount: $2,500"]
+      }
+    },
+    {
+      id: "seed-audit-accounting-payment-made-referral",
+      membershipEmail: "naomi@acre.com",
+      entityType: "accounting_transaction",
+      entityId: "seed-acct-payment-referral",
+      action: "accounting.payment_made",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-3820-parson",
+        transactionLabel: "3820 Parson Blvd · 3820 Parson Blvd, Flushing, NY",
+        objectLabel: "Made payment CHK-3820-REF",
+        details: ["Type: Made payment", "Status: Completed", "Amount: $2,500"]
+      }
+    },
+    {
+      id: "seed-audit-emd-expected-graham",
+      membershipEmail: "naomi@acre.com",
+      entityType: "earnest_money",
+      entityId: "seed-emd-graham",
+      action: "emd.expected_created",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        contextHref: "/office/accounting#earnest-money",
+        details: ["Expected amount: $15,000", "Due: Mar 5, 2026"]
+      }
+    },
+    {
+      id: "seed-audit-emd-received-70",
+      membershipEmail: "naomi@acre.com",
+      entityType: "earnest_money",
+      entityId: "seed-emd-70-christopher",
+      action: "emd.received",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-70-christopher",
+        transactionLabel: "70 Christopher Columbus Dr · 70 Christopher Columbus Dr, Jersey City, NJ",
+        objectLabel: "70 Christopher Columbus Dr · 70 Christopher Columbus Dr, Jersey City, NJ",
+        contextHref: "/office/accounting#earnest-money",
+        details: ["Received amount: $5,000", "Status: Fully deposited"]
+      }
     }
   ];
 
@@ -968,7 +1674,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

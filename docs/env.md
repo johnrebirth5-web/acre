@@ -8,7 +8,7 @@
 
 - 当前数据库相关代码使用 `DATABASE_URL`
 - 当前主页面和大多数 API 仍不依赖数据库，因此在“只跑前端和 mock API”时，即使没有真实数据库，也能运行
-- 但 `Office Pipeline workspace`、`Office Transactions`、`Office Contacts`、`Office Tasks`、transaction finance、本地登录、`/office/activity` 和数据库 probe 已经依赖 `DATABASE_URL`
+- 但 `Office Pipeline workspace`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Accounting`、transaction finance、本地登录、`/office/activity` 和数据库 probe 已经依赖 `DATABASE_URL`
 - transaction detail 下的 checklist/tasks 也已经依赖 `DATABASE_URL`
 - `Office Reports` 的 CSV 导出 route 也依赖 `DATABASE_URL`
 - `/api/office/activity/comments` 也依赖 `DATABASE_URL`
@@ -36,10 +36,12 @@
 - 对只看 mock 页面本地运行是“可不填”
 - 对 `/office/pipeline`、`/office/transactions`、`/office/contacts`、`/office/activity`、`/login`、数据库 probe 是必填
 - 对 `/office/tasks` 也是必填
+- 对 `/office/accounting` 也是必填
 - 对 transaction detail 下的 checklist/tasks 读写也是必填
 - 对 `/api/office/reports/export` 也是必填
 - 对 transaction detail 下的 finance 读写也是必填
 - 对 `/api/office/activity/comments` 也是必填
+- 对 `/api/office/accounting/transactions*` 和 `/api/office/accounting/earnest-money*` 也是必填
 
 示例格式：
 
@@ -60,10 +62,13 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/acre"
 - `/office/contacts` 的 URL 驱动分页查询（`q / stage / page / pageSize`）会失败
 - `/office/activity` 会失败
 - `/office/tasks` 会失败
+- `/office/accounting` 会失败
 - `/login` 和需要 session context 的 server-side 查询会失败
 - transaction detail 下的 checklist/tasks route 会失败
 - `/api/office/reports/export` 会失败
 - `/api/office/activity/comments` 会失败
+- `/api/office/accounting/transactions*` 会失败
+- `/api/office/accounting/earnest-money*` 会失败
 - 后续如果更多页面/API 接入 Prisma runtime，相关查询也会失败
 
 开发和生产差异：

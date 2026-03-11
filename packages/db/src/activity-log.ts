@@ -4,6 +4,7 @@ import { prisma } from "./client";
 
 export const activityLogActions = {
   transactionCreated: "transaction.created",
+  transactionUpdated: "transaction.updated",
   transactionStatusChanged: "transaction.status_changed",
   transactionClosed: "transaction.closed",
   transactionCancelled: "transaction.cancelled",
@@ -22,14 +23,33 @@ export const activityLogActions = {
   contactCreated: "contact.created",
   contactUpdated: "contact.updated",
   activityCommentAdded: "activity.comment_added",
+  accountingInvoiceCreated: "accounting.invoice_created",
+  accountingBillCreated: "accounting.bill_created",
+  accountingCreditMemoCreated: "accounting.credit_memo_created",
+  accountingDepositCreated: "accounting.deposit_created",
+  accountingPaymentReceived: "accounting.payment_received",
+  accountingPaymentMade: "accounting.payment_made",
+  accountingRefundCreated: "accounting.refund_created",
+  accountingTransactionUpdated: "accounting.transaction_updated",
+  emdExpectedCreated: "emd.expected_created",
+  emdReceived: "emd.received",
+  emdRefunded: "emd.refunded",
   authLogin: "auth.login",
   authLogout: "auth.logout"
 } as const;
 
 export type ActivityLogAction = (typeof activityLogActions)[keyof typeof activityLogActions];
 export type ActivityLogViewMode = "all" | "activity" | "alerts";
-export type ActivityLogEntityType = "transaction" | "contact" | "transaction_task" | "follow_up_task" | "activity_comment" | "session";
-export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "comment" | "auth";
+export type ActivityLogEntityType =
+  | "transaction"
+  | "contact"
+  | "transaction_task"
+  | "follow_up_task"
+  | "activity_comment"
+  | "session"
+  | "accounting_transaction"
+  | "earnest_money";
+export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "comment" | "auth" | "accounting";
 
 export type ActivityLogChange = {
   label: string;
@@ -206,6 +226,7 @@ type ParsedActivityPayload = ActivityLogPayload & {
 
 const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.created": "Transaction created",
+  "transaction.updated": "Transaction updated",
   "transaction.status_changed": "Transaction status changed",
   "transaction.closed": "Transaction closed",
   "transaction.cancelled": "Transaction cancelled",
@@ -224,6 +245,17 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "contact.created": "Contact created",
   "contact.updated": "Contact updated",
   "activity.comment_added": "Comment added",
+  "accounting.invoice_created": "Invoice created",
+  "accounting.bill_created": "Bill created",
+  "accounting.credit_memo_created": "Credit memo created",
+  "accounting.deposit_created": "Deposit created",
+  "accounting.payment_received": "Payment received",
+  "accounting.payment_made": "Payment made",
+  "accounting.refund_created": "Refund created",
+  "accounting.transaction_updated": "Accounting transaction updated",
+  "emd.expected_created": "EMD expected",
+  "emd.received": "EMD received",
+  "emd.refunded": "EMD refunded / distributed",
   "auth.login": "Sign in",
   "auth.logout": "Sign out"
 };
@@ -235,6 +267,7 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
     label: "Transactions",
     matches: (action) =>
       action === activityLogActions.transactionCreated ||
+      action === activityLogActions.transactionUpdated ||
       action === activityLogActions.transactionStatusChanged ||
       action === activityLogActions.transactionClosed ||
       action === activityLogActions.transactionCancelled ||
@@ -265,7 +298,19 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
   {
     key: "finance-commissions",
     label: "Finance / Commissions",
-    matches: (action) => action === activityLogActions.transactionFinanceUpdated
+    matches: (action) =>
+      action === activityLogActions.transactionFinanceUpdated ||
+      action === activityLogActions.accountingInvoiceCreated ||
+      action === activityLogActions.accountingBillCreated ||
+      action === activityLogActions.accountingCreditMemoCreated ||
+      action === activityLogActions.accountingDepositCreated ||
+      action === activityLogActions.accountingPaymentReceived ||
+      action === activityLogActions.accountingPaymentMade ||
+      action === activityLogActions.accountingRefundCreated ||
+      action === activityLogActions.accountingTransactionUpdated ||
+      action === activityLogActions.emdExpectedCreated ||
+      action === activityLogActions.emdReceived ||
+      action === activityLogActions.emdRefunded
   },
   {
     key: "authentication",
@@ -395,13 +440,16 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
       return "comment";
     case "session":
       return "auth";
+    case "accounting_transaction":
+    case "earnest_money":
+      return "accounting";
     default:
       return "transaction";
   }
 }
 
 function normalizeObjectType(value: string | undefined): ActivityLogObjectType {
-  if (value === "transaction" || value === "contact" || value === "task" || value === "comment" || value === "auth") {
+  if (value === "transaction" || value === "contact" || value === "task" || value === "comment" || value === "auth" || value === "accounting") {
     return value;
   }
 
@@ -425,6 +473,14 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
     }
 
     return `/office/transactions/${transactionId}`;
+  }
+
+  if (record.entityType === "accounting_transaction") {
+    return `/office/accounting?entryId=${record.entityId}`;
+  }
+
+  if (record.entityType === "earnest_money") {
+    return payload.contextHref ?? "/office/accounting#earnest-money";
   }
 
   if (record.entityType === "contact") {
@@ -494,6 +550,8 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
   switch (action) {
     case activityLogActions.transactionCreated:
       return "created a transaction";
+    case activityLogActions.transactionUpdated:
+      return payload.changes.length === 1 ? `updated transaction ${payload.changes[0].label.toLowerCase()}` : "updated a transaction";
     case activityLogActions.transactionStatusChanged: {
       const statusChange = getPayloadChange(payload, "Status");
       return statusChange ? `changed transaction status from ${formatSummaryChange(statusChange)}` : "changed transaction status";
@@ -534,6 +592,28 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return payload.changes.length === 1 ? `updated contact ${payload.changes[0].label.toLowerCase()}` : "updated a contact";
     case activityLogActions.activityCommentAdded:
       return "added an internal comment";
+    case activityLogActions.accountingInvoiceCreated:
+      return "created an invoice";
+    case activityLogActions.accountingBillCreated:
+      return "created a bill";
+    case activityLogActions.accountingCreditMemoCreated:
+      return "created a credit memo";
+    case activityLogActions.accountingDepositCreated:
+      return "recorded a deposit";
+    case activityLogActions.accountingPaymentReceived:
+      return "recorded a received payment";
+    case activityLogActions.accountingPaymentMade:
+      return "recorded a made payment";
+    case activityLogActions.accountingRefundCreated:
+      return "recorded a refund";
+    case activityLogActions.accountingTransactionUpdated:
+      return payload.changes.length === 1 ? `updated accounting ${payload.changes[0].label.toLowerCase()}` : "updated an accounting transaction";
+    case activityLogActions.emdExpectedCreated:
+      return "created an earnest money expectation";
+    case activityLogActions.emdReceived:
+      return "recorded earnest money received";
+    case activityLogActions.emdRefunded:
+      return "recorded an earnest money refund or distribution";
     case activityLogActions.authLogin:
       return "signed in";
     case activityLogActions.authLogout:

@@ -116,6 +116,35 @@
   - 支持 contacts needing follow-up
   - 支持最小 date range / owner 过滤
   - 支持按当前过滤条件导出真实 transaction CSV
+- `Accounting` 现在也已接入真实数据库，作为一个最小但真实的 back-office accounting MVP：
+  - 路由：`/office/accounting`
+  - 基于 `LedgerAccount / AccountingTransaction / AccountingTransactionLineItem / GeneralLedgerEntry / EarnestMoneyRecord`
+  - 已有最小 chart of accounts foundation
+  - 支持 accounting transaction types：
+    - `invoice`
+    - `bill`
+    - `credit_memo`
+    - `deposit`
+    - `received_payment`
+    - `made_payment`
+    - `journal_entry`
+    - `transfer`
+    - `refund`
+  - 当前已实现 create / edit / list 的 MVP 类型：
+    - `invoice`
+    - `bill`
+    - `deposit`
+    - `received_payment`
+    - `made_payment`
+    - `refund`
+  - `credit_memo / journal_entry / transfer` 当前已有基础 list/view 和 line-item 录入能力
+  - 已有最小 general ledger posting layer
+  - 已有最小 earnest money / EMD workflow：
+    - expected
+    - received
+    - refund / distribution
+    - ledger-tracked optional posting
+  - accounting 相关动作会写入 `AuditLog`
 - `Activity` 现在也已接入真实数据库：
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源
@@ -174,7 +203,7 @@
   - `/office/company`
   - `/office/library`
   - `/office/accounting`
-- 一组只读 API：
+- 一组 API：
   - `/api/health`
   - `/api/db/seeded-context`
   - `/api/agent/dashboard`
@@ -193,6 +222,10 @@
   - `/api/office/contacts/:contactId/follow-up-tasks`
   - `/api/office/contacts/:contactId/transactions/:transactionId`
   - `/api/office/activity/comments`
+  - `/api/office/accounting/transactions`
+  - `/api/office/accounting/transactions/:accountingTransactionId`
+  - `/api/office/accounting/earnest-money`
+  - `/api/office/accounting/earnest-money/:earnestMoneyRecordId`
   - `/api/listings`
   - `/api/clients`
   - `/api/events`
@@ -213,16 +246,23 @@
   - `/office/*` 服务端保护
   - 服务端可读取 `currentUser / currentMembership / currentOrganization / currentOffice`
 - 一份 `Prisma + PostgreSQL` schema，覆盖组织、用户、房源、CRM、通知、活动、资源、vendor、审计日志
+- 一份 `Prisma + PostgreSQL` schema，当前也覆盖：
+  - transactions / transaction contacts / transaction tasks
+  - ledger accounts
+  - accounting transactions / line items
+  - general ledger entries
+  - earnest money records
 
 当前未实现 / 计划中：
 
 - `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
-- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
+- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity`、`Accounting` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
 - 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
-- 未实现 `Brokermint` 中更深层的交易详情子页、审批流、checklists、accounting ledger、buyer offers
+- 未实现 `Brokermint` 中更深层的交易详情子页、审批流、documents / eSign / approvals、buyer offers，以及更完整的 accounting workflows（如 reconciliation、agent billing、QuickBooks sync）
 - 写操作接口当前只覆盖：
   - `Transactions` 的 create / status update
   - `Contacts` 的 create / edit / follow-up task create / transaction link
+  - `Accounting` 的最小 create / edit / EMD write flows
 - 其余模块仍未实现真实 CRUD
 - 未实现测试体系
 - Vercel 项目已绑定 GitHub 仓库，`main` 分支 push 会自动触发生产部署

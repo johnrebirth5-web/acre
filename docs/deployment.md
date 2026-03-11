@@ -43,7 +43,7 @@ npm run build
 npm run db:validate
 ```
 
-如果拉到包含新 Prisma migration 的代码，例如 transaction、contact、transaction finance、`TransactionContact`，或 `TransactionTask` / `TaskListView` 这类 relation / workflow schema 扩展，先额外执行：
+如果拉到包含新 Prisma migration 的代码，例如 transaction、contact、transaction finance、`TransactionContact`、`TransactionTask` / `TaskListView`，或 accounting / EMD 这类 schema 扩展，先额外执行：
 
 ```bash
 npm run db:migrate -- --name your_change_name
@@ -60,10 +60,12 @@ npm run db:seed
 
 但注意：
 
-- 现在 `Dashboard` 的业务指标、`Pipeline workspace`、`Transactions`、`Contacts`、`Reports` 这几条 Office 线已经依赖真实数据库
+- 现在 `Dashboard` 的业务指标、`Pipeline workspace`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity`、`Accounting` 这几条 Office 线已经依赖真实数据库
 - `/office/tasks` 现在也依赖真实数据库中的 `TransactionTask`、`TaskListView` 和当前 office session
 - `/office/activity` 现在也依赖真实数据库中的 `AuditLog` 和实时派生 alerts 查询
 - `Transactions` detail 里的 finance 保存也已经依赖真实数据库 migration 和写路径
+- `/office/accounting` 现在也依赖真实数据库中的 `LedgerAccount / AccountingTransaction / AccountingTransactionLineItem / GeneralLedgerEntry / EarnestMoneyRecord`
+- `/api/office/accounting/transactions*` 和 `/api/office/accounting/earnest-money*` 现在也属于真实数据库写路径
 - `Reports` 的 CSV 导出 route 也依赖真实数据库和有效 office session
 - `/api/office/activity/comments` 也依赖真实数据库和有效 office session
 - 所以当前并不存在“完整生产部署”
@@ -142,9 +144,10 @@ git push origin main
 - 运行 `next dev`
 - 使用 `@acre/backoffice` 内存数据
 - 不需要真实数据库即可浏览多数页面和多数 mock API
-- 但 `/office/transactions`、`/office/contacts`、本地登录、以及数据库 probe 依赖真实数据库
+- 但 `/office/transactions`、`/office/contacts`、`/office/tasks`、`/office/activity`、`/office/accounting`、本地登录、以及数据库 probe 依赖真实数据库
 - `/office/transactions` 现在的 `q / status / page / pageSize` 服务端分页查询也依赖真实数据库
 - `/office/contacts` 现在的 `q / stage / page / pageSize` 服务端分页查询也依赖真实数据库
+- accounting create / edit / EMD 写路径也依赖真实数据库
 - 如果只执行 `db:validate`，只需要一个格式正确的 `DATABASE_URL`
 
 ### 测试环境
