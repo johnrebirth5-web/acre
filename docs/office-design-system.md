@@ -137,6 +137,66 @@
 - 状态尽量用 badge / pill，不靠删除线或颜色堆砌
 - 数字列尽量对齐，避免跳动
 
+## Responsive 规则
+
+`Office / Back Office` 采用 desktop-first 的响应策略，重点不是手机优先，而是保证窄一点的桌面和笔记本宽度仍然稳定、可操作。
+
+### 断点
+
+- `<= 1360px`
+  进入第一层 laptop hardening：
+  - 过滤条开始更积极换行
+  - 双栏 workspace / detail 区开始允许纵向堆叠
+  - summary cards 从 4/3 列收成 2 列
+- `<= 1120px`
+  进入窄笔记本模式：
+  - 多数 summary grid 收成 1 列
+  - 表单网格优先收成 1 列
+  - Activity / Pipeline / Accounting 的并排区域应改为上下结构
+- `<= 980px`
+  保持 desktop shell，但进一步缩紧 sidebar 和 page padding
+- `<= 820px`
+  进入当前已有的 mobile rail / sidebar collapse 行为
+
+### 表格溢出策略
+
+- Back Office 列表优先保持列语义，不要把桌面表格硬压成不可读窄列
+- 当宽度不足时：
+  - 表格容器横向滚动
+  - 不让整页横向滚动
+  - 关键 dense 表格要有明确 `min-width`
+- 适用至少包括：
+  - Transactions
+  - Contacts
+  - Tasks
+  - Accounting
+  - Agent Billing ledger
+  - Reports 里的表格区
+
+### Filter Bar 换行策略
+
+- 过滤条和 action bar 在 laptop 宽度下必须允许换到多行
+- 行为原则：
+  - filters 可缩，但不能缩到不可操作
+  - primary / secondary actions 在换行后仍然可见
+  - query-param 行为不变，只改布局
+
+### 双栏 / 侧栏堆叠策略
+
+- `main + side panel` 或 `left rail + right content` 结构在较窄桌面宽度下应改为上下堆叠
+- 当前重点适用：
+  - Accounting
+  - Activity
+  - Pipeline
+  - detail page 的双栏信息区
+
+### Summary Card 策略
+
+- wide desktop：允许 3-4 列
+- narrow laptop：优先收成 2 列
+- 必要时收成 1 列
+- 不要让卡片为了保留列数而被压成不稳定高度或极窄内容块
+
 ## 详情 section 规则
 
 - section 表面统一用浅色 surface + 细边框
@@ -190,3 +250,4 @@
 2. 优先复用 [packages/ui/src/index.tsx](/Users/openclaw_john/工作文件夹/Acre/packages/ui/src/index.tsx)
 3. 尽量不要新增页面专属 button / card / table 皮肤
 4. 如果需要新模式，先判断是否应该进入 `@acre/ui`
+5. 如果页面包含 dense table / filter bar / 双栏 detail，先按上面的 responsive 规则处理，不要再让页面在 laptop 宽度下被横向挤坏

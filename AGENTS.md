@@ -57,3 +57,8 @@ Back Office UI / design-system changes should also update:
   - [packages/ui/src/index.tsx](/Users/openclaw_john/工作文件夹/Acre/packages/ui/src/index.tsx)
   - [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
 - Avoid adding new page-specific visual patterns if an existing Back Office primitive or token can be reused.
+- For `Office / Back Office` responsive work, follow the shared laptop-width strategy in:
+  - [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
+  - prefer horizontal table overflow over squeezed columns
+  - make filter/action bars wrap instead of compressing controls
+  - stack split-pane layouts at the documented breakpoints instead of forcing side-by-side layouts too long

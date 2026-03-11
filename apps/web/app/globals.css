@@ -2917,10 +2917,13 @@ select {
 
 .office-task-table-wrap {
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
 }
 
 .office-task-table {
-  width: 100%;
+  width: max-content;
+  min-width: 1220px;
   border-collapse: collapse;
 }
 
@@ -4465,6 +4468,44 @@ a {
   background: transparent;
 }
 
+.office-backoffice-shell,
+.office-backoffice-shell .app-grid,
+.office-backoffice-shell .main-area,
+.office-dashboard-grid-shell,
+.office-dashboard-main,
+.office-dashboard-sidebar,
+.office-page-shell,
+.bm-page,
+.bm-transactions-page,
+.bm-transaction-detail-page,
+.office-page-header,
+.office-page-heading,
+.office-page-actions,
+.office-section-copy,
+.office-section-body,
+.acre-panel-body,
+.office-detail-section-body,
+.office-form-section-body,
+.office-side-stack,
+.bm-table-card,
+.bm-detail-card,
+.office-pipeline-rail,
+.office-pipeline-panel,
+.office-pipeline-panel-header,
+.office-pipeline-headline,
+.bm-activity-nav-column,
+.bm-activity-streams,
+.office-dashboard-grid,
+.office-dashboard-grid-wide,
+.office-kpi-grid,
+.bm-card-grid,
+.office-detail-two-column,
+.office-transactions-page-actions,
+.bm-filter-strip,
+.bm-activity-filter-actions {
+  min-width: 0;
+}
+
 .office-dashboard-main {
   padding: 20px 22px 96px;
 }
@@ -5214,6 +5255,15 @@ a {
   gap: 12px;
 }
 
+.office-filter-bar > *,
+.office-report-filters > *,
+.bm-transactions-toolbar > *,
+.bm-contacts-toolbar > *,
+.bm-activity-filter-grid > *,
+.bm-transaction-status-form > * {
+  min-width: min(220px, 100%);
+}
+
 .office-report-filter,
 .bm-activity-filter-field,
 .office-filter-field {
@@ -5232,13 +5282,18 @@ a {
 .office-data-table,
 .office-table,
 .bm-transactions-list-shell,
-.bm-transactions-table {
+.bm-transactions-table,
+.office-pipeline-table,
+.bm-office-table {
   display: grid;
   gap: 0;
   border: 1px solid var(--office-border);
   border-radius: var(--office-radius-lg);
   background: var(--office-surface);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 .office-data-table-head,
@@ -5271,6 +5326,87 @@ a {
   border-bottom: 1px solid var(--office-border);
   color: var(--office-text);
   text-decoration: none;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.office-data-table-head,
+.office-table-header,
+.bm-transactions-columns,
+.bm-transaction-header,
+.office-pipeline-table-head,
+.bm-office-table-row {
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.bm-transactions-columns,
+.bm-transactions-row {
+  min-width: 1060px;
+}
+
+.office-table-row-wide,
+.bm-contacts-table-header,
+.bm-contacts-table-row {
+  min-width: 980px;
+}
+
+.office-data-table-row-anchor,
+.office-agents-roster-head,
+.office-agents-roster-row {
+  width: max-content;
+  min-width: 1120px;
+}
+
+.office-table-row-accounting {
+  min-width: 1080px;
+}
+
+.office-table-row-ledger {
+  min-width: 920px;
+}
+
+.office-table-row-emd {
+  min-width: 980px;
+}
+
+.office-table-row-chart {
+  min-width: 760px;
+}
+
+.office-table-row-accounting-lines {
+  min-width: 760px;
+}
+
+.office-table-row-accounting-lines-manual {
+  min-width: 920px;
+}
+
+.office-table-row-agent-billing-ledger {
+  min-width: 1320px;
+}
+
+.office-table-row-recurring-rules {
+  min-width: 900px;
+}
+
+.office-table-row-payment-methods {
+  min-width: 780px;
+}
+
+.office-table-row-agent-statement {
+  min-width: 760px;
+}
+
+.office-pipeline-table-head,
+.office-pipeline-row {
+  min-width: 1040px;
+}
+
+.bm-office-table-row-transactions {
+  min-width: 920px;
 }
 
 .office-data-table-row:last-child,
@@ -5422,6 +5558,7 @@ a {
   padding-top: 12px;
   color: var(--office-text-muted);
   font-size: 0.88rem;
+  flex-wrap: wrap;
 }
 
 .bm-transactions-footer-controls,
@@ -5429,6 +5566,7 @@ a {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-wrap: wrap;
 }
 
 .bm-transactions-page-size,
@@ -5468,6 +5606,9 @@ a {
   border-radius: 18px;
   background: var(--office-surface);
   box-shadow: var(--office-shadow-md);
+  width: min(1120px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
 }
 
 .bm-transaction-modal-header {
@@ -5612,6 +5753,7 @@ a {
   align-items: end;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .office-inline-form-compact {
@@ -5797,7 +5939,102 @@ a {
   box-shadow: var(--office-shadow-md);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1360px) {
+  .app-shell {
+    width: calc(100% - 24px);
+    margin: 12px auto;
+    padding: 16px;
+  }
+
+  .office-dashboard-grid-shell {
+    grid-template-columns: 224px minmax(0, 1fr);
+  }
+
+  .office-dashboard-main {
+    padding: 18px 18px 92px;
+  }
+
+  .office-page-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .office-page-actions,
+  .office-transactions-page-actions,
+  .office-task-view-save-controls,
+  .office-report-filter-actions,
+  .office-filter-actions,
+  .office-task-filter-actions,
+  .office-task-create-actions,
+  .office-task-edit-actions,
+  .bm-activity-filter-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .office-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bm-card-grid,
+  .office-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .office-dashboard-grid-wide,
+  .bm-accounting-grid,
+  .office-detail-two-column,
+  .office-pipeline-layout,
+  .bm-activity-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .office-pipeline-panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .office-pipeline-headline,
+  .office-pipeline-history-buckets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bm-activity-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .office-task-filter-grid,
+  .office-task-edit-grid,
+  .bm-accounting-form-grid,
+  .bm-transaction-modal-grid,
+  .bm-transaction-modal-grid-additional,
+  .bm-detail-card .bm-document-upload-grid,
+  .bm-detail-card .bm-form-payload-preview,
+  .office-form-grid,
+  .office-form-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .office-task-filter-field-wide,
+  .office-task-compliance-filter,
+  .office-task-filter-actions,
+  .office-form-grid-span-2,
+  .office-form-grid-span-3,
+  .bm-detail-field-wide {
+    grid-column: 1 / -1;
+  }
+
+  .bm-transactions-footer-controls,
+  .bm-contacts-footer-controls {
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 1120px) {
   .office-kpi-grid,
   .office-dashboard-grid,
   .office-dashboard-grid-wide,
@@ -5810,5 +6047,103 @@ a {
   .office-page-header,
   .bm-detail-head {
     display: grid;
+  }
+
+  .office-dashboard-grid-shell {
+    grid-template-columns: 204px minmax(0, 1fr);
+  }
+
+  .office-pipeline-headline,
+  .office-pipeline-history-buckets,
+  .bm-dashboard-status-strip,
+  .office-agents-team-grid,
+  .office-agents-goals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bm-activity-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bm-detail-grid,
+  .office-task-filter-grid,
+  .office-task-edit-grid,
+  .bm-accounting-form-grid,
+  .office-form-grid,
+  .office-form-grid-3,
+  .bm-transaction-modal-grid,
+  .bm-transaction-modal-grid-additional,
+  .bm-detail-card .bm-document-upload-grid,
+  .bm-detail-card .bm-form-payload-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .office-task-view-save-controls input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .bm-transactions-footer-controls,
+  .bm-contacts-footer-controls {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    width: calc(100% - 16px);
+    margin: 8px auto;
+    padding: 12px;
+    border-radius: 24px;
+  }
+
+  .office-dashboard-grid-shell {
+    grid-template-columns: 188px minmax(0, 1fr);
+  }
+
+  .office-dashboard-main {
+    padding: 16px 14px 88px;
+  }
+
+  .office-company-switcher {
+    padding: 0 12px;
+    font-size: 0.8rem;
+  }
+
+  .office-bm-groups {
+    padding: 14px 8px 24px;
+  }
+
+  .office-bm-link {
+    min-height: 32px;
+    padding-left: 30px;
+    font-size: 0.88rem;
+  }
+
+  .office-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bm-activity-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bm-transactions-search input,
+  .bm-contacts-search,
+  .office-task-view-save-controls input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .office-page-header h2,
+  .bm-page-heading h2 {
+    font-size: clamp(1.7rem, 1.35rem + 1vw, 2.25rem);
+  }
+
+  .bm-help-button {
+    right: 20px;
+    bottom: 18px;
   }
 }
