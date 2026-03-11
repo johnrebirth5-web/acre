@@ -42,9 +42,18 @@ Important feature changes or new environment variables must update:
 - [docs/env.md](/Users/openclaw_john/工作文件夹/Acre/docs/env.md)
 - [docs/decisions.md](/Users/openclaw_john/工作文件夹/Acre/docs/decisions.md)
 
+Back Office UI / design-system changes should also update:
+
+- [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
+
 ## Working style
 
 - Work incrementally.
 - Prefer the smallest change that fits the current architecture.
 - Avoid speculative refactors or wide cleanup passes unless the task explicitly requires them.
 - Keep changes aligned with the repo's current real implementation, not planned future architecture.
+- For `Office / Back Office` UI work, prefer the shared tokens and primitives in:
+  - [apps/web/app/globals.css](/Users/openclaw_john/工作文件夹/Acre/apps/web/app/globals.css)
+  - [packages/ui/src/index.tsx](/Users/openclaw_john/工作文件夹/Acre/packages/ui/src/index.tsx)
+  - [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
+- Avoid adding new page-specific visual patterns if an existing Back Office primitive or token can be reused.

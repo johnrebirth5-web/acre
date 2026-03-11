@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { Panel } from "@acre/ui";
+import { Button, DataTable, DataTableBody, DataTableHeader, DataTableRow, EmptyState, FilterBar, FilterField, PageHeader, PageShell, SectionCard, SelectInput, TextInput } from "@acre/ui";
 import type { OfficeContactRecord } from "@acre/db";
 
 type ContactsClientProps = {
@@ -156,72 +156,83 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
 
   return (
     <>
-      <div className="bm-page">
-        <section className="office-page-header">
-          <div>
-            <span className="office-eyebrow">Contacts</span>
-            <h2>Contacts</h2>
-            <p>Back-office contacts now use the real Client and FollowUpTask tables with organization-scoped reads and writes.</p>
-          </div>
-        </section>
+      <PageShell className="bm-page office-list-page">
+        <PageHeader
+          actions={
+            <div className="office-page-actions">
+              <div className="office-transactions-summary-chip">
+                <strong>{totalCount}</strong>
+                <span>Contacts</span>
+              </div>
+              <Button onClick={() => setIsModalOpen(true)} type="button">
+                New contact
+              </Button>
+            </div>
+          }
+          description="Organization-scoped contacts, follow-up context, and linked transaction visibility in one list."
+          eyebrow="Contacts"
+          title="Contacts"
+        />
 
-        <Panel title="Contacts table" subtitle={summaryLabel}>
-          <form className="bm-contacts-toolbar" onSubmit={handleFilterSubmit}>
-            <input
-              aria-label="Search contacts"
-              className="bm-contacts-search"
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search name, email, phone, area..."
-              value={searchQuery}
-            />
-            <select className="bm-contacts-filter" onChange={(event) => setStageFilter(event.target.value as (typeof stageOptions)[number])} value={stageFilter}>
-              {stageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <button className="office-button office-button-secondary" type="submit">
+        <SectionCard className="office-list-card" subtitle={summaryLabel} title="Contacts table">
+          <FilterBar as="form" className="bm-contacts-toolbar" onSubmit={handleFilterSubmit}>
+            <FilterField className="bm-contacts-search" label="Search">
+              <TextInput
+                aria-label="Search contacts"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search name, email, phone, area..."
+                value={searchQuery}
+              />
+            </FilterField>
+
+            <FilterField label="Stage">
+              <SelectInput onChange={(event) => setStageFilter(event.target.value as (typeof stageOptions)[number])} value={stageFilter}>
+                {stageOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </SelectInput>
+            </FilterField>
+
+            <Button type="submit" variant="secondary">
               Apply
-            </button>
-            <button className="office-button office-button-secondary" onClick={handleResetFilters} type="button">
+            </Button>
+            <Button onClick={handleResetFilters} type="button" variant="secondary">
               Reset
-            </button>
-            <button className="bm-create-button" onClick={() => setIsModalOpen(true)} type="button">
-              New contact
-            </button>
-          </form>
+            </Button>
+          </FilterBar>
 
-          <div className="office-table">
-            <div className="office-table-header office-table-row office-table-row-wide bm-contacts-table-header">
+          <DataTable className="office-table">
+            <DataTableHeader className="office-table-header office-table-row office-table-row-wide bm-contacts-table-header">
               <span>Name</span>
               <span>Stage</span>
               <span>Intent</span>
               <span>Areas</span>
               <span>Last contact</span>
               <span>Next follow-up</span>
-            </div>
-            {contacts.map((contact) => (
-              <div className="office-table-row office-table-row-wide bm-contacts-table-row" key={contact.id}>
-                <div className="office-table-primary">
-                  <strong>
-                    <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
-                  </strong>
-                  <p>{contact.email || contact.phone || contact.source}</p>
-                </div>
-                <span>{contact.stage}</span>
-                <span>{contact.intent}</span>
-                <span>{contact.areas.join(", ") || "—"}</span>
-                <span>{contact.lastContactLabel}</span>
-                <span>{contact.nextFollowUpLabel}</span>
-              </div>
-            ))}
-            {contacts.length === 0 ? (
-              <div className="bm-contacts-empty">
-                <p>No contacts matched the current search and stage filters.</p>
-              </div>
-            ) : null}
-          </div>
+            </DataTableHeader>
+            <DataTableBody>
+              {contacts.map((contact) => (
+                <DataTableRow className="office-table-row office-table-row-wide bm-contacts-table-row" key={contact.id}>
+                  <div className="office-table-primary">
+                    <strong>
+                      <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
+                    </strong>
+                    <p>{contact.email || contact.phone || contact.source}</p>
+                  </div>
+                  <span>{contact.stage}</span>
+                  <span>{contact.intent}</span>
+                  <span>{contact.areas.join(", ") || "—"}</span>
+                  <span>{contact.lastContactLabel}</span>
+                  <span>{contact.nextFollowUpLabel}</span>
+                </DataTableRow>
+              ))}
+              {contacts.length === 0 ? (
+                <EmptyState description="Try widening the search or resetting the stage filter." title="No contacts matched the current filters" />
+              ) : null}
+            </DataTableBody>
+          </DataTable>
 
           <footer className="bm-contacts-footer">
             <span>
@@ -230,13 +241,13 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
             <div className="bm-contacts-footer-controls">
               <label className="bm-contacts-page-size">
                 <span>Rows</span>
-                <select onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={pageSize}>
+                <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
                   {pageSizeOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
                   ))}
-                </select>
+                </SelectInput>
               </label>
 
               <div className="bm-contacts-pager">
@@ -278,8 +289,8 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
               </div>
             </div>
           </footer>
-        </Panel>
-      </div>
+        </SectionCard>
+      </PageShell>
 
       {isModalOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsModalOpen(false)}>

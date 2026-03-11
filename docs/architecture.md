@@ -25,12 +25,16 @@
 - `React 19`
 - `TypeScript`
 - 原生 CSS，集中在 [apps/web/app/globals.css](../apps/web/app/globals.css)
+- `@acre/ui` 里的轻量共享 Back Office primitives
 
 说明：
 
 - 当前没有引入第三方状态库
 - 当前没有表单库
-- 当前没有 UI 框架
+- 当前没有第三方 UI 框架，但已经建立内部 `Office` 设计系统：
+  - 设计 tokens 在 [apps/web/app/globals.css](../apps/web/app/globals.css)
+  - 共享组件在 [packages/ui/src/index.tsx](../packages/ui/src/index.tsx)
+  - 规则文档在 [docs/office-design-system.md](./office-design-system.md)
 - 页面主要是服务端组件 + 少量客户端导航组件
 - 当前 `Back Office` 最接近真实参考的页面是：
   - [apps/web/app/office/dashboard/page.tsx](../apps/web/app/office/dashboard/page.tsx)
@@ -80,6 +84,30 @@
 - 已有初始 migration 基线
 - 已有 seed workflow
 - 当前已经有数据库 probe read path、本地 auth 查询路径，以及 transaction/contact persistence；主页面和大多数主 API 仍未切到数据库
+
+## Office 设计系统
+
+`Office / Back Office` 当前已经不再按页面各自决定视觉规则，而是使用统一设计系统：
+
+- 主字体：通过 root layout 全局加载的 `Inter`
+- tokens：集中在 [apps/web/app/globals.css](../apps/web/app/globals.css)
+- primitives：集中在 [packages/ui/src/index.tsx](../packages/ui/src/index.tsx)
+- 详细规则：见 [docs/office-design-system.md](./office-design-system.md)
+
+当前统一的核心对象包括：
+
+- page shell / page header
+- section card / detail section
+- filter bar
+- data table
+- form fields / inputs / buttons
+- status badges
+- Back Office navigation
+
+这套系统当前优先解决的是：
+
+- 页面间字体、间距、按钮、表格和 detail section 的漂移
+- `Dashboard / Transactions / Contacts / Tasks / Activity / Accounting / Reports / Pipeline` 之间的产品割裂
 
 ### 第三方服务
 

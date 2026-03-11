@@ -129,23 +129,34 @@ Trade-off：
 - 其他模块现在看起来相对轻
 - 这是因为 listings 会成为后续很多功能的上游数据源
 
-## 关键决策 7：当前 UI 故意不引入重型组件库
+## 关键决策 7：当前 UI 不引入重型组件库，但建立内部 Back Office 设计系统
 
 原因：
 
-- 现在最重要的是把产品结构和响应式工作台做出来
-- 过早引入复杂 design system 或表格库，收益不高
-- 当前页面规模还不需要它
+- 现在最重要的是把 `Back Office` 做成一个统一产品，而不是继续允许页面各自长相漂移
+- 直接引入重型 UI 框架会增加约束和迁移成本
+- 当前页面规模已经需要统一 token、表格、页头、detail section 和表单风格，但还不需要完整第三方 enterprise UI 平台
 
 影响：
 
-- 当前只有 `@acre/ui` 中几个很轻的基础组件
-- 样式主要集中在全局 CSS
+- 使用 root layout 全局加载的单一主字体
+- `Office` token 继续集中在全局 CSS
+- `@acre/ui` 扩成轻量但明确的 Back Office primitives：
+  - `PageShell`
+  - `PageHeader`
+  - `SectionCard`
+  - `DataTable`
+  - `FormField`
+  - `Button`
+  - `StatusBadge`
+  - 以及其他表单 / filter / detail primitives
+- 仍不引入重型第三方组件库
 
 Trade-off：
 
-- 后续做复杂表格、表单、过滤器时可能要引入新工具
-- 但现在保持轻量更利于快速迭代
+- 样式系统仍有一部分兼容旧 `bm-* / office-*` 类名的过渡层
+- 这不是最“纯粹”的重构，但能在不推翻业务模块的情况下快速统一产品视觉
+- 后续如果真的需要更强表格或复杂输入能力，仍可能继续引入专门工具
 
 ## 关键决策 8：当前优先贴近 `Brokermint` 的 Back Office，而不是继续发散 Acre 新概念页
 

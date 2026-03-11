@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTransactionById, listTransactionTaskAssigneeOptions, listTransactionTasks } from "@acre/db";
+import { DetailSection, PageHeader, PageShell, SectionCard, SecondaryMetaList } from "@acre/ui";
 import { notFound } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
 import { TransactionContactsCard } from "./contacts-card";
@@ -27,20 +28,31 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
   }
 
   return (
-    <div className="bm-transaction-detail-page">
-      <section className="bm-detail-card">
-        <div className="bm-detail-head">
-          <div>
-            <h2>{transaction.title}</h2>
-            <p>
-              {transaction.address}, {transaction.city}, {transaction.state} {transaction.zipCode}
-            </p>
-          </div>
-          <Link className="bm-view-toggle" href="/office/transactions">
+    <PageShell className="bm-transaction-detail-page office-detail-page">
+      <PageHeader
+        actions={
+          <Link className="office-button office-button-secondary" href="/office/transactions">
             Back to transactions
           </Link>
-        </div>
+        }
+        description={`${transaction.address}, ${transaction.city}, ${transaction.state} ${transaction.zipCode}`}
+        eyebrow="Transaction detail"
+        title={transaction.title}
+      />
 
+      <DetailSection
+        actions={
+          <SecondaryMetaList
+            items={[
+              { label: "Owner", value: transaction.ownerName },
+              { label: "Office", value: transaction.officeName || "Unassigned" },
+              { label: "Status", value: transaction.status }
+            ]}
+          />
+        }
+        subtitle="Core transaction facts, dates, and referral context."
+        title="Overview"
+      >
         <div className="bm-detail-grid">
           <div className="bm-detail-field">
             <span>Type</span>
@@ -91,14 +103,11 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
             <strong>{transaction.closingDate || "Not set"}</strong>
           </div>
         </div>
-      </section>
+      </DetailSection>
 
-      <section className="bm-detail-card">
-        <div className="bm-card-head">
-          <h3>Status</h3>
-        </div>
+      <SectionCard subtitle="Update the primary workflow status for this transaction." title="Status">
         <TransactionStatusForm currentStatus={transaction.status} transactionId={transaction.id} />
-      </section>
+      </SectionCard>
 
       <TransactionContactsCard
         availableContacts={transaction.availableContacts}
@@ -108,10 +117,7 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
 
       <TransactionTasksCard assigneeOptions={taskAssigneeOptions} tasks={tasks} transactionId={transaction.id} />
 
-      <section className="bm-detail-card">
-        <div className="bm-card-head">
-          <h3>Finance</h3>
-        </div>
+      <SectionCard subtitle="Minimal finance layer for commissions, office net, and notes." title="Finance">
         <TransactionFinanceForm
           agentNet={transaction.agentNet}
           financeNotes={transaction.financeNotes}
@@ -120,12 +126,9 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
           referralFee={transaction.referralFee}
           transactionId={transaction.id}
         />
-      </section>
+      </SectionCard>
 
-      <section className="bm-detail-card">
-        <div className="bm-card-head">
-          <h3>Additional fields</h3>
-        </div>
+      <SectionCard subtitle="Additional custom fields stored with this transaction." title="Additional fields">
         <div className="bm-detail-grid">
           {Object.entries(transaction.additionalFields).length > 0 ? (
             Object.entries(transaction.additionalFields).map(([key, value]) => (
@@ -141,7 +144,7 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
             </div>
           )}
         </div>
-      </section>
-    </div>
+      </SectionCard>
+    </PageShell>
   );
 }

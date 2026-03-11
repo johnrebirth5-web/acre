@@ -238,6 +238,11 @@
   - 初始 migration 基线
   - seed workflow
   - 一个最小的数据库读取 utility 和 API probe
+- 一个统一的 `Office / Back Office` 设计系统：
+  - 主字体统一通过 root layout 加载
+  - 共享 tokens 集中在 [apps/web/app/globals.css](/Users/openclaw_john/工作文件夹/Acre/apps/web/app/globals.css)
+  - 共享 primitives 集中在 [packages/ui/src/index.tsx](/Users/openclaw_john/工作文件夹/Acre/packages/ui/src/index.tsx)
+  - 设计规则文档见 [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
 - 一个最小本地 auth/session 方案，当前已包含：
   - seeded user 登录
   - 登录后 signed cookie session

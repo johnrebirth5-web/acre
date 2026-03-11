@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getOfficePipelineWorkspaceSnapshot } from "@acre/db";
+import { PageHeader, PageShell } from "@acre/ui";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
 type PipelinePageSearchParams = {
@@ -78,19 +79,17 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
   });
 
   return (
-    <div className="bm-page">
-      <section className="office-page-header">
-        <div>
-          <span className="office-eyebrow">Pipeline</span>
-          <h2>Pipeline workspace</h2>
-          <p>Left-side funnel rollups, real monthly closed / cancelled history, and one unified transaction list.</p>
-        </div>
-        <div className="office-button-row">
+    <PageShell className="bm-page">
+      <PageHeader
+        actions={
           <Link className="office-button office-button-secondary" href={allTransactionsHref}>
             Show all transactions
           </Link>
-        </div>
-      </section>
+        }
+        description="Left-side funnel rollups, real monthly closed / cancelled history, and one unified transaction list."
+        eyebrow="Pipeline"
+        title="Pipeline workspace"
+      />
 
       <form className="office-report-filters office-pipeline-filters" method="get">
         <label className="office-report-filter">
@@ -289,6 +288,6 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
           </p>
         </section>
       </section>
-    </div>
+    </PageShell>
   );
 }

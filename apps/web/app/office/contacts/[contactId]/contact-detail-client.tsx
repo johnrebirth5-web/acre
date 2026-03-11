@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button, FormField, PageHeader, PageShell, SectionCard, SelectInput, TextInput, TextareaInput } from "@acre/ui";
 import type { OfficeContactDetail } from "@acre/db";
 
 type ContactDetailClientProps = {
@@ -129,84 +130,69 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
   }
 
   return (
-    <div className="bm-transaction-detail-page">
-      <section className="bm-detail-card">
-        <div className="bm-detail-head">
-          <div>
-            <h2>{contact.fullName}</h2>
-            <p>{contact.email || contact.phone || contact.source}</p>
-          </div>
-          <Link className="bm-view-toggle" href="/office/contacts">
+    <PageShell className="bm-transaction-detail-page office-detail-page">
+      <PageHeader
+        actions={
+          <Link className="office-button office-button-secondary" href="/office/contacts">
             Back to contacts
           </Link>
-        </div>
+        }
+        description={contact.email || contact.phone || contact.source}
+        eyebrow="Contact detail"
+        title={contact.fullName}
+      />
 
+      <SectionCard subtitle="Core profile, lifecycle, and follow-up details for this contact." title="Overview">
         <form className="bm-detail-grid" onSubmit={handleSave}>
-          <label className="bm-detail-field">
-            <span>Full name</span>
-            <input onChange={(event) => updateField("fullName", event.target.value)} type="text" value={formState.fullName} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Email</span>
-            <input onChange={(event) => updateField("email", event.target.value)} type="email" value={formState.email} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Phone</span>
-            <input onChange={(event) => updateField("phone", event.target.value)} type="text" value={formState.phone} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Contact type</span>
-            <input onChange={(event) => updateField("contactType", event.target.value)} type="text" value={formState.contactType} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Source</span>
-            <input onChange={(event) => updateField("source", event.target.value)} type="text" value={formState.source} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Stage</span>
-            <input onChange={(event) => updateField("stage", event.target.value)} type="text" value={formState.stage} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Intent</span>
-            <input onChange={(event) => updateField("intent", event.target.value)} type="text" value={formState.intent} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Budget min</span>
-            <input onChange={(event) => updateField("budgetMin", event.target.value)} type="text" value={formState.budgetMin} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Budget max</span>
-            <input onChange={(event) => updateField("budgetMax", event.target.value)} type="text" value={formState.budgetMax} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Preferred areas</span>
-            <input onChange={(event) => updateField("preferredAreas", event.target.value)} type="text" value={formState.preferredAreas} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Last contact</span>
-            <input onChange={(event) => updateField("lastContactAt", event.target.value)} type="date" value={formState.lastContactAt} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Next follow-up</span>
-            <input onChange={(event) => updateField("nextFollowUpAt", event.target.value)} type="date" value={formState.nextFollowUpAt} />
-          </label>
-          <label className="bm-detail-field bm-detail-field-wide">
-            <span>Notes</span>
-            <input onChange={(event) => updateField("notes", event.target.value)} type="text" value={formState.notes} />
-          </label>
+          <FormField className="bm-detail-field" label="Full name">
+            <TextInput onChange={(event) => updateField("fullName", event.target.value)} type="text" value={formState.fullName} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Email">
+            <TextInput onChange={(event) => updateField("email", event.target.value)} type="email" value={formState.email} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Phone">
+            <TextInput onChange={(event) => updateField("phone", event.target.value)} type="text" value={formState.phone} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Contact type">
+            <TextInput onChange={(event) => updateField("contactType", event.target.value)} type="text" value={formState.contactType} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Source">
+            <TextInput onChange={(event) => updateField("source", event.target.value)} type="text" value={formState.source} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Stage">
+            <TextInput onChange={(event) => updateField("stage", event.target.value)} type="text" value={formState.stage} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Intent">
+            <TextInput onChange={(event) => updateField("intent", event.target.value)} type="text" value={formState.intent} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Budget min">
+            <TextInput onChange={(event) => updateField("budgetMin", event.target.value)} type="text" value={formState.budgetMin} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Budget max">
+            <TextInput onChange={(event) => updateField("budgetMax", event.target.value)} type="text" value={formState.budgetMax} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Preferred areas">
+            <TextInput onChange={(event) => updateField("preferredAreas", event.target.value)} type="text" value={formState.preferredAreas} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Last contact">
+            <TextInput onChange={(event) => updateField("lastContactAt", event.target.value)} type="date" value={formState.lastContactAt} />
+          </FormField>
+          <FormField className="bm-detail-field" label="Next follow-up">
+            <TextInput onChange={(event) => updateField("nextFollowUpAt", event.target.value)} type="date" value={formState.nextFollowUpAt} />
+          </FormField>
+          <FormField className="bm-detail-field bm-detail-field-wide" label="Notes">
+            <TextareaInput onChange={(event) => updateField("notes", event.target.value)} value={formState.notes} />
+          </FormField>
           <div className="bm-transaction-status-form">
-            <button className="bm-create-button" disabled={isSaving} type="submit">
+            <Button disabled={isSaving} type="submit">
               {isSaving ? "Saving..." : "Save contact"}
-            </button>
+            </Button>
             {saveError ? <p className="bm-transaction-submit-error">{saveError}</p> : null}
           </div>
         </form>
-      </section>
+      </SectionCard>
 
-      <section className="bm-detail-card">
-        <div className="bm-card-head">
-          <h3>Linked transactions</h3>
-        </div>
+      <SectionCard subtitle="Transactions currently linked to this contact." title="Linked transactions">
         <div className="bm-detail-grid">
           {contact.linkedTransactions.map((transaction) => (
             <div className="bm-detail-field" key={transaction.id}>
@@ -227,25 +213,22 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
         </div>
 
         <div className="bm-transaction-status-form">
-          <select onChange={(event) => setSelectedTransactionId(event.target.value)} value={selectedTransactionId}>
+          <SelectInput onChange={(event) => setSelectedTransactionId(event.target.value)} value={selectedTransactionId}>
             <option value="">Select transaction to link</option>
             {contact.availableTransactions.map((transaction) => (
               <option key={transaction.id} value={transaction.id}>
                 {transaction.label}
               </option>
             ))}
-          </select>
-          <button className="bm-create-button" disabled={!selectedTransactionId || isLinking} onClick={handleLinkTransaction} type="button">
+          </SelectInput>
+          <Button disabled={!selectedTransactionId || isLinking} onClick={handleLinkTransaction} type="button">
             {isLinking ? "Linking..." : "Link transaction"}
-          </button>
+          </Button>
           {linkError ? <p className="bm-transaction-submit-error">{linkError}</p> : null}
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="bm-detail-card">
-        <div className="bm-card-head">
-          <h3>Follow-up tasks</h3>
-        </div>
+      <SectionCard subtitle="Follow-up work attached to this contact." title="Follow-up tasks">
         <div className="bm-detail-grid">
           {contact.followUpTasks.map((task) => (
             <div className="bm-detail-field" key={task.id}>
@@ -264,14 +247,14 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
         </div>
 
         <form className="bm-transaction-status-form" onSubmit={handleCreateTask}>
-          <input onChange={(event) => setTaskTitle(event.target.value)} placeholder="New follow-up task" type="text" value={taskTitle} />
-          <input onChange={(event) => setTaskDueAt(event.target.value)} type="date" value={taskDueAt} />
-          <button className="bm-create-button" disabled={isCreatingTask} type="submit">
+          <TextInput onChange={(event) => setTaskTitle(event.target.value)} placeholder="New follow-up task" type="text" value={taskTitle} />
+          <TextInput onChange={(event) => setTaskDueAt(event.target.value)} type="date" value={taskDueAt} />
+          <Button disabled={isCreatingTask} type="submit">
             {isCreatingTask ? "Saving..." : "Add task"}
-          </button>
+          </Button>
           {taskError ? <p className="bm-transaction-submit-error">{taskError}</p> : null}
         </form>
-      </section>
-    </div>
+      </SectionCard>
+    </PageShell>
   );
 }

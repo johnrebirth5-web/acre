@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { canAccessAccountActivity } from "@acre/auth";
-import { Badge } from "@acre/ui";
+import { Badge, PageHeader, PageShell } from "@acre/ui";
 import { getOfficeActivityLogSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -74,21 +74,22 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
   const selectedView = snapshot.selectedView;
 
   return (
-    <div className="bm-page">
-      <section className="bm-page-toolbar">
-        <div className="bm-page-heading">
-          <h2>Account activity</h2>
-          <p>Audit-backed activity records remain the source of truth. Operational alerts are derived live from current transaction, task, and contact state.</p>
-        </div>
-        <div className="bm-toolbar-actions">
-          <ActivityCommentComposer
-            officeId={context.currentOffice?.id ?? null}
-            scopeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
-          />
-          <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-          <span className="bm-view-toggle is-active">{snapshot.latestWindowLabel}</span>
-        </div>
-      </section>
+    <PageShell className="bm-page">
+      <PageHeader
+        actions={
+          <>
+            <ActivityCommentComposer
+              officeId={context.currentOffice?.id ?? null}
+              scopeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
+            />
+            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
+            <span className="bm-view-toggle is-active">{snapshot.latestWindowLabel}</span>
+          </>
+        }
+        description="Audit-backed activity records remain the source of truth. Operational alerts are derived live from current transaction, task, and contact state."
+        eyebrow="Account activity"
+        title="Account activity"
+      />
 
       <form className="bm-activity-filter-bar bm-table-card" method="get">
         <div className="bm-filter-strip">
@@ -329,6 +330,6 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
           ) : null}
         </div>
       </section>
-    </div>
+    </PageShell>
   );
 }

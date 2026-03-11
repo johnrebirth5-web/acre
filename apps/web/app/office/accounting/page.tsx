@@ -1,5 +1,5 @@
 import { canAccessOfficeAccounting, canManageOfficeAccounting } from "@acre/auth";
-import { Badge } from "@acre/ui";
+import { Badge, PageHeader, PageShell } from "@acre/ui";
 import { getOfficeAccountingSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -38,25 +38,25 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
   });
 
   return (
-    <>
-      <section className="office-page-header">
-        <div>
-          <span className="office-eyebrow">Accounting</span>
-          <h2>Accounting</h2>
-          <p>Transactional accounting for invoices, bills, payments, ledger posting, and earnest money workflows.</p>
-        </div>
-        <div className="office-button-row">
-          <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-          <Badge tone="neutral">Chart of accounts ready</Badge>
-          <Badge tone="neutral">Ledger-backed posting</Badge>
-        </div>
-      </section>
+    <PageShell>
+      <PageHeader
+        actions={
+          <>
+            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
+            <Badge tone="neutral">Chart of accounts ready</Badge>
+            <Badge tone="neutral">Ledger-backed posting</Badge>
+          </>
+        }
+        description="Transactional accounting for invoices, bills, payments, ledger posting, and earnest money workflows."
+        eyebrow="Accounting"
+        title="Accounting"
+      />
 
       <OfficeAccountingClient
         canManageAccounting={canManageOfficeAccounting(context.currentMembership.role)}
         officeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
         snapshot={snapshot}
       />
-    </>
+    </PageShell>
   );
 }

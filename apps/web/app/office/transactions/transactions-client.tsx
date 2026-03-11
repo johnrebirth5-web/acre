@@ -3,6 +3,21 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import {
+  Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FilterBar,
+  FilterField,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  SelectInput,
+  TextInput
+} from "@acre/ui";
 import type { OfficeTransactionRecord, OfficeTransactionStatus, OfficeTransactionSummary } from "@acre/db";
 
 type TransactionsClientProps = {
@@ -272,78 +287,88 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
 
   return (
     <>
-      <div className="bm-transactions-page">
-        <section className="bm-transactions-toolbar">
-          <div className="bm-transactions-summary">
-            <h2>
-              <strong>{summary.totalCount}</strong> TRANSACTIONS <span>?</span>
-            </h2>
-            <p>{summary.totalNetIncome} MY NET INCOME</p>
-          </div>
+      <PageShell className="bm-transactions-page office-list-page">
+        <PageHeader
+          actions={
+            <div className="office-page-actions office-transactions-page-actions">
+              <div className="office-transactions-summary-chip">
+                <strong>{summary.totalCount}</strong>
+                <span>Transactions</span>
+              </div>
+              <div className="office-transactions-summary-chip office-transactions-summary-chip-accent">
+                <strong>{summary.totalNetIncome}</strong>
+                <span>My net income</span>
+              </div>
+              <Button className="bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
+                Create transaction
+              </Button>
+            </div>
+          }
+          description="Operational transaction list with server-backed search, status filtering, and pagination."
+          eyebrow="Transactions"
+          title="Transactions"
+        />
 
-          <div className="bm-transactions-actions">
-            <div className="bm-transactions-search">
-              <input
+        <SectionCard className="office-list-card" subtitle="Search, filter, and review the current office transaction set." title="Transaction list">
+          <FilterBar as="form" className="bm-transactions-toolbar" onSubmit={(event) => event.preventDefault()}>
+            <FilterField className="bm-transactions-search" label="Search">
+              <TextInput
                 aria-label="Search transactions"
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search address, contact, mls # ..."
                 value={searchQuery}
               />
-            </div>
+            </FilterField>
 
-            <button className="bm-create-button bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
-              Create transaction
-            </button>
-          </div>
-        </section>
-
-        <section className="bm-transactions-list-shell">
-          <div className="bm-transactions-list-head">
-            <div className="bm-transactions-current-view">
-              <span>current view:</span>
-              <select aria-label="Filter transactions by status" onChange={(event) => handleStatusFilterChange(event.target.value as (typeof listStatusOptions)[number])} value={statusFilter}>
+            <FilterField label="Current view">
+              <SelectInput
+                aria-label="Filter transactions by status"
+                onChange={(event) => handleStatusFilterChange(event.target.value as (typeof listStatusOptions)[number])}
+                value={statusFilter}
+              >
                 {listStatusOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
                 ))}
-              </select>
-            </div>
+              </SelectInput>
+            </FilterField>
+          </FilterBar>
 
-            <div className="bm-transactions-columns">
+          <DataTable className="bm-transactions-list-shell">
+            <DataTableHeader className="bm-transactions-columns">
               <span />
-              <span />
-              <button type="button">Price</button>
-              <button type="button">Owner</button>
-              <button type="button">Representing</button>
-              <button type="button">
-                Status <i>↑</i>
-              </button>
-              <button type="button">Important date</button>
-            </div>
-          </div>
+              <span>Transaction</span>
+              <span>Price</span>
+              <span>Owner</span>
+              <span>Representing</span>
+              <span>Status</span>
+              <span>Important date</span>
+            </DataTableHeader>
 
-          <div className="bm-transactions-rows">
-            {transactions.map((transaction) => (
-              <article className="bm-transactions-row" key={transaction.id}>
-                <span className={`bm-transaction-home-icon${transaction.isFlagged ? " is-flagged" : ""}`}>⌂</span>
-                <strong className={transaction.isFlagged ? "is-flagged" : ""}>
-                  <Link href={`/office/transactions/${transaction.id}`}>{transaction.address}</Link>
-                </strong>
-                <span>{transaction.price}</span>
-                <span>{transaction.owner}</span>
-                <span>{transaction.representing}</span>
-                <span className={`bm-transaction-status bm-transaction-status-${transaction.status.toLowerCase()}`}>{transaction.status.toLowerCase()}</span>
-                <span>{transaction.importantDate || "—"}</span>
-              </article>
-            ))}
+            <DataTableBody className="bm-transactions-rows">
+              {transactions.map((transaction) => (
+                <DataTableRow className="bm-transactions-row" key={transaction.id}>
+                  <span className={`bm-transaction-home-icon${transaction.isFlagged ? " is-flagged" : ""}`}>⌂</span>
+                  <strong className={transaction.isFlagged ? "is-flagged" : ""}>
+                    <Link href={`/office/transactions/${transaction.id}`}>{transaction.address}</Link>
+                  </strong>
+                  <span>{transaction.price}</span>
+                  <span>{transaction.owner}</span>
+                  <span>{transaction.representing}</span>
+                  <span className={`bm-transaction-status bm-transaction-status-${transaction.status.toLowerCase()}`}>{transaction.status.toLowerCase()}</span>
+                  <span>{transaction.importantDate || "—"}</span>
+                </DataTableRow>
+              ))}
 
-            {transactions.length === 0 ? (
-              <div className="bm-transactions-empty">
-                <p>No transactions matched the current search and status filters.</p>
-              </div>
-            ) : null}
-          </div>
+              {transactions.length === 0 ? (
+                <EmptyState
+                  description="Try widening the search or switching the current view."
+                  title="No transactions matched the current filters"
+                />
+              ) : null}
+            </DataTableBody>
+          </DataTable>
 
           <footer className="bm-transactions-footer">
             <span>
@@ -352,13 +377,13 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
             <div className="bm-transactions-footer-controls">
               <label className="bm-transactions-page-size">
                 <span>Rows</span>
-                <select onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={pageSize}>
+                <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
                   {pageSizeOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
                   ))}
-                </select>
+                </SelectInput>
               </label>
 
               <div className="bm-transactions-pager">
@@ -400,8 +425,8 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
               </div>
             </div>
           </footer>
-        </section>
-      </div>
+        </SectionCard>
+      </PageShell>
 
       {isModalOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsModalOpen(false)}>

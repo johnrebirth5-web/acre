@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { officeTrainingLinks, officeUsefulLinks, officeWeeklyUpdates } from "@acre/backoffice";
 import { getOfficeDashboardBusinessSnapshot } from "@acre/db";
+import { Badge, PageHeader, PageShell, StatCard } from "@acre/ui";
 import { getSessionAccess, requireOfficeSession } from "../../../lib/auth-session";
 
 function buildChartPath(values: number[], width: number, height: number, maxValue: number) {
@@ -34,7 +35,19 @@ export default async function OfficeDashboardPage() {
   const chartPath = buildChartPath(chartValues, chartWidth, chartHeight, snapshot.chart.maxValue);
 
   return (
-    <div className="bm-dashboard">
+    <PageShell className="bm-dashboard office-dashboard-page">
+      <PageHeader
+        actions={
+          <>
+            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
+            <Badge tone="accent">{access.label}</Badge>
+          </>
+        }
+        description="Goal tracking, current back-office pressure, and recent transactions inside one operational dashboard."
+        eyebrow="Dashboard"
+        title="Office dashboard"
+      />
+
       <section className="bm-goal-card">
         <div className="bm-goal-main">
           <div className="bm-card-head">
@@ -54,10 +67,13 @@ export default async function OfficeDashboardPage() {
 
             <div className="bm-dashboard-status-strip">
               {snapshot.transactionCountsByStatus.map((metric) => (
-                <div className="bm-dashboard-status-chip" key={metric.status}>
-                  <span>{metric.status}</span>
-                  <strong>{metric.count}</strong>
-                </div>
+                <StatCard
+                  className="bm-dashboard-status-chip"
+                  hint="transactions"
+                  key={metric.status}
+                  label={metric.status}
+                  value={metric.count}
+                />
               ))}
             </div>
           </div>
@@ -205,6 +221,6 @@ export default async function OfficeDashboardPage() {
         <span className="bm-help-icon">?</span>
         NEED HELP?
       </button>
-    </div>
+    </PageShell>
   );
 }

@@ -1,4 +1,4 @@
-import { Badge, Panel } from "@acre/ui";
+import { Badge, PageHeader, PageShell, Panel } from "@acre/ui";
 import { getOfficeReportsSnapshot } from "@acre/db";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
@@ -42,17 +42,13 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
   const exportHref = `/api/office/reports/export${exportSearchParams.size ? `?${exportSearchParams.toString()}` : ""}`;
 
   return (
-    <>
-      <section className="office-page-header">
-        <div>
-          <span className="office-eyebrow">Reports</span>
-          <h2>Reports</h2>
-          <p>Live office reporting for transactions, ownership distribution, and contacts that still need follow-up.</p>
-        </div>
-        <div className="office-button-row">
-          <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-        </div>
-      </section>
+    <PageShell>
+      <PageHeader
+        actions={<Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>}
+        description="Live office reporting for transactions, ownership distribution, and contacts that still need follow-up."
+        eyebrow="Reports"
+        title="Reports"
+      />
 
       <form className="office-report-filters" method="get">
         <label className="office-report-filter">
@@ -164,6 +160,6 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
           )}
         </div>
       </Panel>
-    </>
+    </PageShell>
   );
 }

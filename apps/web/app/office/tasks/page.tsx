@@ -1,5 +1,5 @@
 import { canAccessOfficeTasks, canReviewOfficeTasks } from "@acre/auth";
-import { Badge } from "@acre/ui";
+import { Badge, PageHeader, PageShell } from "@acre/ui";
 import { listOfficeTasks } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -44,23 +44,20 @@ export default async function OfficeTasksPage(props: OfficeTasksPageProps) {
   });
 
   return (
-    <>
-      <section className="office-page-header">
-        <div>
-          <span className="office-eyebrow">Task list</span>
-          <h2>Task List</h2>
-          <p>Back-office task management for transaction work, compliance review, and due-date prioritization.</p>
-        </div>
-        <div className="office-button-row">
-          <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-          <Badge tone="neutral">{snapshot.maxWindowLabel}</Badge>
-        </div>
-      </section>
-
-      <OfficeTasksClient
-        canReviewTasks={canReviewOfficeTasks(context.currentMembership.role)}
-        snapshot={snapshot}
+    <PageShell>
+      <PageHeader
+        actions={
+          <>
+            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
+            <Badge tone="neutral">{snapshot.maxWindowLabel}</Badge>
+          </>
+        }
+        description="Back-office task management for transaction work, compliance review, and due-date prioritization."
+        eyebrow="Task list"
+        title="Task list"
       />
-    </>
+
+      <OfficeTasksClient canReviewTasks={canReviewOfficeTasks(context.currentMembership.role)} snapshot={snapshot} />
+    </PageShell>
   );
 }
