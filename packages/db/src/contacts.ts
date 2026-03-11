@@ -212,6 +212,29 @@ function formatAreas(areas: string[] | undefined) {
   return areas && areas.length > 0 ? areas.join(", ") : "—";
 }
 
+async function findSupplementalContactSearchIds(organizationId: string, query: string) {
+  const normalizedQuery = query.trim();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const likeQuery = `%${normalizedQuery}%`;
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT DISTINCT c."id"
+    FROM "Client" c
+    LEFT JOIN "Membership" m ON m."id" = c."ownerMembershipId"
+    LEFT JOIN "User" u ON u."id" = m."userId"
+    WHERE c."organizationId" = ${organizationId}
+      AND (
+        CONCAT_WS(' ', COALESCE(u."firstName", ''), COALESCE(u."lastName", '')) ILIKE ${likeQuery}
+        OR ARRAY_TO_STRING(c."preferredAreas", ' ') ILIKE ${likeQuery}
+      )
+  `);
+
+  return rows.map((row) => row.id);
+}
+
 function mapContactRecord(
   client: {
     id: string;
@@ -266,13 +289,21 @@ export async function listContacts(input: ListContactsInput): Promise<OfficeCont
 
   if (input.search?.trim()) {
     const query = input.search.trim();
+    const supplementalIds = await findSupplementalContactSearchIds(input.organizationId, query);
     where.OR = [
       { fullName: { contains: query, mode: "insensitive" } },
       { email: { contains: query, mode: "insensitive" } },
       { phone: { contains: query, mode: "insensitive" } },
       { source: { contains: query, mode: "insensitive" } },
       { intent: { contains: query, mode: "insensitive" } },
-      { preferredAreas: { has: query } }
+      {
+        ownerMembership: {
+          user: {
+            OR: [{ firstName: { contains: query, mode: "insensitive" } }, { lastName: { contains: query, mode: "insensitive" } }]
+          }
+        }
+      },
+      ...(supplementalIds.length > 0 ? [{ id: { in: supplementalIds } }] : [])
     ];
   }
 
