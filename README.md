@@ -64,7 +64,7 @@
   - `Create Transaction` modal 会真实写入数据库
   - 已有 transaction detail 页面
   - transaction detail 现在会渲染真实 linked contacts，并支持 link / unlink / set primary
-  - transaction detail 现在有最小真实 `Checklist / Tasks` 区块，可创建、编辑并切换完成状态
+  - transaction detail 现在有真实 `Checklist / Tasks` 区块，可创建、编辑并执行 document-linked review workflow
   - transaction detail 现在有最小真实 `Finance` 区块，可编辑 gross commission / referral fee / office net / agent net / finance notes
   - transaction detail 现在有最小真实 `Documents / Forms / eSignature / Incoming updates` workflow：
     - `Documents`
@@ -129,6 +129,20 @@
     - requires secondary approval
     - review status
     - compliance status
+  - 任务真实状态会反映当前文档/签名/审核条件，而不是只看 `completed`：
+    - pending upload
+    - uploaded / not submitted
+    - review requested
+    - second review requested
+    - approved
+    - rejected
+    - waiting for signatures
+    - fully signed
+    - complete
+    - reopened
+  - secondary approval 当前已实现，并要求 second approver 不能和 first approver 是同一人
+  - 对需要文档/审核的任务，`approved` 与最终 `complete` 是分开的；缺少文档、未提交 review、签名未完成时不能直接 complete
+  - 如果 required document 被删除或 workflow 条件失效，任务会按真实规则 reopen
   - 变更会回流到 transaction detail 的 tasks section，同一套数据不会分叉
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据

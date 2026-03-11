@@ -11,6 +11,7 @@ import {
 } from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
+import { reconcileTransactionTaskDocumentWorkflow } from "./transaction-tasks";
 
 export type OfficeTransactionDocumentFilter = "all" | "unsorted" | "signed" | "pending_signature" | "linked_to_tasks";
 
@@ -678,6 +679,29 @@ async function syncFormAndDocumentSignatureState(
   }
 }
 
+async function reconcileLinkedWorkflowTasks(
+  tx: Prisma.TransactionClient,
+  input: {
+    organizationId: string;
+    transactionId: string;
+    actorMembershipId?: string | null;
+    taskIds: Array<string | null | undefined>;
+    reason: string;
+  }
+) {
+  const taskIds = Array.from(new Set(input.taskIds.filter((taskId): taskId is string => Boolean(taskId))));
+
+  for (const taskId of taskIds) {
+    await reconcileTransactionTaskDocumentWorkflow(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      taskId,
+      actorMembershipId: input.actorMembershipId ?? null,
+      reason: input.reason
+    });
+  }
+}
+
 function buildDocumentObjectLabel(documentTitle: string, transaction: { title: string; address: string; city: string; state: string }) {
   return `${documentTitle} · ${buildTransactionObjectLabel(transaction)}`;
 }
@@ -956,6 +980,16 @@ export async function createTransactionDocument(input: CreateTransactionDocument
       }
     });
 
+    if (linkedTask?.id) {
+      await reconcileLinkedWorkflowTasks(tx, {
+        organizationId: input.organizationId,
+        transactionId: input.transactionId,
+        actorMembershipId: input.actorMembershipId ?? null,
+        taskIds: [linkedTask.id],
+        reason: "Task workflow re-evaluated after a linked document was uploaded."
+      });
+    }
+
     return created.id;
   });
 
@@ -1054,6 +1088,14 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
       });
     }
 
+    await reconcileLinkedWorkflowTasks(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      actorMembershipId: input.actorMembershipId ?? null,
+      taskIds: [existing.linkedTaskId, linkedTask?.id],
+      reason: "Task workflow re-evaluated after a linked document changed."
+    });
+
     return saved.id;
   });
 
@@ -1122,6 +1164,14 @@ export async function deleteTransactionDocument(
         details: [`File: ${existing.fileName}`],
         contextHref: `/office/transactions/${transactionId}#transaction-documents`
       }
+    });
+
+    await reconcileLinkedWorkflowTasks(tx, {
+      organizationId,
+      transactionId,
+      actorMembershipId: actorMembershipId ?? null,
+      taskIds: [existing.linkedTaskId],
+      reason: "Task workflow re-evaluated after a linked document was deleted."
     });
 
     return {
@@ -1422,6 +1472,14 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
       });
     }
 
+    await reconcileLinkedWorkflowTasks(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      actorMembershipId: input.actorMembershipId ?? null,
+      taskIds: [existing.linkedTaskId, linkedTask?.id],
+      reason: "Task workflow re-evaluated after a linked form changed."
+    });
+
     return saved.id;
   });
 
@@ -1528,13 +1586,15 @@ export async function updateSignatureRequest(input: UpdateSignatureRequestInput)
         form: {
           select: {
             id: true,
-            name: true
+            name: true,
+            linkedTaskId: true
           }
         },
         document: {
           select: {
             id: true,
-            title: true
+            title: true,
+            linkedTaskId: true
           }
         }
       }
@@ -1602,6 +1662,14 @@ export async function updateSignatureRequest(input: UpdateSignatureRequestInput)
         changes: buildChanges(signatureStatusLabelMap[existing.status], signatureStatusLabelMap[saved.status], "Signature status"),
         contextHref: `/office/transactions/${input.transactionId}#transaction-forms-signatures`
       }
+    });
+
+    await reconcileLinkedWorkflowTasks(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      actorMembershipId: input.actorMembershipId ?? null,
+      taskIds: [existing.form?.linkedTaskId ?? null, existing.document?.linkedTaskId ?? null],
+      reason: "Task workflow re-evaluated after a linked signature request changed."
     });
 
     return saved.id;

@@ -219,6 +219,7 @@ export type {
   OfficeTaskListVisibleColumn,
   OfficeTaskOperationalStatus,
   OfficeTaskOperationalStatusTone,
+  OfficeTaskReviewFilter,
   OfficeTaskTransactionOption,
   OfficeTransactionTask,
   OfficeTransactionTaskAssigneeOption,

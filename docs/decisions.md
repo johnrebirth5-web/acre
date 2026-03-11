@@ -249,7 +249,7 @@ Trade-off：
   - transaction detail 的 checklist 先用单独的 `TransactionTask` 小模型落地，不复用 `FollowUpTask`
   - 在此基础上，再扩成独立 `/office/tasks` 模块，而不是另建第二套 task 系统
   - `TaskListView` 先按 membership 维度持久化 saved views，不做公司级全局视图编辑器
-  - task workflow 先支持最小 review / secondary approval 状态流，不提前引入 document engine
+  - task workflow 先支持最小 review / secondary approval 状态流，再与当前 documents / forms / signatures foundation 做真实联动
   - transaction summary 的 `totalNetIncome` 现在按 `officeNet` 聚合，不再硬编码
   - reports page 的最小聚合报表已切到 Prisma
   - reports page 的 CSV 导出当前采用单页专用 route，不引入通用导出框架

@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
       assigneeMembershipId: "",
       dueWindow: "",
       noDueDate: false,
+      reviewStatus: "",
+      requiresSecondaryApproval: false,
       complianceStatuses: [],
       transactionId: "",
       q: "",

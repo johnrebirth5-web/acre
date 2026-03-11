@@ -188,6 +188,10 @@
 
 - 页面展示
 - API 返回 access summary
+- 当前也承载 `Back Office` 审核相关权限，例如：
+  - `documents:approve`
+  - `tasks:review`
+  - `tasks:review:secondary`
 
 未实现：
 
@@ -309,7 +313,7 @@
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
 8. detail 页面通过 transaction contact routes 做 link / unlink / set primary
-9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen / review
+9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen / request review / approve / reject，并按 linked document / signature / approval truth 决定任务是否真正可 complete
 10. `/office/contacts` 调 `@acre/db` 的 contact service，并按 query-param 驱动的 `q / stage / page / pageSize` 做服务端过滤和分页
 11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link；`GET /api/office/contacts` 也接受 `q / stage / page / pageSize`
 12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
@@ -323,16 +327,31 @@
 20. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
 21. `/office/tasks` 读取 `TransactionTask + TaskListView`，按 built-in view、saved view 和 query-param filters 返回真实任务列表
 22. `/office/tasks` 的 create / edit / complete / reopen / request review / approve / reject 都直接写数据库，并同步写入 `AuditLog`
-23. `/api/office/tasks/views` 以 membership 维度持久化 saved views
-24. transaction detail 的 documents / forms / signatures / incoming updates 统一通过 `packages/db/src/transaction-documents.ts` 读取和写入
-25. 文件本体当前通过 `apps/web/lib/document-storage.ts` 写入本地文件系统；document metadata 仍在 PostgreSQL
-26. document / form / signature / incoming update 的关键动作会写入 `AuditLog`
-27. `Activity Log + Operational Alerts` 现在也会显示：
+23. document-linked tasks 会根据真实 workflow evidence 推导 task status，例如：
+   - pending upload
+   - uploaded / not submitted
+   - review requested
+   - second review requested
+   - approved
+   - rejected
+   - waiting for signatures
+   - fully signed
+   - complete
+24. secondary approval 当前已实现，并要求 second approver 与 first approver 必须是不同 membership
+25. 删除 required document、取消提交条件或让签名重新变成未完成时，会触发 task workflow 重新评估并必要时 reopen
+26. `/api/office/tasks/views` 以 membership 维度持久化 saved views
+27. transaction detail 的 documents / forms / signatures / incoming updates 统一通过 `packages/db/src/transaction-documents.ts` 读取和写入
+28. 文件本体当前通过 `apps/web/lib/document-storage.ts` 写入本地文件系统；document metadata 仍在 PostgreSQL
+29. document / form / signature / incoming update 的关键动作会写入 `AuditLog`
+30. `Activity Log + Operational Alerts` 现在也会显示：
    - missing required document
    - signature pending
    - incoming update awaiting review
-28. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-29. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+   - tasks awaiting your review
+   - tasks awaiting second review
+   - rejected tasks needing action
+31. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+32. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
@@ -487,6 +506,12 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
     - request review
     - approve
     - reject
+  - workflow 规则：
+    - required document 必须真实存在
+    - 需要 review 的任务必须先提交 review 才能继续
+    - secondary approval 由不同于 first approver 的第二个 approver 完成
+    - approval 与 final completion 是两步，不自动混成一个状态
+    - document/signature 条件失效时，任务会被重新评估并必要时 reopen
   - transaction detail tasks section 与 `/office/tasks` 共用同一套数据库和 service，不另建第二套 task 系统
 
 更高级的 CRM 自动化、提醒编排、批量任务、线索分配仍未实现。

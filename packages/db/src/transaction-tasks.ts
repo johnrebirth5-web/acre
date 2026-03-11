@@ -1,4 +1,13 @@
-import { Prisma, TransactionStatus, TransactionTaskComplianceStatus, TransactionTaskReviewStatus, TransactionTaskStatus, UserRole } from "@prisma/client";
+import {
+  Prisma,
+  SignatureRequestStatus,
+  TransactionDocumentStatus,
+  TransactionStatus,
+  TransactionTaskComplianceStatus,
+  TransactionTaskReviewStatus,
+  TransactionTaskStatus,
+  UserRole
+} from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 
@@ -12,11 +21,33 @@ export type OfficeTransactionTaskReviewStatus =
   | "Approved"
   | "Rejected";
 export type OfficeTransactionTaskComplianceStatus = "Not applicable" | "Pending" | "In review" | "Approved" | "Rejected";
-export type OfficeTaskOperationalStatus = "Pending" | "In progress" | "Review requested" | "Second review" | "Rejected" | "Completed" | "Reopened";
-export type OfficeTaskOperationalStatusTone = "pending" | "progress" | "review" | "rejected" | "completed" | "reopened";
+export type OfficeTaskOperationalStatus =
+  | "Pending"
+  | "In progress"
+  | "Pending upload"
+  | "Uploaded / not submitted"
+  | "Review requested"
+  | "Second review requested"
+  | "Approved"
+  | "Rejected"
+  | "Waiting for signatures"
+  | "Fully signed"
+  | "Complete"
+  | "Reopened";
+export type OfficeTaskOperationalStatusTone = "pending" | "progress" | "review" | "approved" | "rejected" | "completed" | "reopened" | "signature";
 export type OfficeTaskDueWindow = "" | "past_due" | "today" | "current_week" | "next_week" | "next_2_weeks";
 export type OfficeTaskListVisibleColumn = "task" | "transaction" | "checklistGroup" | "assignee" | "dueDate" | "taskStatus" | "transactionStatus" | "owner";
 export type OfficeTaskListViewKey = "requires-attention" | "all-transactions" | string;
+export type OfficeTaskReviewFilter = "" | "Pending" | "Review requested" | "Second review" | "Approved" | "Rejected";
+
+export type OfficeTransactionTaskLinkedDocument = {
+  id: string;
+  title: string;
+  href: string;
+  status: string;
+  isSigned: boolean;
+  hasPendingSignature: boolean;
+};
 
 export type OfficeTransactionTask = {
   id: string;
@@ -43,13 +74,17 @@ export type OfficeTransactionTask = {
   completedAt: string;
   completedByName: string;
   submittedForReviewAt: string;
+  submittedForReviewByName: string;
   firstApprovedAt: string;
   firstApprovedByName: string;
   secondApprovedAt: string;
   secondApprovedByName: string;
   rejectedAt: string;
   rejectedByName: string;
+  rejectionReason: string;
   reopenedAt: string;
+  linkedDocuments: OfficeTransactionTaskLinkedDocument[];
+  awaitingSecondaryApproval: boolean;
   canCompleteDirectly: boolean;
   canRequestReview: boolean;
   canApprove: boolean;
@@ -73,6 +108,8 @@ export type OfficeTaskListFilters = {
   assigneeMembershipId: string;
   dueWindow: OfficeTaskDueWindow;
   noDueDate: boolean;
+  reviewStatus: OfficeTaskReviewFilter;
+  requiresSecondaryApproval: boolean;
   complianceStatuses: OfficeTransactionTaskComplianceStatus[];
   transactionId: string;
   q: string;
@@ -126,6 +163,8 @@ export type ListOfficeTasksInput = {
   assigneeMembershipId?: string;
   dueWindow?: string;
   noDueDate?: string;
+  reviewStatus?: string;
+  requiresSecondaryApproval?: string;
   complianceStatus?: string | string[];
   transactionId?: string;
   q?: string;
@@ -257,6 +296,8 @@ const systemTaskViewDefinitions: Record<
       assigneeMembershipId: membershipId,
       dueWindow: "",
       noDueDate: false,
+      reviewStatus: "",
+      requiresSecondaryApproval: false,
       complianceStatuses: [],
       transactionId: "",
       q: "",
@@ -271,6 +312,8 @@ const systemTaskViewDefinitions: Record<
       assigneeMembershipId: "",
       dueWindow: "",
       noDueDate: false,
+      reviewStatus: "",
+      requiresSecondaryApproval: false,
       complianceStatuses: [],
       transactionId: "",
       q: "",
@@ -301,6 +344,11 @@ type TaskWithRelations = Prisma.TransactionTaskGetPayload<{
         user: true;
       };
     };
+    submittedForReviewByMembership: {
+      include: {
+        user: true;
+      };
+    };
     firstApprovedByMembership: {
       include: {
         user: true;
@@ -316,8 +364,80 @@ type TaskWithRelations = Prisma.TransactionTaskGetPayload<{
         user: true;
       };
     };
+    documents: {
+      include: {
+        signatureRequests: true;
+      };
+    };
+    forms: {
+      include: {
+        document: {
+          include: {
+            signatureRequests: true;
+          };
+        };
+        signatureRequests: true;
+      };
+    };
   };
 }>;
+
+const transactionTaskInclude = {
+  transaction: {
+    include: {
+      ownerMembership: {
+        include: {
+          user: true
+        }
+      }
+    }
+  },
+  assigneeMembership: {
+    include: {
+      user: true
+    }
+  },
+  completedByMembership: {
+    include: {
+      user: true
+    }
+  },
+  submittedForReviewByMembership: {
+    include: {
+      user: true
+    }
+  },
+  firstApprovedByMembership: {
+    include: {
+      user: true
+    }
+  },
+  secondApprovedByMembership: {
+    include: {
+      user: true
+    }
+  },
+  rejectedByMembership: {
+    include: {
+      user: true
+    }
+  },
+  documents: {
+    include: {
+      signatureRequests: true
+    }
+  },
+  forms: {
+    include: {
+      document: {
+        include: {
+          signatureRequests: true
+        }
+      },
+      signatureRequests: true
+    }
+  }
+} satisfies Prisma.TransactionTaskInclude;
 
 function formatDateValue(date: Date | null) {
   return date ? date.toISOString().slice(0, 10) : "";
@@ -404,6 +524,14 @@ function taskNeedsReview(task: {
   return task.requiresDocumentApproval || task.requiresSecondaryApproval;
 }
 
+function taskRequiresDocumentWorkflow(task: {
+  requiresDocument: boolean;
+  requiresDocumentApproval: boolean;
+  requiresSecondaryApproval: boolean;
+}) {
+  return task.requiresDocument || task.requiresDocumentApproval || task.requiresSecondaryApproval;
+}
+
 function deriveDefaultReviewStatus(requiresReview: boolean): TransactionTaskReviewStatus {
   return requiresReview ? "pending" : "not_required";
 }
@@ -412,14 +540,131 @@ function deriveDefaultComplianceStatus(requiresReview: boolean): TransactionTask
   return requiresReview ? "pending" : "not_applicable";
 }
 
+function normalizeTaskFlags(
+  existing: {
+    requiresDocument: boolean;
+    requiresDocumentApproval: boolean;
+    requiresSecondaryApproval: boolean;
+  },
+  updates: {
+    requiresDocument?: boolean;
+    requiresDocumentApproval?: boolean;
+    requiresSecondaryApproval?: boolean;
+  }
+) {
+  const requestedSecondaryApproval = updates.requiresSecondaryApproval ?? existing.requiresSecondaryApproval;
+  const requestedDocumentApproval =
+    updates.requiresDocumentApproval ?? existing.requiresDocumentApproval;
+  const requestedDocument = updates.requiresDocument ?? existing.requiresDocument;
+  const requiresSecondaryApproval = requestedSecondaryApproval;
+  const requiresDocumentApproval = requestedDocumentApproval || requiresSecondaryApproval;
+  const requiresDocument = requestedDocument || requiresDocumentApproval;
+
+  return {
+    requiresDocument,
+    requiresDocumentApproval,
+    requiresSecondaryApproval
+  };
+}
+
+type TaskWorkflowEvidence = {
+  linkedDocuments: OfficeTransactionTaskLinkedDocument[];
+  hasAnyLinkedDocument: boolean;
+  hasSubmittedDocument: boolean;
+  hasPendingSignature: boolean;
+  hasAnySignatureRequest: boolean;
+  hasDeclinedSignature: boolean;
+  allSignatureRequestsSigned: boolean;
+};
+
+function buildLinkedTaskDocumentHref(transactionId: string, documentId: string) {
+  return `/office/transactions/${transactionId}#transaction-document-${documentId}`;
+}
+
+function getDocumentStatusLabel(status: TransactionDocumentStatus) {
+  switch (status) {
+    case "uploaded":
+      return "Uploaded";
+    case "submitted":
+      return "Submitted";
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    case "signed":
+      return "Signed";
+    case "archived":
+      return "Archived";
+    default:
+      return "Uploaded";
+  }
+}
+
+function getTaskWorkflowEvidence(task: TaskWithRelations): TaskWorkflowEvidence {
+  const documentMap = new Map<string, OfficeTransactionTaskLinkedDocument>();
+  const signatureStatuses: SignatureRequestStatus[] = [];
+
+  for (const document of task.documents) {
+    documentMap.set(document.id, {
+      id: document.id,
+      title: document.title,
+      href: buildLinkedTaskDocumentHref(task.transactionId, document.id),
+      status: getDocumentStatusLabel(document.status),
+      isSigned: document.isSigned,
+      hasPendingSignature: document.signatureRequests.some((request) =>
+        request.status === "draft" || request.status === "sent" || request.status === "viewed"
+      )
+    });
+    signatureStatuses.push(...document.signatureRequests.map((request) => request.status));
+  }
+
+  for (const form of task.forms) {
+    signatureStatuses.push(...form.signatureRequests.map((request) => request.status));
+
+    if (form.document && !documentMap.has(form.document.id)) {
+      documentMap.set(form.document.id, {
+        id: form.document.id,
+        title: form.document.title,
+        href: buildLinkedTaskDocumentHref(task.transactionId, form.document.id),
+        status: getDocumentStatusLabel(form.document.status),
+        isSigned: form.document.isSigned,
+        hasPendingSignature: form.document.signatureRequests.some((request) =>
+          request.status === "draft" || request.status === "sent" || request.status === "viewed"
+        )
+      });
+      signatureStatuses.push(...form.document.signatureRequests.map((request) => request.status));
+    }
+  }
+
+  const linkedDocuments = Array.from(documentMap.values());
+  const hasAnySignatureRequest = signatureStatuses.length > 0;
+  const hasPendingSignature = signatureStatuses.some((status) => status === "draft" || status === "sent" || status === "viewed");
+  const hasDeclinedSignature = signatureStatuses.some((status) => status === "declined" || status === "canceled");
+  const allSignatureRequestsSigned = hasAnySignatureRequest && signatureStatuses.every((status) => status === "signed");
+  const hasSubmittedDocument = linkedDocuments.some((document) => document.status !== "Uploaded");
+
+  return {
+    linkedDocuments,
+    hasAnyLinkedDocument: linkedDocuments.length > 0,
+    hasSubmittedDocument,
+    hasPendingSignature,
+    hasAnySignatureRequest,
+    hasDeclinedSignature,
+    allSignatureRequestsSigned
+  };
+}
+
 function deriveTaskStatusPresentation(task: {
   status: TransactionTaskStatus;
   reviewStatus: TransactionTaskReviewStatus;
   complianceStatus: TransactionTaskComplianceStatus;
-}) {
+  requiresDocument: boolean;
+  requiresDocumentApproval: boolean;
+  requiresSecondaryApproval: boolean;
+}, evidence: TaskWorkflowEvidence) {
   if (task.status === "completed") {
     return {
-      label: "Completed" as const,
+      label: "Complete" as const,
       tone: "completed" as const
     };
   }
@@ -433,7 +678,7 @@ function deriveTaskStatusPresentation(task: {
 
   if (task.reviewStatus === "second_review") {
     return {
-      label: "Second review" as const,
+      label: "Second review requested" as const,
       tone: "review" as const
     };
   }
@@ -445,11 +690,55 @@ function deriveTaskStatusPresentation(task: {
     };
   }
 
+  if (task.reviewStatus === "approved" || task.complianceStatus === "approved") {
+    return {
+      label: "Approved" as const,
+      tone: "approved" as const
+    };
+  }
+
   if (task.status === "reopened") {
     return {
       label: "Reopened" as const,
       tone: "reopened" as const
     };
+  }
+
+  if (taskRequiresDocumentWorkflow(task)) {
+    if (!evidence.hasAnyLinkedDocument) {
+      return {
+        label: "Pending upload" as const,
+        tone: "pending" as const
+      };
+    }
+
+    if (evidence.hasDeclinedSignature) {
+      return {
+        label: "Rejected" as const,
+        tone: "rejected" as const
+      };
+    }
+
+    if (evidence.hasPendingSignature) {
+      return {
+        label: "Waiting for signatures" as const,
+        tone: "signature" as const
+      };
+    }
+
+    if (evidence.allSignatureRequestsSigned) {
+      return {
+        label: "Fully signed" as const,
+        tone: "signature" as const
+      };
+    }
+
+    if (evidence.hasAnyLinkedDocument && !evidence.hasSubmittedDocument) {
+      return {
+        label: "Uploaded / not submitted" as const,
+        tone: "progress" as const
+      };
+    }
   }
 
   if (task.status === "in_progress") {
@@ -491,6 +780,31 @@ function normalizeOfficeTaskComplianceStatus(value: string): OfficeTransactionTa
   }
 
   return null;
+}
+
+function normalizeOfficeTaskReviewStatus(value: string): OfficeTaskReviewFilter | null {
+  if (value === "" || value === "Pending" || value === "Review requested" || value === "Second review" || value === "Approved" || value === "Rejected") {
+    return value as OfficeTaskReviewFilter;
+  }
+
+  return null;
+}
+
+function getDbReviewStatuses(filter: OfficeTaskReviewFilter): TransactionTaskReviewStatus[] {
+  switch (filter) {
+    case "Pending":
+      return ["pending"];
+    case "Review requested":
+      return ["review_requested"];
+    case "Second review":
+      return ["second_review"];
+    case "Approved":
+      return ["approved"];
+    case "Rejected":
+      return ["rejected"];
+    default:
+      return [];
+  }
 }
 
 function parseComplianceStatusFilter(value: string | string[] | undefined): OfficeTransactionTaskComplianceStatus[] {
@@ -609,6 +923,12 @@ function sanitizePersistedFilters(filters: unknown, fallback: OfficeTaskListFilt
         ? (object.dueWindow as OfficeTaskDueWindow)
         : fallback.dueWindow,
     noDueDate: typeof object.noDueDate === "boolean" ? object.noDueDate : fallback.noDueDate,
+    reviewStatus:
+      typeof object.reviewStatus === "string" && normalizeOfficeTaskReviewStatus(object.reviewStatus) !== null
+        ? (object.reviewStatus as OfficeTaskReviewFilter)
+        : fallback.reviewStatus,
+    requiresSecondaryApproval:
+      typeof object.requiresSecondaryApproval === "boolean" ? object.requiresSecondaryApproval : fallback.requiresSecondaryApproval,
     complianceStatuses: Array.isArray(object.complianceStatuses)
       ? object.complianceStatuses
           .map((entry) => (typeof entry === "string" ? normalizeOfficeTaskComplianceStatus(entry) : null))
@@ -647,6 +967,12 @@ function mergeFilterOverrides(base: OfficeTaskListFilters, input: ListOfficeTask
         ? input.dueWindow
         : base.dueWindow,
     noDueDate: input.noDueDate !== undefined ? parseBooleanFlag(input.noDueDate) : base.noDueDate,
+    reviewStatus:
+      input.reviewStatus !== undefined && normalizeOfficeTaskReviewStatus(input.reviewStatus) !== null
+        ? (input.reviewStatus as OfficeTaskReviewFilter)
+        : base.reviewStatus,
+    requiresSecondaryApproval:
+      input.requiresSecondaryApproval !== undefined ? parseBooleanFlag(input.requiresSecondaryApproval) : base.requiresSecondaryApproval,
     complianceStatuses:
       input.complianceStatus !== undefined ? parseComplianceStatusFilter(input.complianceStatus) : base.complianceStatuses,
     transactionId: typeof input.transactionId === "string" ? input.transactionId : base.transactionId,
@@ -657,7 +983,24 @@ function mergeFilterOverrides(base: OfficeTaskListFilters, input: ListOfficeTask
 
 function mapTransactionTask(task: TaskWithRelations): OfficeTransactionTask {
   const transactionLabel = buildTransactionObjectLabel(task.transaction);
-  const statusPresentation = deriveTaskStatusPresentation(task);
+  const workflowEvidence = getTaskWorkflowEvidence(task);
+  const statusPresentation = deriveTaskStatusPresentation(task, workflowEvidence);
+  const canRequestReview =
+    taskNeedsReview(task) &&
+    task.status !== "completed" &&
+    task.reviewStatus !== "review_requested" &&
+    task.reviewStatus !== "second_review" &&
+    task.reviewStatus !== "approved" &&
+    workflowEvidence.hasAnyLinkedDocument &&
+    (!workflowEvidence.hasAnySignatureRequest || workflowEvidence.allSignatureRequestsSigned);
+  const canComplete =
+    task.status !== "completed" &&
+    (!taskRequiresDocumentWorkflow(task) || workflowEvidence.hasAnyLinkedDocument) &&
+    (!workflowEvidence.hasAnySignatureRequest || workflowEvidence.allSignatureRequestsSigned) &&
+    (!taskNeedsReview(task) || task.reviewStatus === "approved");
+  const canApprove =
+    taskNeedsReview(task) &&
+    (task.reviewStatus === "review_requested" || task.reviewStatus === "second_review");
 
   return {
     id: task.id,
@@ -684,26 +1027,26 @@ function mapTransactionTask(task: TaskWithRelations): OfficeTransactionTask {
     completedAt: formatDateTimeValue(task.completedAt),
     completedByName: formatMembershipName(task.completedByMembership),
     submittedForReviewAt: formatDateTimeValue(task.submittedForReviewAt),
+    submittedForReviewByName: formatMembershipName(task.submittedForReviewByMembership),
     firstApprovedAt: formatDateTimeValue(task.firstApprovedAt),
     firstApprovedByName: formatMembershipName(task.firstApprovedByMembership),
     secondApprovedAt: formatDateTimeValue(task.secondApprovedAt),
     secondApprovedByName: formatMembershipName(task.secondApprovedByMembership),
     rejectedAt: formatDateTimeValue(task.rejectedAt),
     rejectedByName: formatMembershipName(task.rejectedByMembership),
+    rejectionReason: task.rejectionReason ?? "",
     reopenedAt: formatDateTimeValue(task.reopenedAt),
-    canCompleteDirectly: !taskNeedsReview(task) && task.status !== "completed",
-    canRequestReview:
-      taskNeedsReview(task) &&
-      task.status !== "completed" &&
-      task.reviewStatus !== "review_requested" &&
-      task.reviewStatus !== "second_review" &&
-      task.reviewStatus !== "approved",
-    canApprove: taskNeedsReview(task) && (task.reviewStatus === "review_requested" || task.reviewStatus === "second_review"),
-    canReject: taskNeedsReview(task) && (task.reviewStatus === "review_requested" || task.reviewStatus === "second_review"),
+    linkedDocuments: workflowEvidence.linkedDocuments,
+    awaitingSecondaryApproval: task.reviewStatus === "second_review",
+    canCompleteDirectly: canComplete,
+    canRequestReview,
+    canApprove,
+    canReject: canApprove,
     canReopen:
       task.status === "completed" ||
       task.status === "review_requested" ||
       task.reviewStatus === "rejected" ||
+      task.reviewStatus === "approved" ||
       task.status === "reopened"
   };
 }
@@ -761,66 +1104,8 @@ async function getTaskRecord(organizationId: string, transactionId: string, task
       organizationId,
       transactionId
     },
-    include: {
-      transaction: {
-        include: {
-          ownerMembership: {
-            include: {
-              user: true
-            }
-          }
-        }
-      },
-      assigneeMembership: {
-        include: {
-          user: true
-        }
-      },
-      completedByMembership: {
-        include: {
-          user: true
-        }
-      },
-      firstApprovedByMembership: {
-        include: {
-          user: true
-        }
-      },
-      secondApprovedByMembership: {
-        include: {
-          user: true
-        }
-      },
-      rejectedByMembership: {
-        include: {
-          user: true
-        }
-      }
-    }
+    include: transactionTaskInclude
   });
-}
-
-function normalizeTaskFlags(
-  existing: {
-    requiresDocument: boolean;
-    requiresDocumentApproval: boolean;
-    requiresSecondaryApproval: boolean;
-  },
-  updates: {
-    requiresDocument?: boolean;
-    requiresDocumentApproval?: boolean;
-    requiresSecondaryApproval?: boolean;
-  }
-) {
-  const requiresDocument = updates.requiresDocument ?? existing.requiresDocument;
-  const requiresDocumentApproval = updates.requiresDocumentApproval ?? existing.requiresDocumentApproval;
-  const requiresSecondaryApproval = updates.requiresSecondaryApproval ?? existing.requiresSecondaryApproval;
-
-  return {
-    requiresDocument,
-    requiresDocumentApproval,
-    requiresSecondaryApproval
-  };
 }
 
 function getTaskWorkflowResetState(requiresReview: boolean) {
@@ -828,12 +1113,14 @@ function getTaskWorkflowResetState(requiresReview: boolean) {
     reviewStatus: deriveDefaultReviewStatus(requiresReview),
     complianceStatus: deriveDefaultComplianceStatus(requiresReview),
     submittedForReviewAt: null,
+    submittedForReviewByMembershipId: null,
     firstApprovedAt: null,
     firstApprovedByMembershipId: null,
     secondApprovedAt: null,
     secondApprovedByMembershipId: null,
     rejectedAt: null,
-    rejectedByMembershipId: null
+    rejectedByMembershipId: null,
+    rejectionReason: null
   };
 }
 
@@ -895,48 +1182,199 @@ async function createTaskAuditEvent(
   });
 }
 
+function getDbTaskStatusLabel(status: TransactionTaskStatus) {
+  return taskStatusLabelMap[status];
+}
+
+function canTaskRequestReview(task: TaskWithRelations, evidence: TaskWorkflowEvidence) {
+  return (
+    taskNeedsReview(task) &&
+    task.status !== "completed" &&
+    task.reviewStatus !== "review_requested" &&
+    task.reviewStatus !== "second_review" &&
+    task.reviewStatus !== "approved" &&
+    evidence.hasAnyLinkedDocument &&
+    (!evidence.hasAnySignatureRequest || evidence.allSignatureRequestsSigned)
+  );
+}
+
+function canTaskComplete(task: TaskWithRelations, evidence: TaskWorkflowEvidence) {
+  if (task.status === "completed") {
+    return false;
+  }
+
+  if (taskRequiresDocumentWorkflow(task) && !evidence.hasAnyLinkedDocument) {
+    return false;
+  }
+
+  if (evidence.hasAnySignatureRequest && !evidence.allSignatureRequestsSigned) {
+    return false;
+  }
+
+  if (taskNeedsReview(task) && task.reviewStatus !== "approved") {
+    return false;
+  }
+
+  return true;
+}
+
+function getTaskMissingWorkflowReason(task: TaskWithRelations, evidence: TaskWorkflowEvidence) {
+  if (taskRequiresDocumentWorkflow(task) && !evidence.hasAnyLinkedDocument) {
+    return "A required document has not been attached.";
+  }
+
+  if (taskNeedsReview(task) && !evidence.hasSubmittedDocument) {
+    return "Submit the linked document for review before continuing.";
+  }
+
+  if (evidence.hasPendingSignature) {
+    return "Signature requests are still pending.";
+  }
+
+  if (evidence.hasAnySignatureRequest && !evidence.allSignatureRequestsSigned) {
+    return "All required signatures must be completed first.";
+  }
+
+  if (taskNeedsReview(task) && task.reviewStatus !== "approved") {
+    return "This task requires review before it can be completed.";
+  }
+
+  return null;
+}
+
+async function syncTaskLinkedDocumentStatuses(
+  tx: Prisma.TransactionClient,
+  input: {
+    taskId: string;
+    nextStatus?: TransactionDocumentStatus;
+    actorMembershipId?: string | null;
+    organizationId: string;
+    transactionId: string;
+  }
+) {
+  const linkedDocuments = await tx.transactionDocument.findMany({
+    where: {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      linkedTaskId: input.taskId
+    },
+    include: {
+      signatureRequests: true
+    }
+  });
+
+  if (!linkedDocuments.length || !input.nextStatus) {
+    return;
+  }
+
+  for (const document of linkedDocuments) {
+    const nextStatus =
+      document.isSigned || document.signatureRequests.some((request) => request.status === "signed")
+        ? document.status
+        : input.nextStatus;
+
+    if (nextStatus !== document.status) {
+      await tx.transactionDocument.update({
+        where: {
+          id: document.id
+        },
+        data: {
+          status: nextStatus
+        }
+      });
+    }
+  }
+}
+
+export async function reconcileTransactionTaskDocumentWorkflow(
+  tx: Prisma.TransactionClient,
+  input: {
+    organizationId: string;
+    transactionId: string;
+    taskId: string;
+    actorMembershipId?: string | null;
+    reason: string;
+  }
+) {
+  const existingTask = await tx.transactionTask.findFirst({
+    where: {
+      id: input.taskId,
+      organizationId: input.organizationId,
+      transactionId: input.transactionId
+    },
+    include: transactionTaskInclude
+  });
+
+  if (!existingTask || !taskRequiresDocumentWorkflow(existingTask)) {
+    return null;
+  }
+
+  const evidence = getTaskWorkflowEvidence(existingTask);
+  const workflowCommitted =
+    existingTask.status === "completed" ||
+    existingTask.reviewStatus !== "pending" && existingTask.reviewStatus !== "not_required";
+  const shouldInvalidate =
+    workflowCommitted &&
+    (!evidence.hasAnyLinkedDocument ||
+    (taskNeedsReview(existingTask) && !evidence.hasSubmittedDocument) ||
+    evidence.hasPendingSignature ||
+    (evidence.hasAnySignatureRequest && !evidence.allSignatureRequestsSigned));
+
+  if (!shouldInvalidate) {
+    return mapTransactionTask(existingTask);
+  }
+
+  const resetState = getTaskWorkflowResetState(taskNeedsReview(existingTask));
+  const nextStatus: TransactionTaskStatus = existingTask.status === "todo" ? "todo" : "reopened";
+  const reopenedAt = new Date();
+
+  const updated = await tx.transactionTask.update({
+    where: {
+      id: existingTask.id
+    },
+    data: {
+      status: nextStatus,
+      reviewStatus: resetState.reviewStatus,
+      complianceStatus: resetState.complianceStatus,
+      completedAt: null,
+      completedByMembershipId: null,
+      submittedForReviewAt: resetState.submittedForReviewAt,
+      submittedForReviewByMembershipId: resetState.submittedForReviewByMembershipId,
+      firstApprovedAt: resetState.firstApprovedAt,
+      firstApprovedByMembershipId: resetState.firstApprovedByMembershipId,
+      secondApprovedAt: resetState.secondApprovedAt,
+      secondApprovedByMembershipId: resetState.secondApprovedByMembershipId,
+      rejectedAt: resetState.rejectedAt,
+      rejectedByMembershipId: resetState.rejectedByMembershipId,
+      rejectionReason: resetState.rejectionReason,
+      reopenedAt
+    },
+    include: transactionTaskInclude
+  });
+
+  await createTaskAuditEvent(tx, {
+    organizationId: input.organizationId,
+    actorMembershipId: input.actorMembershipId ?? null,
+    action: activityLogActions.transactionTaskReopened,
+    task: updated,
+    details: [input.reason, "Task reopened because required workflow conditions are no longer satisfied"],
+    changes: [
+      buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(updated.status)),
+      buildTaskChange("Review status", reviewStatusLabelMap[existingTask.reviewStatus], reviewStatusLabelMap[updated.reviewStatus]),
+      buildTaskChange("Compliance status", complianceStatusLabelMap[existingTask.complianceStatus], complianceStatusLabelMap[updated.complianceStatus])
+    ].filter((change): change is NonNullable<typeof change> => Boolean(change))
+  });
+
+  return mapTransactionTask(updated);
+}
+
 export async function listTransactionTasks(organizationId: string, transactionId: string): Promise<OfficeTransactionTask[]> {
   const tasks = await prisma.transactionTask.findMany({
     where: {
       organizationId,
       transactionId
     },
-    include: {
-      transaction: {
-        include: {
-          ownerMembership: {
-            include: {
-              user: true
-            }
-          }
-        }
-      },
-      assigneeMembership: {
-        include: {
-          user: true
-        }
-      },
-      completedByMembership: {
-        include: {
-          user: true
-        }
-      },
-      firstApprovedByMembership: {
-        include: {
-          user: true
-        }
-      },
-      secondApprovedByMembership: {
-        include: {
-          user: true
-        }
-      },
-      rejectedByMembership: {
-        include: {
-          user: true
-        }
-      }
-    },
+    include: transactionTaskInclude,
     orderBy: [{ checklistGroup: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }]
   });
 
@@ -1106,6 +1544,20 @@ export async function listOfficeTasks(input: ListOfficeTasksInput): Promise<Offi
     };
   }
 
+  if (filters.reviewStatus) {
+    const mappedReviewStatuses = getDbReviewStatuses(filters.reviewStatus);
+
+    if (mappedReviewStatuses.length) {
+      where.reviewStatus = {
+        in: mappedReviewStatuses
+      };
+    }
+  }
+
+  if (filters.requiresSecondaryApproval) {
+    where.requiresSecondaryApproval = true;
+  }
+
   if (filters.q.trim()) {
     const query = filters.q.trim();
     where.OR = [
@@ -1137,42 +1589,7 @@ export async function listOfficeTasks(input: ListOfficeTasksInput): Promise<Offi
   const [tasks, assigneeOptions, transactionOptions] = await Promise.all([
     prisma.transactionTask.findMany({
       where,
-      include: {
-        transaction: {
-          include: {
-            ownerMembership: {
-              include: {
-                user: true
-              }
-            }
-          }
-        },
-        assigneeMembership: {
-          include: {
-            user: true
-          }
-        },
-        completedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        firstApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        secondApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        rejectedByMembership: {
-          include: {
-            user: true
-          }
-        }
-      }
+      include: transactionTaskInclude
     }),
     listOfficeTaskAssigneeOptions(input.organizationId, input.officeId),
     listOfficeTaskTransactionOptions(input.organizationId, input.officeId)
@@ -1182,23 +1599,23 @@ export async function listOfficeTasks(input: ListOfficeTasksInput): Promise<Offi
   const now = startOfDay(new Date());
   const summary = mappedTasks.reduce(
     (accumulator, task) => {
-      if (task.taskStatusLabel === "Review requested" || task.taskStatusLabel === "Second review") {
+      if (task.taskStatusLabel === "Review requested" || task.taskStatusLabel === "Second review requested") {
         accumulator.reviewQueueCount += 1;
       }
 
-      if (task.taskStatusLabel === "Completed") {
+      if (task.taskStatusLabel === "Complete") {
         accumulator.completedCount += 1;
       }
 
       if (task.dueAt) {
         const dueDate = new Date(`${task.dueAt}T00:00:00.000Z`);
 
-        if (dueDate < now && task.taskStatusLabel !== "Completed") {
+        if (dueDate < now && task.taskStatusLabel !== "Complete") {
           accumulator.overdueCount += 1;
         } else {
           const dueSoonBoundary = endOfDay(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
 
-          if (dueDate <= dueSoonBoundary && task.taskStatusLabel !== "Completed") {
+          if (dueDate <= dueSoonBoundary && task.taskStatusLabel !== "Complete") {
             accumulator.dueSoonCount += 1;
           }
         }
@@ -1352,42 +1769,7 @@ export async function createTransactionTask(input: CreateTransactionTaskInput): 
         completedByMembershipId: dbStatus === "completed" && !requiresReview ? input.actorMembershipId ?? null : null,
         sortOrder: (sortAggregate._max.sortOrder ?? -1) + 1
       },
-      include: {
-        transaction: {
-          include: {
-            ownerMembership: {
-              include: {
-                user: true
-              }
-            }
-          }
-        },
-        assigneeMembership: {
-          include: {
-            user: true
-          }
-        },
-        completedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        firstApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        secondApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        rejectedByMembership: {
-          include: {
-            user: true
-          }
-        }
-      }
+      include: transactionTaskInclude
     });
 
     await createTaskAuditEvent(tx, {
@@ -1397,7 +1779,7 @@ export async function createTransactionTask(input: CreateTransactionTaskInput): 
       task: created,
       details: [
         `Group: ${created.checklistGroup}`,
-        `Task status: ${deriveTaskStatusPresentation(created).label}`,
+        `Task status: ${deriveTaskStatusPresentation(created, getTaskWorkflowEvidence(created)).label}`,
         ...(created.dueAt ? [`Due: ${formatDateValue(created.dueAt)}`] : []),
         ...(created.requiresDocument ? ["Requires document: Yes"] : []),
         ...(created.requiresDocumentApproval ? ["Requires review: Yes"] : []),
@@ -1431,9 +1813,20 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
   const nextFlags = normalizeTaskFlags(existingTask, input);
   const requiresReview = taskNeedsReview(nextFlags);
   const explicitStatus = input.status !== undefined ? taskStatusDbMap[normalizeTaskStatus(input.status)] : existingTask.status;
+  const workflowEvidence = getTaskWorkflowEvidence(existingTask);
 
-  if (explicitStatus === "completed" && requiresReview && existingTask.reviewStatus !== "approved") {
-    throw new Error("This task requires review before it can be completed.");
+  if (explicitStatus === "completed") {
+    const completionCandidate = {
+      ...existingTask,
+      requiresDocument: nextFlags.requiresDocument,
+      requiresDocumentApproval: nextFlags.requiresDocumentApproval,
+      requiresSecondaryApproval: nextFlags.requiresSecondaryApproval
+    };
+    const completionError = getTaskMissingWorkflowReason(completionCandidate, workflowEvidence);
+
+    if (completionError) {
+      throw new Error(completionError);
+    }
   }
 
   let nextStatus = explicitStatus;
@@ -1442,35 +1835,41 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
   let completedAt = existingTask.completedAt;
   let completedByMembershipId = existingTask.completedByMembershipId;
   let submittedForReviewAt = existingTask.submittedForReviewAt;
+  let submittedForReviewByMembershipId = existingTask.submittedForReviewByMembershipId;
   let firstApprovedAt = existingTask.firstApprovedAt;
   let firstApprovedByMembershipId = existingTask.firstApprovedByMembershipId;
   let secondApprovedAt = existingTask.secondApprovedAt;
   let secondApprovedByMembershipId = existingTask.secondApprovedByMembershipId;
   let rejectedAt = existingTask.rejectedAt;
   let rejectedByMembershipId = existingTask.rejectedByMembershipId;
+  let rejectionReason = existingTask.rejectionReason;
   let reopenedAt = existingTask.reopenedAt;
 
   if (!requiresReview) {
     nextReviewStatus = "not_required";
     nextComplianceStatus = "not_applicable";
     submittedForReviewAt = null;
+    submittedForReviewByMembershipId = null;
     firstApprovedAt = null;
     firstApprovedByMembershipId = null;
     secondApprovedAt = null;
     secondApprovedByMembershipId = null;
     rejectedAt = null;
     rejectedByMembershipId = null;
+    rejectionReason = null;
   } else if (existingTask.reviewStatus === "not_required" || input.requiresDocumentApproval !== undefined || input.requiresSecondaryApproval !== undefined) {
     if (nextStatus !== "completed") {
       nextReviewStatus = "pending";
       nextComplianceStatus = "pending";
       submittedForReviewAt = null;
+      submittedForReviewByMembershipId = null;
       firstApprovedAt = null;
       firstApprovedByMembershipId = null;
       secondApprovedAt = null;
       secondApprovedByMembershipId = null;
       rejectedAt = null;
       rejectedByMembershipId = null;
+      rejectionReason = null;
     }
   }
 
@@ -1478,8 +1877,12 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
     nextReviewStatus = "review_requested";
     nextComplianceStatus = "in_review";
     submittedForReviewAt = submittedForReviewAt ?? new Date();
+    submittedForReviewByMembershipId = submittedForReviewByMembershipId ?? input.actorMembershipId ?? null;
     completedAt = null;
     completedByMembershipId = null;
+    rejectedAt = null;
+    rejectedByMembershipId = null;
+    rejectionReason = null;
   } else if (nextStatus === "reopened") {
     reopenedAt = new Date();
     completedAt = null;
@@ -1488,12 +1891,14 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
     nextReviewStatus = resetState.reviewStatus;
     nextComplianceStatus = resetState.complianceStatus;
     submittedForReviewAt = resetState.submittedForReviewAt;
+    submittedForReviewByMembershipId = resetState.submittedForReviewByMembershipId;
     firstApprovedAt = resetState.firstApprovedAt;
     firstApprovedByMembershipId = resetState.firstApprovedByMembershipId;
     secondApprovedAt = resetState.secondApprovedAt;
     secondApprovedByMembershipId = resetState.secondApprovedByMembershipId;
     rejectedAt = resetState.rejectedAt;
     rejectedByMembershipId = resetState.rejectedByMembershipId;
+    rejectionReason = resetState.rejectionReason;
   } else if (nextStatus === "completed") {
     completedAt = completedAt ?? new Date();
     completedByMembershipId = completedByMembershipId ?? input.actorMembershipId ?? null;
@@ -1533,50 +1938,17 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
         completedAt,
         completedByMembershipId,
         submittedForReviewAt,
+        submittedForReviewByMembershipId,
         firstApprovedAt,
         firstApprovedByMembershipId,
         secondApprovedAt,
         secondApprovedByMembershipId,
         rejectedAt,
         rejectedByMembershipId,
+        rejectionReason,
         reopenedAt
       },
-      include: {
-        transaction: {
-          include: {
-            ownerMembership: {
-              include: {
-                user: true
-              }
-            }
-          }
-        },
-        assigneeMembership: {
-          include: {
-            user: true
-          }
-        },
-        completedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        firstApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        secondApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        rejectedByMembership: {
-          include: {
-            user: true
-          }
-        }
-      }
+      include: transactionTaskInclude
     });
 
     const previousAssigneeName = formatMembershipName(existingTask.assigneeMembership);
@@ -1587,9 +1959,11 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
       buildTaskDetail("Description", existingTask.description ?? "", nextDescription ?? ""),
       buildTaskDetail("Assignee", previousAssigneeName, nextAssigneeName),
       buildTaskDetail("Due date", formatDateValue(existingTask.dueAt), formatDateValue(nextDueAt)),
-      buildTaskDetail("Workflow status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[nextStatus]),
+      buildTaskDetail("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(nextStatus)),
       buildTaskDetail("Review status", reviewStatusLabelMap[existingTask.reviewStatus], reviewStatusLabelMap[nextReviewStatus]),
       buildTaskDetail("Compliance status", complianceStatusLabelMap[existingTask.complianceStatus], complianceStatusLabelMap[nextComplianceStatus]),
+      buildTaskDetail("Submitted by", formatMembershipName(existingTask.submittedForReviewByMembership), formatMembershipName(saved.submittedForReviewByMembership)),
+      buildTaskDetail("Rejection reason", existingTask.rejectionReason ?? "", rejectionReason ?? ""),
       buildTaskDetail("Requires document", existingTask.requiresDocument ? "Yes" : "No", saved.requiresDocument ? "Yes" : "No"),
       buildTaskDetail("Requires document approval", existingTask.requiresDocumentApproval ? "Yes" : "No", saved.requiresDocumentApproval ? "Yes" : "No"),
       buildTaskDetail("Requires secondary approval", existingTask.requiresSecondaryApproval ? "Yes" : "No", saved.requiresSecondaryApproval ? "Yes" : "No"),
@@ -1601,9 +1975,11 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
       buildTaskChange("Description", existingTask.description ?? "", nextDescription ?? ""),
       buildTaskChange("Assignee", previousAssigneeName, nextAssigneeName),
       buildTaskChange("Due date", formatDateValue(existingTask.dueAt), formatDateValue(nextDueAt)),
-      buildTaskChange("Workflow status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[nextStatus]),
+      buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(nextStatus)),
       buildTaskChange("Review status", reviewStatusLabelMap[existingTask.reviewStatus], reviewStatusLabelMap[nextReviewStatus]),
       buildTaskChange("Compliance status", complianceStatusLabelMap[existingTask.complianceStatus], complianceStatusLabelMap[nextComplianceStatus]),
+      buildTaskChange("Submitted by", formatMembershipName(existingTask.submittedForReviewByMembership), formatMembershipName(saved.submittedForReviewByMembership)),
+      buildTaskChange("Rejection reason", existingTask.rejectionReason ?? "", rejectionReason ?? ""),
       buildTaskChange("Requires document", existingTask.requiresDocument ? "Yes" : "No", saved.requiresDocument ? "Yes" : "No"),
       buildTaskChange("Requires document approval", existingTask.requiresDocumentApproval ? "Yes" : "No", saved.requiresDocumentApproval ? "Yes" : "No"),
       buildTaskChange("Requires secondary approval", existingTask.requiresSecondaryApproval ? "Yes" : "No", saved.requiresSecondaryApproval ? "Yes" : "No"),
@@ -1666,8 +2042,11 @@ export async function completeTransactionTask(input: {
     return null;
   }
 
-  if (taskNeedsReview(task) && task.reviewStatus !== "approved") {
-    throw new Error("This task requires review before it can be completed.");
+  const workflowEvidence = getTaskWorkflowEvidence(task);
+  const completionError = getTaskMissingWorkflowReason(task, workflowEvidence);
+
+  if (completionError) {
+    throw new Error(completionError);
   }
 
   return updateTransactionTask({
@@ -1710,13 +2089,64 @@ export async function requestTransactionTaskReview(input: {
     throw new Error("This task does not require review.");
   }
 
-  return updateTransactionTask({
-    organizationId: input.organizationId,
-    transactionId: input.transactionId,
-    taskId: input.taskId,
-    actorMembershipId: input.actorMembershipId,
-    status: "Review requested"
+  const evidence = getTaskWorkflowEvidence(task);
+
+  if (!evidence.hasAnyLinkedDocument) {
+    throw new Error("Attach a required document before requesting review.");
+  }
+
+  if (evidence.hasPendingSignature || (evidence.hasAnySignatureRequest && !evidence.allSignatureRequestsSigned)) {
+    throw new Error("All required signatures must be completed before requesting review.");
+  }
+
+  const saved = await prisma.$transaction(async (tx) => {
+    const now = new Date();
+    await syncTaskLinkedDocumentStatuses(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      taskId: input.taskId,
+      actorMembershipId: input.actorMembershipId ?? null,
+      nextStatus: "submitted"
+    });
+
+    const updated = await tx.transactionTask.update({
+      where: {
+        id: input.taskId
+      },
+      data: {
+        status: "review_requested",
+        reviewStatus: "review_requested",
+        complianceStatus: "in_review",
+        submittedForReviewAt: now,
+        submittedForReviewByMembershipId: input.actorMembershipId ?? null,
+        rejectedAt: null,
+        rejectedByMembershipId: null,
+        rejectionReason: null,
+        reopenedAt: null
+      },
+      include: transactionTaskInclude
+    });
+
+    await createTaskAuditEvent(tx, {
+      organizationId: input.organizationId,
+      actorMembershipId: input.actorMembershipId ?? null,
+      action: activityLogActions.transactionTaskReviewRequested,
+      task: updated,
+      details: [
+        `Submitted by: ${formatMembershipName(updated.submittedForReviewByMembership)}`,
+        `Linked documents: ${evidence.linkedDocuments.length}`
+      ],
+      changes: [
+        buildTaskChange("Review status", reviewStatusLabelMap[task.reviewStatus], reviewStatusLabelMap[updated.reviewStatus]),
+        buildTaskChange("Compliance status", complianceStatusLabelMap[task.complianceStatus], complianceStatusLabelMap[updated.complianceStatus]),
+        buildTaskChange("Workflow status", getDbTaskStatusLabel(task.status), getDbTaskStatusLabel(updated.status))
+      ].filter((change): change is NonNullable<typeof change> => Boolean(change))
+    });
+
+    return updated;
   });
+
+  return mapTransactionTask(saved);
 }
 
 export async function approveTransactionTask(input: {
@@ -1724,6 +2154,7 @@ export async function approveTransactionTask(input: {
   transactionId: string;
   taskId: string;
   actorMembershipId: string;
+  allowSecondaryApproval?: boolean;
 }): Promise<OfficeTransactionTask | null> {
   const existingTask = await getTaskRecord(input.organizationId, input.transactionId, input.taskId);
 
@@ -1739,10 +2170,28 @@ export async function approveTransactionTask(input: {
     throw new Error("This task is not currently awaiting approval.");
   }
 
+  const workflowEvidence = getTaskWorkflowEvidence(existingTask);
+
+  if (taskRequiresDocumentWorkflow(existingTask) && !workflowEvidence.hasAnyLinkedDocument) {
+    throw new Error("A required document is missing.");
+  }
+
+  if (workflowEvidence.hasPendingSignature || (workflowEvidence.hasAnySignatureRequest && !workflowEvidence.allSignatureRequestsSigned)) {
+    throw new Error("All required signatures must be completed before approval.");
+  }
+
+  if (taskNeedsReview(existingTask) && !workflowEvidence.hasSubmittedDocument) {
+    throw new Error("Submit the linked document for review before approval.");
+  }
+
   const saved = await prisma.$transaction(async (tx) => {
     const now = new Date();
     const isSecondApprovalRequired = existingTask.requiresSecondaryApproval;
     const isFirstApproval = existingTask.reviewStatus === "review_requested";
+
+    if (isSecondApprovalRequired && !isFirstApproval && !input.allowSecondaryApproval) {
+      throw new Error("Secondary approval permission is required.");
+    }
 
     if (isSecondApprovalRequired && existingTask.firstApprovedByMembershipId && existingTask.firstApprovedByMembershipId === input.actorMembershipId) {
       throw new Error("Secondary approval must be completed by a different approver.");
@@ -1754,8 +2203,10 @@ export async function approveTransactionTask(input: {
           firstApprovedByMembershipId: input.actorMembershipId,
           reviewStatus: "second_review",
           complianceStatus: "in_review",
+          status: "review_requested",
           rejectedAt: null,
-          rejectedByMembershipId: null
+          rejectedByMembershipId: null,
+          rejectionReason: null
         }
       : {
           firstApprovedAt: existingTask.firstApprovedAt ?? now,
@@ -1764,68 +2215,48 @@ export async function approveTransactionTask(input: {
           secondApprovedByMembershipId: isSecondApprovalRequired ? input.actorMembershipId : null,
           reviewStatus: "approved",
           complianceStatus: "approved",
-          status: "completed",
-          completedAt: now,
-          completedByMembershipId: input.actorMembershipId,
+          status: "in_progress",
+          completedAt: null,
+          completedByMembershipId: null,
           rejectedAt: null,
-          rejectedByMembershipId: null
+          rejectedByMembershipId: null,
+          rejectionReason: null
         };
+
+    const nextDocumentStatus = isSecondApprovalRequired && isFirstApproval ? "submitted" : "approved";
+    await syncTaskLinkedDocumentStatuses(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      taskId: input.taskId,
+      actorMembershipId: input.actorMembershipId,
+      nextStatus: nextDocumentStatus
+    });
 
     const updated = await tx.transactionTask.update({
       where: {
         id: input.taskId
       },
       data: updateData,
-      include: {
-        transaction: {
-          include: {
-            ownerMembership: {
-              include: {
-                user: true
-              }
-            }
-          }
-        },
-        assigneeMembership: {
-          include: {
-            user: true
-          }
-        },
-        completedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        firstApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        secondApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        rejectedByMembership: {
-          include: {
-            user: true
-          }
-        }
-      }
+      include: transactionTaskInclude
     });
 
     await createTaskAuditEvent(tx, {
       organizationId: input.organizationId,
       actorMembershipId: input.actorMembershipId,
-      action: activityLogActions.transactionTaskApproved,
+      action:
+        isSecondApprovalRequired && isFirstApproval
+          ? activityLogActions.transactionTaskFirstApproved
+          : isSecondApprovalRequired
+            ? activityLogActions.transactionTaskSecondApproved
+            : activityLogActions.transactionTaskApproved,
       task: updated,
       details: isSecondApprovalRequired && isFirstApproval
         ? ["First approval recorded", "Task moved to second review"]
-        : ["Approval completed", "Task marked complete"],
+        : ["Approval completed", "Task is now eligible for final completion"],
       changes: [
         buildTaskChange("Review status", reviewStatusLabelMap[existingTask.reviewStatus], reviewStatusLabelMap[updated.reviewStatus]),
         buildTaskChange("Compliance status", complianceStatusLabelMap[existingTask.complianceStatus], complianceStatusLabelMap[updated.complianceStatus]),
-        buildTaskChange("Workflow status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[updated.status])
+        buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(updated.status))
       ].filter((change): change is NonNullable<typeof change> => Boolean(change))
     });
 
@@ -1840,6 +2271,7 @@ export async function rejectTransactionTask(input: {
   transactionId: string;
   taskId: string;
   actorMembershipId: string;
+  rejectionReason?: string;
 }): Promise<OfficeTransactionTask | null> {
   const existingTask = await getTaskRecord(input.organizationId, input.transactionId, input.taskId);
 
@@ -1853,6 +2285,14 @@ export async function rejectTransactionTask(input: {
 
   const saved = await prisma.$transaction(async (tx) => {
     const now = new Date();
+    await syncTaskLinkedDocumentStatuses(tx, {
+      organizationId: input.organizationId,
+      transactionId: input.transactionId,
+      taskId: input.taskId,
+      actorMembershipId: input.actorMembershipId,
+      nextStatus: "rejected"
+    });
+
     const updated = await tx.transactionTask.update({
       where: {
         id: input.taskId
@@ -1863,46 +2303,12 @@ export async function rejectTransactionTask(input: {
         complianceStatus: "rejected",
         rejectedAt: now,
         rejectedByMembershipId: input.actorMembershipId,
+        rejectionReason: parseOptionalText(input.rejectionReason),
         reopenedAt: now,
         completedAt: null,
         completedByMembershipId: null
       },
-      include: {
-        transaction: {
-          include: {
-            ownerMembership: {
-              include: {
-                user: true
-              }
-            }
-          }
-        },
-        assigneeMembership: {
-          include: {
-            user: true
-          }
-        },
-        completedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        firstApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        secondApprovedByMembership: {
-          include: {
-            user: true
-          }
-        },
-        rejectedByMembership: {
-          include: {
-            user: true
-          }
-        }
-      }
+      include: transactionTaskInclude
     });
 
     await createTaskAuditEvent(tx, {
@@ -1910,11 +2316,15 @@ export async function rejectTransactionTask(input: {
       actorMembershipId: input.actorMembershipId,
       action: activityLogActions.transactionTaskRejected,
       task: updated,
-      details: ["Review rejected", "Task reopened for changes"],
+      details: [
+        "Review rejected",
+        "Task reopened for changes",
+        ...(updated.rejectionReason ? [`Reason: ${updated.rejectionReason}`] : [])
+      ],
       changes: [
         buildTaskChange("Review status", reviewStatusLabelMap[existingTask.reviewStatus], reviewStatusLabelMap[updated.reviewStatus]),
         buildTaskChange("Compliance status", complianceStatusLabelMap[existingTask.complianceStatus], complianceStatusLabelMap[updated.complianceStatus]),
-        buildTaskChange("Workflow status", taskStatusLabelMap[existingTask.status], taskStatusLabelMap[updated.status])
+        buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(updated.status))
       ].filter((change): change is NonNullable<typeof change> => Boolean(change))
     });
 

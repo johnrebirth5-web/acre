@@ -1,4 +1,9 @@
-import { canManageOfficeTasks, canReviewOfficeTasks } from "@acre/auth";
+import {
+  canApproveOfficeDocuments,
+  canManageOfficeTasks,
+  canReviewOfficeTasks,
+  canSecondaryReviewOfficeTasks
+} from "@acre/auth";
 import { approveTransactionTask, completeTransactionTask, rejectTransactionTask, reopenTransactionTask, requestTransactionTaskReview } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../../../../../lib/auth-session";
@@ -22,8 +27,9 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   }
 
   const { transactionId, taskId } = await params;
-  const body = (await request.json().catch(() => null)) as { action?: string } | null;
+  const body = (await request.json().catch(() => null)) as { action?: string; rejectionReason?: string } | null;
   const action = body?.action?.trim();
+  const rejectionReason = body?.rejectionReason?.trim();
 
   if (!action) {
     return NextResponse.json({ error: "Workflow action is required." }, { status: 400 });
@@ -53,27 +59,34 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                 actorMembershipId: context.currentMembership.id
               })
             : action === "approve"
-              ? canReviewOfficeTasks(context.currentMembership.role)
+              ? canReviewOfficeTasks(context.currentMembership.role) &&
+                canApproveOfficeDocuments(context.currentMembership.role)
                 ? await approveTransactionTask({
                     organizationId: context.currentOrganization.id,
                     transactionId,
                     taskId,
-                    actorMembershipId: context.currentMembership.id
+                    actorMembershipId: context.currentMembership.id,
+                    allowSecondaryApproval: canSecondaryReviewOfficeTasks(context.currentMembership.role)
                   })
                 : null
               : action === "reject"
-                ? canReviewOfficeTasks(context.currentMembership.role)
+                ? canReviewOfficeTasks(context.currentMembership.role) &&
+                  canApproveOfficeDocuments(context.currentMembership.role)
                   ? await rejectTransactionTask({
                       organizationId: context.currentOrganization.id,
                       transactionId,
                       taskId,
-                      actorMembershipId: context.currentMembership.id
+                      actorMembershipId: context.currentMembership.id,
+                      rejectionReason
                     })
                   : null
                 : null;
 
-    if ((action === "approve" || action === "reject") && !canReviewOfficeTasks(context.currentMembership.role)) {
-      return NextResponse.json({ error: "Review permission required." }, { status: 403 });
+    if (
+      (action === "approve" || action === "reject") &&
+      (!canReviewOfficeTasks(context.currentMembership.role) || !canApproveOfficeDocuments(context.currentMembership.role))
+    ) {
+      return NextResponse.json({ error: "Document review permission required." }, { status: 403 });
     }
 
     if (!task) {

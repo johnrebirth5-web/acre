@@ -9,6 +9,9 @@ type TransactionTasksCardProps = {
   transactionId: string;
   tasks: OfficeTransactionTask[];
   assigneeOptions: OfficeTransactionTaskAssigneeOption[];
+  canReviewTasks: boolean;
+  canSecondaryReviewTasks: boolean;
+  canApproveDocuments: boolean;
 };
 
 type TaskFormState = {
@@ -25,6 +28,20 @@ type TaskFormState = {
 
 const taskStatusOptions: OfficeTransactionTaskStatus[] = ["Todo", "In progress", "Review requested", "Completed", "Reopened"];
 
+function formatDateTimeLabel(value: string) {
+  if (!value) {
+    return "—";
+  }
+
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 function buildTaskState(task: OfficeTransactionTask): TaskFormState {
   return {
     checklistGroup: task.checklistGroup,
@@ -39,7 +56,14 @@ function buildTaskState(task: OfficeTransactionTask): TaskFormState {
   };
 }
 
-export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: TransactionTasksCardProps) {
+export function TransactionTasksCard({
+  transactionId,
+  tasks,
+  assigneeOptions,
+  canReviewTasks,
+  canSecondaryReviewTasks,
+  canApproveDocuments
+}: TransactionTasksCardProps) {
   const router = useRouter();
   const [taskStates, setTaskStates] = useState<Record<string, TaskFormState>>(
     Object.fromEntries(tasks.map((task) => [task.id, buildTaskState(task)]))
@@ -161,17 +185,25 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
     }
   }
 
-  async function handleWorkflowAction(taskId: string, action: "complete" | "reopen" | "request_review" | "approve" | "reject") {
+  async function handleWorkflowAction(
+    task: OfficeTransactionTask,
+    action: "complete" | "reopen" | "request_review" | "approve" | "reject"
+  ) {
+    const taskId = task.id;
     setPendingAction(`${action}:${taskId}`);
     setError("");
 
     try {
+      const rejectionReason =
+        action === "reject"
+          ? window.prompt("Reason for rejection (optional)", task.rejectionReason || "")?.trim() ?? ""
+          : "";
       const response = await fetch(`/api/office/transactions/${transactionId}/tasks/${taskId}/workflow`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action, rejectionReason })
       });
 
       if (!response.ok) {
@@ -227,7 +259,7 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                             <button
                               className="bm-view-toggle"
                               disabled={pendingAction === `complete:${task.id}`}
-                              onClick={() => handleWorkflowAction(task.id, "complete")}
+                              onClick={() => handleWorkflowAction(task, "complete")}
                               type="button"
                             >
                               {pendingAction === `complete:${task.id}` ? "Saving..." : "Complete"}
@@ -237,27 +269,34 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                             <button
                               className="bm-view-toggle"
                               disabled={pendingAction === `request_review:${task.id}`}
-                              onClick={() => handleWorkflowAction(task.id, "request_review")}
+                              onClick={() => handleWorkflowAction(task, "request_review")}
                               type="button"
                             >
                               {pendingAction === `request_review:${task.id}` ? "Saving..." : "Request review"}
                             </button>
                           ) : null}
-                          {task.canApprove ? (
+                          {task.canApprove &&
+                          canApproveDocuments &&
+                          ((task.awaitingSecondaryApproval && canSecondaryReviewTasks) ||
+                            (!task.awaitingSecondaryApproval && canReviewTasks)) ? (
                             <button
                               className="bm-view-toggle"
                               disabled={pendingAction === `approve:${task.id}`}
-                              onClick={() => handleWorkflowAction(task.id, "approve")}
+                              onClick={() => handleWorkflowAction(task, "approve")}
                               type="button"
                             >
-                              {pendingAction === `approve:${task.id}` ? "Saving..." : "Approve"}
+                              {pendingAction === `approve:${task.id}`
+                                ? "Saving..."
+                                : task.awaitingSecondaryApproval
+                                  ? "Second approve"
+                                  : "Approve"}
                             </button>
                           ) : null}
-                          {task.canReject ? (
+                          {task.canReject && canReviewTasks && canApproveDocuments ? (
                             <button
                               className="bm-view-toggle"
                               disabled={pendingAction === `reject:${task.id}`}
-                              onClick={() => handleWorkflowAction(task.id, "reject")}
+                              onClick={() => handleWorkflowAction(task, "reject")}
                               type="button"
                             >
                               {pendingAction === `reject:${task.id}` ? "Saving..." : "Reject"}
@@ -267,7 +306,7 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                             <button
                               className="bm-view-toggle"
                               disabled={pendingAction === `reopen:${task.id}`}
-                              onClick={() => handleWorkflowAction(task.id, "reopen")}
+                              onClick={() => handleWorkflowAction(task, "reopen")}
                               type="button"
                             >
                               {pendingAction === `reopen:${task.id}` ? "Saving..." : "Reopen"}
@@ -366,6 +405,34 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                             <span>Requires secondary approval</span>
                           </label>
                         </div>
+                      </div>
+
+                      <div className="bm-transaction-task-evidence">
+                        <div className="bm-transaction-task-evidence-grid">
+                          <span>Submitted by: {task.submittedForReviewByName || "—"}</span>
+                          <span>Submitted at: {task.submittedForReviewAt ? formatDateTimeLabel(task.submittedForReviewAt) : "—"}</span>
+                          <span>First approver: {task.firstApprovedByName || "—"}</span>
+                          <span>Second approver: {task.secondApprovedByName || "—"}</span>
+                          <span>Rejected by: {task.rejectedByName || "—"}</span>
+                          <span>Rejection reason: {task.rejectionReason || "—"}</span>
+                          <span>Secondary approval: {task.requiresSecondaryApproval ? "Enabled" : "Not required"}</span>
+                          <span>Awaiting second review: {task.awaitingSecondaryApproval ? "Yes" : "No"}</span>
+                        </div>
+
+                        {task.linkedDocuments.length ? (
+                          <div className="bm-transaction-task-linked-documents">
+                            {task.linkedDocuments.map((document) => (
+                              <a className="bm-task-linked-document" href={document.href} key={document.id}>
+                                <strong>{document.title}</strong>
+                                <span>{document.status}</span>
+                                {document.isSigned ? <span>Signed</span> : null}
+                                {document.hasPendingSignature ? <span>Signature pending</span> : null}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bm-transaction-task-linked-documents is-empty">No linked documents yet.</div>
+                        )}
                       </div>
                     </article>
                   );

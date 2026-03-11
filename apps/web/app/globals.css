@@ -2464,6 +2464,58 @@ select {
   margin-top: 18px;
 }
 
+.bm-transaction-task-evidence {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid #ebebeb;
+}
+
+.bm-transaction-task-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  color: #6a778b;
+  font-size: 0.72rem;
+}
+
+.bm-transaction-task-linked-documents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bm-task-linked-document {
+  display: grid;
+  gap: 2px;
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid #d6dce6;
+  background: #ffffff;
+  color: #20344d;
+  text-decoration: none;
+}
+
+.bm-task-linked-document strong {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.bm-task-linked-document span {
+  color: #6a778b;
+  font-size: 0.7rem;
+}
+
+.bm-task-linked-document:hover {
+  border-color: #b8c7de;
+  background: #f8fbff;
+}
+
+.bm-transaction-task-linked-documents.is-empty {
+  color: #6a778b;
+  font-size: 0.72rem;
+}
+
 .bm-task-status-todo {
   background: #f2f4f8;
   color: #556271;
@@ -2852,6 +2904,11 @@ select {
   border-top: 1px solid #ebebeb;
   color: #6a778b;
   font-size: 0.72rem;
+}
+
+.office-task-detail-documents {
+  display: grid;
+  gap: 8px;
 }
 
 .office-task-inline-error {

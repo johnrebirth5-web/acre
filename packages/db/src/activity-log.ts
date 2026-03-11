@@ -36,6 +36,8 @@ export const activityLogActions = {
   transactionTaskCreated: "transaction.task_created",
   transactionTaskUpdated: "transaction.task_updated",
   transactionTaskReviewRequested: "transaction.task_review_requested",
+  transactionTaskFirstApproved: "transaction.task_first_approved",
+  transactionTaskSecondApproved: "transaction.task_second_approved",
   transactionTaskApproved: "transaction.task_approved",
   transactionTaskRejected: "transaction.task_rejected",
   transactionTaskCompleted: "transaction.task_completed",
@@ -109,6 +111,9 @@ export type ActivityLogSectionKey =
 
 export type ActivityAlertSectionKey =
   | "all"
+  | "tasks-awaiting-your-review"
+  | "tasks-awaiting-second-review"
+  | "rejected-tasks-needing-action"
   | "transaction-closing-soon"
   | "overdue-transaction-tasks"
   | "contacts-follow-up-soon"
@@ -169,6 +174,9 @@ export type OfficeActivityActorOption = {
 export type GetOfficeActivityLogInput = {
   organizationId: string;
   officeId?: string | null;
+  currentMembershipId?: string | null;
+  canReviewTasks?: boolean;
+  canSecondaryReviewTasks?: boolean;
   view?: string;
   activitySection?: string;
   alertSection?: string;
@@ -279,6 +287,8 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.task_created": "Task created",
   "transaction.task_updated": "Task updated",
   "transaction.task_review_requested": "Task review requested",
+  "transaction.task_first_approved": "Task first-approved",
+  "transaction.task_second_approved": "Task second-approved",
   "transaction.task_approved": "Task approved",
   "transaction.task_rejected": "Task rejected",
   "transaction.task_completed": "Task completed",
@@ -331,6 +341,8 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.transactionTaskCreated ||
       action === activityLogActions.transactionTaskUpdated ||
       action === activityLogActions.transactionTaskReviewRequested ||
+      action === activityLogActions.transactionTaskFirstApproved ||
+      action === activityLogActions.transactionTaskSecondApproved ||
       action === activityLogActions.transactionTaskApproved ||
       action === activityLogActions.transactionTaskRejected ||
       action === activityLogActions.transactionTaskCompleted ||
@@ -386,6 +398,9 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
 ];
 
 const activityAlertSectionDefinitions: ActivityAlertSectionDefinition[] = [
+  { key: "tasks-awaiting-your-review", label: "Tasks awaiting your review", matches: (alert) => alert.type === "tasks-awaiting-your-review" },
+  { key: "tasks-awaiting-second-review", label: "Tasks awaiting second review", matches: (alert) => alert.type === "tasks-awaiting-second-review" },
+  { key: "rejected-tasks-needing-action", label: "Rejected tasks needing action", matches: (alert) => alert.type === "rejected-tasks-needing-action" },
   { key: "transaction-closing-soon", label: "Transaction closing soon", matches: (alert) => alert.type === "transaction-closing-soon" },
   { key: "overdue-transaction-tasks", label: "Overdue transaction tasks", matches: (alert) => alert.type === "overdue-transaction-tasks" },
   { key: "contacts-follow-up-soon", label: "Contacts needing follow-up soon", matches: (alert) => alert.type === "contacts-follow-up-soon" },
@@ -695,6 +710,10 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
     }
     case activityLogActions.transactionTaskReviewRequested:
       return "requested review for a transaction task";
+    case activityLogActions.transactionTaskFirstApproved:
+      return "recorded first approval for a transaction task";
+    case activityLogActions.transactionTaskSecondApproved:
+      return "recorded second approval for a transaction task";
     case activityLogActions.transactionTaskApproved:
       return "approved a transaction task";
     case activityLogActions.transactionTaskRejected:
@@ -902,6 +921,9 @@ async function getActorOptions(records: ActivityLogRecord[]) {
 async function listOperationalAlerts(input: {
   organizationId: string;
   officeId?: string | null;
+  currentMembershipId?: string | null;
+  canReviewTasks?: boolean;
+  canSecondaryReviewTasks?: boolean;
   objectType: ActivityLogObjectType;
   startDate: Date | null;
   endDate: Date | null;
@@ -922,6 +944,9 @@ async function listOperationalAlerts(input: {
 
   const [
     closingSoonTransactions,
+    tasksAwaitingReview,
+    tasksAwaitingSecondReview,
+    rejectedTasksNeedingAction,
     overdueTransactionTasks,
     contactsNeedingFollowUpSoon,
     overdueFollowUpTasks,
@@ -952,6 +977,103 @@ async function listOperationalAlerts(input: {
               }
             },
             orderBy: [{ closingDate: "asc" }]
+          })
+        : Promise.resolve([]),
+      input.canReviewTasks && input.currentMembershipId && (input.objectType === "all" || input.objectType === "task")
+        ? prisma.transactionTask.findMany({
+            where: {
+              organizationId: input.organizationId,
+              reviewStatus: "review_requested",
+              status: {
+                not: TransactionTaskStatus.completed
+              },
+              transaction: input.officeId
+                ? {
+                    officeId: input.officeId
+                  }
+                : undefined
+            },
+            include: {
+              assigneeMembership: {
+                include: {
+                  user: true
+                }
+              },
+              transaction: true,
+              submittedForReviewByMembership: {
+                include: {
+                  user: true
+                }
+              }
+            },
+            orderBy: [{ submittedForReviewAt: "asc" }, { updatedAt: "asc" }]
+          })
+        : Promise.resolve([]),
+      input.canSecondaryReviewTasks && input.currentMembershipId && (input.objectType === "all" || input.objectType === "task")
+        ? prisma.transactionTask.findMany({
+            where: {
+              organizationId: input.organizationId,
+              reviewStatus: "second_review",
+              status: {
+                not: TransactionTaskStatus.completed
+              },
+              NOT: {
+                firstApprovedByMembershipId: input.currentMembershipId
+              },
+              transaction: input.officeId
+                ? {
+                    officeId: input.officeId
+                  }
+                : undefined
+            },
+            include: {
+              assigneeMembership: {
+                include: {
+                  user: true
+                }
+              },
+              transaction: true,
+              firstApprovedByMembership: {
+                include: {
+                  user: true
+                }
+              }
+            },
+            orderBy: [{ firstApprovedAt: "asc" }, { updatedAt: "asc" }]
+          })
+        : Promise.resolve([]),
+      input.currentMembershipId && (input.objectType === "all" || input.objectType === "task")
+        ? prisma.transactionTask.findMany({
+            where: {
+              organizationId: input.organizationId,
+              reviewStatus: "rejected",
+              status: {
+                not: TransactionTaskStatus.completed
+              },
+              OR: [
+                { assigneeMembershipId: input.currentMembershipId },
+                { submittedForReviewByMembershipId: input.currentMembershipId }
+              ],
+              transaction: input.officeId
+                ? {
+                    officeId: input.officeId
+                  }
+                : undefined
+            },
+            include: {
+              assigneeMembership: {
+                include: {
+                  user: true
+                }
+              },
+              transaction: true,
+              rejectedByMembership: {
+                include: {
+                  user: true
+                }
+              }
+            },
+            orderBy: [{ rejectedAt: "desc" }, { updatedAt: "desc" }]
           })
         : Promise.resolve([]),
       input.objectType === "all" || input.objectType === "task"
@@ -1171,6 +1293,78 @@ async function listOperationalAlerts(input: {
     ]);
 
   const alerts: Array<OfficeOperationalAlert & { sortAt: Date }> = [];
+
+  for (const task of tasksAwaitingReview) {
+    const referenceDate = task.submittedForReviewAt ?? task.updatedAt;
+
+    alerts.push({
+      id: `alert-awaiting-review-${task.id}`,
+      type: "tasks-awaiting-your-review",
+      typeLabel: "Tasks awaiting your review",
+      severity: "high",
+      severityLabel: getSeverityLabel("high"),
+      objectType: "task",
+      title: "Task awaiting review",
+      summary: `${task.title} is waiting for first approval.`,
+      objectLabel: `${task.transaction.title} · ${task.transaction.address}, ${task.transaction.city}, ${task.transaction.state}`,
+      href: `/office/transactions/${task.transactionId}#transaction-task-${task.id}`,
+      referenceLabel: buildAlertReferenceLabel("Submitted", referenceDate),
+      detailSummary: [
+        `Checklist group: ${task.checklistGroup}`,
+        `Submitted by: ${task.submittedForReviewByMembership ? `${task.submittedForReviewByMembership.user.firstName} ${task.submittedForReviewByMembership.user.lastName}` : "Unknown"}`,
+        `Assignee: ${task.assigneeMembership ? `${task.assigneeMembership.user.firstName} ${task.assigneeMembership.user.lastName}` : "Unassigned"}`
+      ],
+      sortAt: referenceDate
+    });
+  }
+
+  for (const task of tasksAwaitingSecondReview) {
+    const referenceDate = task.firstApprovedAt ?? task.updatedAt;
+
+    alerts.push({
+      id: `alert-awaiting-second-review-${task.id}`,
+      type: "tasks-awaiting-second-review",
+      typeLabel: "Tasks awaiting second review",
+      severity: "high",
+      severityLabel: getSeverityLabel("high"),
+      objectType: "task",
+      title: "Task awaiting second review",
+      summary: `${task.title} is waiting for second approval.`,
+      objectLabel: `${task.transaction.title} · ${task.transaction.address}, ${task.transaction.city}, ${task.transaction.state}`,
+      href: `/office/transactions/${task.transactionId}#transaction-task-${task.id}`,
+      referenceLabel: buildAlertReferenceLabel("First approved", referenceDate),
+      detailSummary: [
+        `Checklist group: ${task.checklistGroup}`,
+        `First approver: ${task.firstApprovedByMembership ? `${task.firstApprovedByMembership.user.firstName} ${task.firstApprovedByMembership.user.lastName}` : "Unknown"}`,
+        `Assignee: ${task.assigneeMembership ? `${task.assigneeMembership.user.firstName} ${task.assigneeMembership.user.lastName}` : "Unassigned"}`
+      ],
+      sortAt: referenceDate
+    });
+  }
+
+  for (const task of rejectedTasksNeedingAction) {
+    const referenceDate = task.rejectedAt ?? task.updatedAt;
+
+    alerts.push({
+      id: `alert-rejected-task-${task.id}`,
+      type: "rejected-tasks-needing-action",
+      typeLabel: "Rejected tasks needing action",
+      severity: "medium",
+      severityLabel: getSeverityLabel("medium"),
+      objectType: "task",
+      title: "Rejected task needs follow-up",
+      summary: `${task.title} was rejected and needs updates before review can continue.`,
+      objectLabel: `${task.transaction.title} · ${task.transaction.address}, ${task.transaction.city}, ${task.transaction.state}`,
+      href: `/office/transactions/${task.transactionId}#transaction-task-${task.id}`,
+      referenceLabel: buildAlertReferenceLabel("Rejected", referenceDate),
+      detailSummary: [
+        `Checklist group: ${task.checklistGroup}`,
+        `Rejected by: ${task.rejectedByMembership ? `${task.rejectedByMembership.user.firstName} ${task.rejectedByMembership.user.lastName}` : "Unknown"}`,
+        `Reason: ${task.rejectionReason ?? "No reason provided"}`
+      ],
+      sortAt: referenceDate
+    });
+  }
 
   for (const transaction of closingSoonTransactions) {
     if (!transaction.closingDate) {
@@ -1489,6 +1683,9 @@ export async function getOfficeActivityLogSnapshot(input: GetOfficeActivityLogIn
   const derivedAlerts = await listOperationalAlerts({
     organizationId: input.organizationId,
     officeId: input.officeId,
+    currentMembershipId: input.currentMembershipId,
+    canReviewTasks: input.canReviewTasks,
+    canSecondaryReviewTasks: input.canSecondaryReviewTasks,
     objectType: selectedObjectType,
     startDate,
     endDate

@@ -1,4 +1,4 @@
-import { canAccessOfficeTasks, canReviewOfficeTasks } from "@acre/auth";
+import { canAccessOfficeTasks, canReviewOfficeTasks, canSecondaryReviewOfficeTasks } from "@acre/auth";
 import { Badge, PageHeader, PageShell } from "@acre/ui";
 import { listOfficeTasks } from "@acre/db";
 import { redirect } from "next/navigation";
@@ -12,6 +12,8 @@ type OfficeTasksPageProps = {
     assigneeMembershipId?: string;
     dueWindow?: string;
     noDueDate?: string;
+    reviewStatus?: string;
+    requiresSecondaryApproval?: string;
     complianceStatus?: string | string[];
     transactionId?: string;
     q?: string;
@@ -37,6 +39,8 @@ export default async function OfficeTasksPage(props: OfficeTasksPageProps) {
     assigneeMembershipId: searchParams.assigneeMembershipId,
     dueWindow: searchParams.dueWindow,
     noDueDate: searchParams.noDueDate,
+    reviewStatus: searchParams.reviewStatus,
+    requiresSecondaryApproval: searchParams.requiresSecondaryApproval,
     complianceStatus: searchParams.complianceStatus,
     transactionId: searchParams.transactionId,
     q: searchParams.q,
@@ -57,7 +61,11 @@ export default async function OfficeTasksPage(props: OfficeTasksPageProps) {
         title="Task list"
       />
 
-      <OfficeTasksClient canReviewTasks={canReviewOfficeTasks(context.currentMembership.role)} snapshot={snapshot} />
+      <OfficeTasksClient
+        canReviewTasks={canReviewOfficeTasks(context.currentMembership.role)}
+        canSecondaryReviewTasks={canSecondaryReviewOfficeTasks(context.currentMembership.role)}
+        snapshot={snapshot}
+      />
     </PageShell>
   );
 }

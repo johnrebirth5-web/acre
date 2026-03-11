@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { canAccessAccountActivity } from "@acre/auth";
+import { canAccessAccountActivity, canReviewOfficeTasks, canSecondaryReviewOfficeTasks } from "@acre/auth";
 import { Badge, PageHeader, PageShell } from "@acre/ui";
 import { getOfficeActivityLogSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
@@ -62,6 +62,9 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
   const snapshot = await getOfficeActivityLogSnapshot({
     organizationId: context.currentOrganization.id,
     officeId: context.currentOffice?.id ?? null,
+    currentMembershipId: context.currentMembership.id,
+    canReviewTasks: canReviewOfficeTasks(context.currentMembership.role),
+    canSecondaryReviewTasks: canSecondaryReviewOfficeTasks(context.currentMembership.role),
     view: searchParams.view,
     activitySection: searchParams.activitySection,
     alertSection: searchParams.alertSection,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 import type {
   OfficeTaskListSnapshot,
+  OfficeTaskReviewFilter,
   OfficeTransactionTask,
   OfficeTransactionTaskAssigneeOption,
   OfficeTransactionTaskComplianceStatus,
@@ -14,6 +15,7 @@ import type {
 type OfficeTasksClientProps = {
   snapshot: OfficeTaskListSnapshot;
   canReviewTasks: boolean;
+  canSecondaryReviewTasks: boolean;
 };
 
 type TaskEditState = {
@@ -41,6 +43,14 @@ const dueWindowOptions = [
   { value: "next_week", label: "Next week" },
   { value: "next_2_weeks", label: "Next 2 weeks" }
 ] as const;
+const reviewStatusOptions: Array<{ value: OfficeTaskReviewFilter; label: string }> = [
+  { value: "", label: "Any review state" },
+  { value: "Pending", label: "Pending" },
+  { value: "Review requested", label: "Review requested" },
+  { value: "Second review", label: "Second review requested" },
+  { value: "Approved", label: "Approved" },
+  { value: "Rejected", label: "Rejected" }
+];
 const complianceStatusOptions: OfficeTransactionTaskComplianceStatus[] = ["Pending", "In review", "Approved", "Rejected", "Not applicable"];
 
 function buildTaskEditState(task: OfficeTransactionTask): TaskEditState {
@@ -89,7 +99,7 @@ function formatDateTimeLabel(value: string) {
   });
 }
 
-export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClientProps) {
+export function OfficeTasksClient({ snapshot, canReviewTasks, canSecondaryReviewTasks }: OfficeTasksClientProps) {
   const router = useRouter();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [taskStates, setTaskStates] = useState<Record<string, TaskEditState>>(
@@ -199,12 +209,16 @@ export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClien
     setError("");
 
     try {
+      const rejectionReason =
+        action === "reject"
+          ? window.prompt("Reason for rejection (optional)", task.rejectionReason || "")?.trim() ?? ""
+          : "";
       const response = await fetch(`/api/office/transactions/${task.transactionId}/tasks/${task.id}/workflow`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action, rejectionReason })
       });
 
       if (!response.ok) {
@@ -316,6 +330,17 @@ export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClien
           </label>
 
           <label className="office-task-filter-field">
+            <span>Review status</span>
+            <select defaultValue={snapshot.filters.reviewStatus} name="reviewStatus">
+              {reviewStatusOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="office-task-filter-field">
             <span>Transaction</span>
             <select defaultValue={snapshot.filters.transactionId} name="transactionId">
               <option value="">All transactions</option>
@@ -348,6 +373,15 @@ export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClien
             <label>
               <input defaultChecked={snapshot.filters.noDueDate} name="noDueDate" type="checkbox" value="1" />
               <span>No due date only</span>
+            </label>
+            <label>
+              <input
+                defaultChecked={snapshot.filters.requiresSecondaryApproval}
+                name="requiresSecondaryApproval"
+                type="checkbox"
+                value="1"
+              />
+              <span>Requires secondary approval</span>
             </label>
             <label>
               <input defaultChecked={snapshot.filters.includeCompleted} name="includeCompleted" type="checkbox" value="1" />
@@ -559,14 +593,16 @@ export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClien
                                 Request review
                               </button>
                             ) : null}
-                            {task.canApprove && canReviewTasks ? (
+                            {task.canApprove &&
+                            ((task.awaitingSecondaryApproval && canSecondaryReviewTasks) ||
+                              (!task.awaitingSecondaryApproval && canReviewTasks)) ? (
                               <button
                                 className="bm-view-toggle"
                                 disabled={pendingAction === `approve:${task.id}`}
                                 onClick={() => handleWorkflowAction(task, "approve")}
                                 type="button"
                               >
-                                Approve
+                                {task.awaitingSecondaryApproval ? "Second approve" : "Approve"}
                               </button>
                             ) : null}
                             {task.canReject && canReviewTasks ? (
@@ -680,7 +716,29 @@ export function OfficeTasksClient({ snapshot, canReviewTasks }: OfficeTasksClien
                               <span>Compliance status: {task.complianceStatus}</span>
                               <span>Completed at: {formatDateTimeLabel(task.completedAt)}</span>
                               <span>Submitted for review: {formatDateTimeLabel(task.submittedForReviewAt)}</span>
+                              <span>Submitted by: {task.submittedForReviewByName || "—"}</span>
+                              <span>First approver: {task.firstApprovedByName || "—"}</span>
+                              <span>Second approver: {task.secondApprovedByName || "—"}</span>
+                              <span>Secondary approval: {task.requiresSecondaryApproval ? "Enabled" : "Not required"}</span>
+                              <span>Rejection reason: {task.rejectionReason || "—"}</span>
                             </div>
+
+                            {task.linkedDocuments.length ? (
+                              <div className="office-task-detail-meta office-task-detail-documents">
+                                {task.linkedDocuments.map((document) => (
+                                  <span key={document.id}>
+                                    <a href={document.href}>{document.title}</a>
+                                    {` · ${document.status}`}
+                                    {document.isSigned ? " · Signed" : ""}
+                                    {document.hasPendingSignature ? " · Signature pending" : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="office-task-detail-meta office-task-detail-documents">
+                                <span>Linked documents: —</span>
+                              </div>
+                            )}
 
                             <div className="office-task-edit-actions">
                               <button

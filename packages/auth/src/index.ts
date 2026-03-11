@@ -5,6 +5,7 @@ export type AppPermission =
   | "activity:view"
   | "documents:view"
   | "documents:manage"
+  | "documents:approve"
   | "forms:use"
   | "signatures:manage"
   | "incoming_updates:review"
@@ -13,6 +14,7 @@ export type AppPermission =
   | "tasks:view"
   | "tasks:manage"
   | "tasks:review"
+  | "tasks:review:secondary"
   | "listings:view"
   | "listings:manage"
   | "listings:publish"
@@ -59,6 +61,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "activity:view",
     "documents:view",
     "documents:manage",
+    "documents:approve",
     "forms:use",
     "signatures:manage",
     "incoming_updates:review",
@@ -83,6 +86,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "activity:view",
     "documents:view",
     "documents:manage",
+    "documents:approve",
     "forms:use",
     "signatures:manage",
     "incoming_updates:review",
@@ -91,6 +95,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "tasks:view",
     "tasks:manage",
     "tasks:review",
+    "tasks:review:secondary",
     "listings:view",
     "listings:manage",
     "listings:publish",
@@ -136,6 +141,10 @@ export function canManageOfficeDocuments(role: UserRole): boolean {
   return can(role, "documents:manage");
 }
 
+export function canApproveOfficeDocuments(role: UserRole): boolean {
+  return can(role, "documents:approve");
+}
+
 export function canUseOfficeForms(role: UserRole): boolean {
   return can(role, "forms:use");
 }
@@ -166,6 +175,10 @@ export function canManageOfficeTasks(role: UserRole): boolean {
 
 export function canReviewOfficeTasks(role: UserRole): boolean {
   return can(role, "tasks:review");
+}
+
+export function canSecondaryReviewOfficeTasks(role: UserRole): boolean {
+  return can(role, "tasks:review:secondary");
 }
 
 export function getDefaultAppPath(role: UserRole): string {

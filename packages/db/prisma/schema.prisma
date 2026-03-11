@@ -321,6 +321,7 @@ model Membership {
   transactionsOwned Transaction[]
   transactionTasksAssigned TransactionTask[]         @relation("TransactionTaskAssignee")
   transactionTasksCompleted TransactionTask[]        @relation("TransactionTaskCompletedBy")
+  transactionTasksSubmittedForReview TransactionTask[] @relation("TransactionTaskSubmittedForReviewBy")
   transactionTasksFirstApproved TransactionTask[]    @relation("TransactionTaskFirstApprovedBy")
   transactionTasksSecondApproved TransactionTask[]   @relation("TransactionTaskSecondApprovedBy")
   transactionTasksRejected TransactionTask[]         @relation("TransactionTaskRejectedBy")
@@ -515,12 +516,14 @@ model TransactionTask {
   completedAt               DateTime?
   completedByMembershipId   String?
   submittedForReviewAt      DateTime?
+  submittedForReviewByMembershipId String?
   firstApprovedAt           DateTime?
   firstApprovedByMembershipId String?
   secondApprovedAt          DateTime?
   secondApprovedByMembershipId String?
   rejectedAt                DateTime?
   rejectedByMembershipId    String?
+  rejectionReason           String?
   reopenedAt                DateTime?
   createdAt                 DateTime                        @default(now())
   updatedAt                 DateTime                        @updatedAt
@@ -528,6 +531,7 @@ model TransactionTask {
   transaction               Transaction                     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   assigneeMembership        Membership?                     @relation("TransactionTaskAssignee", fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
   completedByMembership     Membership?                     @relation("TransactionTaskCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
+  submittedForReviewByMembership Membership?               @relation("TransactionTaskSubmittedForReviewBy", fields: [submittedForReviewByMembershipId], references: [id], onDelete: SetNull)
   firstApprovedByMembership Membership?                     @relation("TransactionTaskFirstApprovedBy", fields: [firstApprovedByMembershipId], references: [id], onDelete: SetNull)
   secondApprovedByMembership Membership?                    @relation("TransactionTaskSecondApprovedBy", fields: [secondApprovedByMembershipId], references: [id], onDelete: SetNull)
   rejectedByMembership      Membership?                     @relation("TransactionTaskRejectedBy", fields: [rejectedByMembershipId], references: [id], onDelete: SetNull)
@@ -540,6 +544,7 @@ model TransactionTask {
   @@index([organizationId, transactionId, sortOrder])
   @@index([organizationId, dueAt])
   @@index([organizationId, complianceStatus])
+  @@index([organizationId, reviewStatus])
 }
 
 model TaskListView {

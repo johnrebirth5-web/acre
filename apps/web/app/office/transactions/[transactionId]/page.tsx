@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { getTransactionById, listTransactionTaskAssigneeOptions, listTransactionTasks } from "@acre/db";
 import {
+  canApproveOfficeDocuments,
   canManageOfficeDocuments,
   canManageOfficeSignatures,
+  canReviewOfficeTasks,
   canReviewOfficeIncomingUpdates,
+  canSecondaryReviewOfficeTasks,
   canUseOfficeForms,
   canViewOfficeDocuments
 } from "@acre/auth";
@@ -46,6 +49,9 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
   const canUseFormsForRole = canUseOfficeForms(context.currentMembership.role);
   const canManageSignaturesForRole = canManageOfficeSignatures(context.currentMembership.role);
   const canReviewIncomingUpdatesForRole = canReviewOfficeIncomingUpdates(context.currentMembership.role);
+  const canReviewTasksForRole = canReviewOfficeTasks(context.currentMembership.role);
+  const canSecondaryReviewTasksForRole = canSecondaryReviewOfficeTasks(context.currentMembership.role);
+  const canApproveDocumentsForRole = canApproveOfficeDocuments(context.currentMembership.role);
 
   return (
     <PageShell className="bm-transaction-detail-page office-detail-page">
@@ -135,7 +141,14 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
         transactionId={transaction.id}
       />
 
-      <TransactionTasksCard assigneeOptions={taskAssigneeOptions} tasks={tasks} transactionId={transaction.id} />
+      <TransactionTasksCard
+        assigneeOptions={taskAssigneeOptions}
+        canApproveDocuments={canApproveDocumentsForRole}
+        canReviewTasks={canReviewTasksForRole}
+        canSecondaryReviewTasks={canSecondaryReviewTasksForRole}
+        tasks={tasks}
+        transactionId={transaction.id}
+      />
 
       <TransactionDocumentsCard
         canManageDocuments={canManageDocumentsForRole}
