@@ -436,6 +436,38 @@ Trade-off：
   - full brokerage billing suite
 - 好处是后续接真实 payment provider 时，不需要把 agent ledger / statement / invoice 模型推翻重做
 
+## 关键决策 10：Agent Management 建在现有 Membership / Office 身份基础上，而不是另建第二套人员系统
+
+原因：
+
+- agent 的身份、office 归属、角色和权限已经通过 `User + Membership + Office` 建立
+- 如果另建一套 agent identity，会很快和 transactions / tasks / accounting / activity 分叉
+- 当前目标是 `BoldTrail / Brokermint` 风格的 back-office agent management，不是 recruit/candidate pipeline
+
+影响：
+
+- 新增 durable 模型：
+  - `AgentProfile`
+  - `Team`
+  - `TeamMembership`
+  - `AgentOnboardingItem`
+  - `AgentGoal`
+- `/office/agents` 是 roster 页面
+- `/office/agents/:membershipId` 是 profile/detail 页面
+- profile 页直接聚合：
+  - transactions
+  - tasks
+  - billing summary
+  - recent activity
+- onboarding 被独立建模，不和 transaction tasks 混成一套
+
+Trade-off：
+
+- 当前没有 recruit / candidate pipeline
+- 当前没有 coaching workflow
+- 当前没有 agent self-service portal
+- 但后续继续扩 agent management 时，不需要推翻现有 identity / team / goals 基础
+
 ## 后续接手时最需要先理解的几个决策
 
 如果你只读这一段，也要先理解下面四点：

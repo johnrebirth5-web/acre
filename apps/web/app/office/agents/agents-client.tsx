@@ -1,0 +1,318 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import {
+  Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FilterBar,
+  FilterField,
+  FormField,
+  SectionCard,
+  SelectInput,
+  StatCard,
+  StatusBadge,
+  TextInput
+} from "@acre/ui";
+import type { OfficeAgentsRosterSnapshot } from "@acre/db";
+
+type OfficeAgentsClientProps = {
+  snapshot: OfficeAgentsRosterSnapshot;
+  canManageAgents: boolean;
+  canManageOnboarding: boolean;
+  canManageGoals: boolean;
+  canManageTeams: boolean;
+};
+
+const onboardingStatusOptions = [
+  { value: "", label: "All onboarding states" },
+  { value: "not_started", label: "Not started" },
+  { value: "in_progress", label: "In progress" },
+  { value: "complete", label: "Complete" }
+] as const;
+
+export function OfficeAgentsClient({
+  snapshot,
+  canManageAgents,
+  canManageGoals,
+  canManageOnboarding,
+  canManageTeams
+}: OfficeAgentsClientProps) {
+  const router = useRouter();
+  const [teamName, setTeamName] = useState("");
+  const [teamError, setTeamError] = useState("");
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  async function handleCreateTeam(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!teamName.trim()) {
+      setTeamError("Team name is required.");
+      return;
+    }
+
+    setPendingAction("create-team");
+    setTeamError("");
+
+    try {
+      const response = await fetch("/api/office/agents/teams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: teamName })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to create team.");
+      }
+
+      setTeamName("");
+      router.refresh();
+    } catch (error) {
+      setTeamError(error instanceof Error ? error.message : "Failed to create team.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleSaveTeam(teamId: string, formData: FormData) {
+    setPendingAction(`save-team:${teamId}`);
+    setTeamError("");
+
+    try {
+      const response = await fetch(`/api/office/agents/teams/${teamId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: String(formData.get("name") ?? ""),
+          isActive: formData.get("isActive") === "true"
+        })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to update team.");
+      }
+
+      router.refresh();
+    } catch (error) {
+      setTeamError(error instanceof Error ? error.message : "Failed to update team.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  return (
+    <div className="office-agents-layout">
+      <section className="office-kpi-grid">
+        <StatCard hint="currently visible in this roster scope" label="Rostered members" value={snapshot.summary.totalMembers} />
+        <StatCard hint="members with the Agent role" label="Agents" value={snapshot.summary.agentCount} />
+        <StatCard hint="members still progressing through onboarding" label="Onboarding in progress" value={snapshot.summary.onboardingInProgressCount} />
+        <StatCard hint="currently active teams in this office scope" label="Active teams" value={snapshot.summary.activeTeamCount} />
+      </section>
+
+      <SectionCard subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
+        <FilterBar as="form" method="get">
+          <FilterField label="Search">
+            <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Search name, email, title, or team" type="search" />
+          </FilterField>
+          <FilterField label="Office">
+            <SelectInput defaultValue={snapshot.filters.officeId} name="officeId">
+              <option value="">All offices</option>
+              {snapshot.filters.officeOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Role">
+            <SelectInput defaultValue={snapshot.filters.role} name="role">
+              <option value="">All roles</option>
+              {snapshot.filters.roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Team">
+            <SelectInput defaultValue={snapshot.filters.teamId} name="teamId">
+              <option value="">All teams</option>
+              {snapshot.filters.teamOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Onboarding">
+            <SelectInput defaultValue={snapshot.filters.onboardingStatus} name="onboardingStatus">
+              {onboardingStatusOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <div className="office-filter-actions">
+            <Button type="submit">Apply filters</Button>
+            <Link className="office-button office-button-secondary" href="/office/agents">
+              Reset
+            </Link>
+          </div>
+        </FilterBar>
+
+        {snapshot.rows.length ? (
+          <DataTable>
+            <DataTableHeader className="office-agents-roster-head">
+              <span>Agent</span>
+              <span>Office</span>
+              <span>Role</span>
+              <span>Team</span>
+              <span>Onboarding</span>
+              <span>Active tasks</span>
+              <span>Open transactions</span>
+              <span>Billing balance</span>
+            </DataTableHeader>
+            <DataTableBody>
+              {snapshot.rows.map((row) => (
+                <DataTableRow className="office-data-table-row-link office-agents-roster-row" key={row.membershipId}>
+                  <Link className="office-data-table-row-anchor" href={row.href}>
+                    <span className="office-data-table-row-main">
+                      <strong>{row.name}</strong>
+                      <small>{row.email}</small>
+                    </span>
+                    <span>{row.officeName}</span>
+                    <span>{row.role}</span>
+                    <span>{row.teamLabel}</span>
+                    <span>
+                      <StatusBadge tone={row.onboardingStatus === "Complete" ? "success" : row.onboardingStatus === "In progress" ? "accent" : "warning"}>
+                        {row.onboardingStatus}
+                      </StatusBadge>
+                    </span>
+                    <span>{row.activeTasksCount}</span>
+                    <span>{row.openTransactionCount}</span>
+                    <span>{row.billingBalanceLabel}</span>
+                  </Link>
+                </DataTableRow>
+              ))}
+            </DataTableBody>
+          </DataTable>
+        ) : (
+          <EmptyState
+            description="Try relaxing the current office, team, or onboarding filters."
+            title="No agents matched the current roster filters"
+          />
+        )}
+      </SectionCard>
+
+      <SectionCard
+        actions={
+          canManageTeams ? (
+            <StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge>
+          ) : undefined
+        }
+        subtitle="Teams are shared roster groupings for visibility and management. Create or rename them here, then manage membership inside each agent profile."
+        title="Teams"
+      >
+        {canManageTeams ? (
+          <form className="office-inline-form" onSubmit={handleCreateTeam}>
+            <FormField className="office-inline-form-field" label="New team name">
+              <TextInput onChange={(event) => setTeamName(event.target.value)} placeholder="Create team" value={teamName} />
+            </FormField>
+            <Button disabled={pendingAction === "create-team"} type="submit">
+              {pendingAction === "create-team" ? "Creating..." : "Create team"}
+            </Button>
+            {teamError ? <p className="office-form-error">{teamError}</p> : null}
+          </form>
+        ) : null}
+
+        <div className="office-agents-team-grid">
+          {snapshot.teams.map((team) => (
+            <form
+              className="office-section-card office-agents-team-card"
+              key={team.id}
+              onSubmit={async (event) => {
+                event.preventDefault();
+                await handleSaveTeam(team.id, new FormData(event.currentTarget));
+              }}
+            >
+              <div className="office-section-body">
+                <div className="office-agents-team-card-head">
+                  <FormField className="office-agents-team-name-field" label="Team name">
+                    <TextInput defaultValue={team.name} name="name" readOnly={!canManageTeams} />
+                  </FormField>
+                  <StatusBadge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</StatusBadge>
+                </div>
+
+                <div className="office-secondary-meta-list">
+                  <div className="office-secondary-meta-row">
+                    <dt>Slug</dt>
+                    <dd>{team.slug}</dd>
+                  </div>
+                  <div className="office-secondary-meta-row">
+                    <dt>Members</dt>
+                    <dd>{team.memberCount}</dd>
+                  </div>
+                </div>
+
+                <ul className="office-agents-team-members">
+                  {team.members.map((member) => (
+                    <li key={member.membershipId}>
+                      <Link href={`/office/agents/${member.membershipId}`}>{member.label}</Link>
+                      <span>{member.role}</span>
+                    </li>
+                  ))}
+                  {team.members.length === 0 ? <li className="office-agents-team-empty">No members assigned yet.</li> : null}
+                </ul>
+
+                {canManageTeams ? (
+                  <div className="office-inline-form office-inline-form-compact">
+                    <input name="isActive" type="hidden" value={String(team.isActive)} />
+                    <Button
+                      disabled={pendingAction === `save-team:${team.id}`}
+                      type="submit"
+                      variant="secondary"
+                    >
+                      {pendingAction === `save-team:${team.id}` ? "Saving..." : "Save team"}
+                    </Button>
+                    <Button
+                      disabled={pendingAction === `save-team:${team.id}`}
+                      onClick={async () => {
+                        const formData = new FormData();
+                        formData.set("name", team.name);
+                        formData.set("isActive", String(!team.isActive));
+                        await handleSaveTeam(team.id, formData);
+                      }}
+                      type="button"
+                      variant="ghost"
+                    >
+                      {team.isActive ? "Deactivate" : "Reactivate"}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            </form>
+          ))}
+          {snapshot.teams.length === 0 ? (
+            <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" />
+          ) : null}
+        </div>
+
+        {!canManageAgents && !canManageOnboarding && !canManageGoals && !canManageTeams ? (
+          <p className="office-form-helper">This roster is read-only for your current role.</p>
+        ) : null}
+      </SectionCard>
+    </div>
+  );
+}

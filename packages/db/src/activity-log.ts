@@ -11,6 +11,19 @@ import {
 import { prisma } from "./client";
 
 export const activityLogActions = {
+  agentProfileCreated: "agent.profile_created",
+  agentProfileUpdated: "agent.profile_updated",
+  teamCreated: "team.created",
+  teamUpdated: "team.updated",
+  teamDeactivated: "team.deactivated",
+  teamMemberAdded: "team.member_added",
+  teamMemberRemoved: "team.member_removed",
+  agentOnboardingItemCreated: "agent.onboarding_item_created",
+  agentOnboardingItemUpdated: "agent.onboarding_item_updated",
+  agentOnboardingItemCompleted: "agent.onboarding_item_completed",
+  agentOnboardingItemReopened: "agent.onboarding_item_reopened",
+  agentGoalCreated: "agent.goal_created",
+  agentGoalUpdated: "agent.goal_updated",
   transactionCreated: "transaction.created",
   transactionUpdated: "transaction.updated",
   transactionStatusChanged: "transaction.status_changed",
@@ -72,6 +85,10 @@ export const activityLogActions = {
 export type ActivityLogAction = (typeof activityLogActions)[keyof typeof activityLogActions];
 export type ActivityLogViewMode = "all" | "activity" | "alerts";
 export type ActivityLogEntityType =
+  | "agent_profile"
+  | "team"
+  | "agent_onboarding_item"
+  | "agent_goal"
   | "transaction"
   | "contact"
   | "transaction_task"
@@ -86,7 +103,7 @@ export type ActivityLogEntityType =
   | "agent_recurring_charge_rule"
   | "agent_payment_method"
   | "earnest_money";
-export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "document" | "comment" | "auth" | "accounting";
+export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "document" | "comment" | "auth" | "accounting" | "agent";
 
 export type ActivityLogChange = {
   label: string;
@@ -111,6 +128,7 @@ export type ActivityLogPayload = {
 
 export type ActivityLogSectionKey =
   | "all"
+  | "agents-teams"
   | "transactions"
   | "contacts"
   | "tasks-checklists"
@@ -272,6 +290,19 @@ type ParsedActivityPayload = ActivityLogPayload & {
 };
 
 const activityActionLabelMap: Record<ActivityLogAction, string> = {
+  "agent.profile_created": "Agent profile created",
+  "agent.profile_updated": "Agent profile updated",
+  "team.created": "Team created",
+  "team.updated": "Team updated",
+  "team.deactivated": "Team deactivated",
+  "team.member_added": "Agent added to team",
+  "team.member_removed": "Agent removed from team",
+  "agent.onboarding_item_created": "Onboarding item created",
+  "agent.onboarding_item_updated": "Onboarding item updated",
+  "agent.onboarding_item_completed": "Onboarding item completed",
+  "agent.onboarding_item_reopened": "Onboarding item reopened",
+  "agent.goal_created": "Goal created",
+  "agent.goal_updated": "Goal updated",
   "transaction.created": "Transaction created",
   "transaction.updated": "Transaction updated",
   "transaction.status_changed": "Transaction status changed",
@@ -332,6 +363,24 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
 
 const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
   { key: "all", label: "All events", matches: () => true },
+  {
+    key: "agents-teams",
+    label: "Agents / Teams",
+    matches: (action) =>
+      action === activityLogActions.agentProfileCreated ||
+      action === activityLogActions.agentProfileUpdated ||
+      action === activityLogActions.teamCreated ||
+      action === activityLogActions.teamUpdated ||
+      action === activityLogActions.teamDeactivated ||
+      action === activityLogActions.teamMemberAdded ||
+      action === activityLogActions.teamMemberRemoved ||
+      action === activityLogActions.agentOnboardingItemCreated ||
+      action === activityLogActions.agentOnboardingItemUpdated ||
+      action === activityLogActions.agentOnboardingItemCompleted ||
+      action === activityLogActions.agentOnboardingItemReopened ||
+      action === activityLogActions.agentGoalCreated ||
+      action === activityLogActions.agentGoalUpdated
+  },
   {
     key: "transactions",
     label: "Transactions",
@@ -534,6 +583,11 @@ function getActivityPayload(payload: Prisma.JsonValue | null): ParsedActivityPay
 
 function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjectType, "all"> {
   switch (entityType) {
+    case "agent_profile":
+    case "team":
+    case "agent_onboarding_item":
+    case "agent_goal":
+      return "agent";
     case "transaction":
       return "transaction";
     case "contact":
@@ -562,6 +616,7 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
 
 function normalizeObjectType(value: string | undefined): ActivityLogObjectType {
   if (
+    value === "agent" ||
     value === "transaction" ||
     value === "contact" ||
     value === "task" ||
@@ -597,6 +652,18 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "accounting_transaction") {
     return `/office/accounting?entryId=${record.entityId}`;
+  }
+
+  if (record.entityType === "agent_profile") {
+    return payload.contextHref ?? "/office/agents";
+  }
+
+  if (record.entityType === "team") {
+    return payload.contextHref ?? "/office/agents";
+  }
+
+  if (record.entityType === "agent_onboarding_item" || record.entityType === "agent_goal") {
+    return payload.contextHref ?? "/office/agents";
   }
 
   if (record.entityType === "agent_recurring_charge_rule" || record.entityType === "agent_payment_method") {
@@ -688,6 +755,32 @@ function formatSummaryChange(change: ActivityLogChange | null) {
 
 function getSummary(action: string, payload: ParsedActivityPayload) {
   switch (action) {
+    case activityLogActions.agentProfileCreated:
+      return "created an agent profile";
+    case activityLogActions.agentProfileUpdated:
+      return payload.changes.length === 1 ? `updated agent ${payload.changes[0].label.toLowerCase()}` : "updated an agent profile";
+    case activityLogActions.teamCreated:
+      return "created a team";
+    case activityLogActions.teamUpdated:
+      return payload.changes.length === 1 ? `updated team ${payload.changes[0].label.toLowerCase()}` : "updated a team";
+    case activityLogActions.teamDeactivated:
+      return "deactivated a team";
+    case activityLogActions.teamMemberAdded:
+      return "added an agent to a team";
+    case activityLogActions.teamMemberRemoved:
+      return "removed an agent from a team";
+    case activityLogActions.agentOnboardingItemCreated:
+      return "created an onboarding item";
+    case activityLogActions.agentOnboardingItemUpdated:
+      return payload.changes.length === 1 ? `updated onboarding ${payload.changes[0].label.toLowerCase()}` : "updated an onboarding item";
+    case activityLogActions.agentOnboardingItemCompleted:
+      return "completed an onboarding item";
+    case activityLogActions.agentOnboardingItemReopened:
+      return "reopened an onboarding item";
+    case activityLogActions.agentGoalCreated:
+      return "created an agent goal";
+    case activityLogActions.agentGoalUpdated:
+      return payload.changes.length === 1 ? `updated goal ${payload.changes[0].label.toLowerCase()}` : "updated an agent goal";
     case activityLogActions.transactionCreated:
       return "created a transaction";
     case activityLogActions.transactionUpdated:

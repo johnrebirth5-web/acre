@@ -234,6 +234,30 @@ enum AgentPaymentMethodStatus {
   removed
 }
 
+enum AgentOnboardingStatus {
+  not_started
+  in_progress
+  complete
+}
+
+enum TeamMembershipRole {
+  lead
+  member
+}
+
+enum AgentOnboardingItemStatus {
+  pending
+  in_progress
+  completed
+  reopened
+}
+
+enum AgentGoalPeriodType {
+  monthly
+  quarterly
+  annual
+}
+
 enum EarnestMoneyStatus {
   not_received
   overdue
@@ -277,6 +301,11 @@ model Organization {
   transactionForms TransactionForm[]
   signatureRequests SignatureRequest[]
   incomingUpdates IncomingUpdate[]
+  agentProfiles   AgentProfile[]
+  teams           Team[]
+  teamMemberships TeamMembership[]
+  agentOnboardingItems AgentOnboardingItem[]
+  agentGoals      AgentGoal[]
 }
 
 model Office {
@@ -309,6 +338,11 @@ model Office {
   transactionForms TransactionForm[]
   signatureRequests SignatureRequest[]
   incomingUpdates IncomingUpdate[]
+  agentProfiles   AgentProfile[]
+  teams           Team[]
+  teamMemberships TeamMembership[]
+  agentOnboardingItems AgentOnboardingItem[]
+  agentGoals      AgentGoal[]
 
   @@unique([organizationId, slug])
 }
@@ -365,6 +399,11 @@ model Membership {
   createdTransactionForms TransactionForm[] @relation("TransactionFormCreatedBy")
   requestedSignatureRequests SignatureRequest[] @relation("SignatureRequestRequestedBy")
   reviewedIncomingUpdates IncomingUpdate[] @relation("IncomingUpdateReviewedBy")
+  agentProfile         AgentProfile?
+  teamMemberships      TeamMembership[]
+  agentOnboardingItems AgentOnboardingItem[]
+  completedAgentOnboardingItems AgentOnboardingItem[] @relation("AgentOnboardingCompletedBy")
+  agentGoals           AgentGoal[]
 
   @@unique([organizationId, userId])
 }
@@ -1059,6 +1098,114 @@ model AgentPaymentMethod {
 
   @@index([organizationId, officeId])
   @@index([organizationId, membershipId, status])
+}
+
+model AgentProfile {
+  id                 String                @id @default(cuid())
+  organizationId     String
+  officeId           String?
+  membershipId       String                @unique
+  displayName        String?
+  bio                String?
+  notes              String?
+  licenseNumber      String?
+  licenseState       String?
+  startDate          DateTime?
+  onboardingStatus   AgentOnboardingStatus @default(not_started)
+  commissionPlanName String?
+  avatarUrl          String?
+  internalExtension  String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office             Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership         Membership            @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, officeId])
+  @@index([organizationId, onboardingStatus])
+}
+
+model Team {
+  id             String           @id @default(cuid())
+  organizationId String
+  officeId       String?
+  name           String
+  slug           String
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?          @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  memberships    TeamMembership[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, officeId, isActive])
+}
+
+model TeamMembership {
+  id             String             @id @default(cuid())
+  organizationId String
+  officeId       String?
+  teamId         String
+  membershipId   String
+  role           TeamMembershipRole @default(member)
+  createdAt      DateTime           @default(now())
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?            @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  team           Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  membership     Membership         @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, membershipId])
+  @@index([organizationId, officeId])
+  @@index([organizationId, membershipId])
+}
+
+model AgentOnboardingItem {
+  id                    String                    @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  membershipId          String
+  title                 String
+  description           String?
+  category              String                    @default("General")
+  dueAt                 DateTime?
+  status                AgentOnboardingItemStatus @default(pending)
+  sortOrder             Int                       @default(0)
+  completedAt           DateTime?
+  completedByMembershipId String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  organization          Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership            Membership                @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  completedByMembership Membership?              @relation("AgentOnboardingCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, officeId, membershipId])
+  @@index([organizationId, membershipId, status])
+  @@index([organizationId, dueAt])
+}
+
+model AgentGoal {
+  id                     String              @id @default(cuid())
+  organizationId         String
+  officeId               String?
+  membershipId           String
+  periodType             AgentGoalPeriodType
+  startsAt               DateTime
+  endsAt                 DateTime
+  targetTransactionCount Int?
+  targetClosedVolume     Decimal?            @db.Decimal(12, 2)
+  targetOfficeNet        Decimal?            @db.Decimal(12, 2)
+  targetAgentNet         Decimal?            @db.Decimal(12, 2)
+  notes                  String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  organization           Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                 Office?             @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership             Membership          @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, officeId, membershipId])
+  @@index([organizationId, startsAt, endsAt])
 }
 
 model EarnestMoneyRecord {

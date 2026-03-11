@@ -19,6 +19,7 @@ const navGroups: NavGroup[] = [
       { label: "Pipeline", href: "/office/pipeline" },
       { label: "Transactions", href: "/office/transactions" },
       { label: "Contacts", href: "/office/contacts" },
+      { label: "Agents", href: "/office/agents" },
       { label: "Reports", href: "/office/reports" },
       { label: "Activity", href: "/office/activity" },
       { label: "Library", href: "/office/library" },
@@ -120,6 +121,9 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
         </Link>
         <Link className={pathname === "/office/transactions" ? "is-active" : ""} href="/office/transactions">
           Trans
+        </Link>
+        <Link className={pathname === "/office/agents" ? "is-active" : ""} href="/office/agents">
+          Agents
         </Link>
         <Link className={pathname === "/office/activity" ? "is-active" : ""} href="/office/activity">
           Activity

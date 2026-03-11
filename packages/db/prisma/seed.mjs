@@ -281,6 +281,322 @@ async function main() {
     membershipByEmail.set(membership.user.email, savedMembership);
   }
 
+  const seededAgentProfiles = [
+    {
+      membershipEmail: "jane@acre.com",
+      displayName: "Jane Wu",
+      bio: "Buyer-side agent focused on Brooklyn and LIC investor inventory.",
+      notes: "Primary mentor for new buyer-side workflows.",
+      licenseNumber: "NY-AG-10428",
+      licenseState: "NY",
+      startDate: new Date("2025-09-01T00:00:00.000Z"),
+      onboardingStatus: "in_progress",
+      commissionPlanName: "Senior agent split",
+      avatarUrl: "",
+      internalExtension: "201"
+    },
+    {
+      membershipEmail: "simon@acre.com",
+      displayName: "Simon Park",
+      bio: "Office manager supervising transaction operations and finance review.",
+      notes: "Reviews finance-side tasks and vendor billing workflows.",
+      licenseNumber: "",
+      licenseState: "",
+      startDate: new Date("2024-07-15T00:00:00.000Z"),
+      onboardingStatus: "complete",
+      commissionPlanName: "",
+      avatarUrl: "",
+      internalExtension: "102"
+    },
+    {
+      membershipEmail: "naomi@acre.com",
+      displayName: "Naomi Chen",
+      bio: "Office administrator coordinating approvals, documents, and back-office operations.",
+      notes: "Primary secondary approver for compliance-sensitive work.",
+      licenseNumber: "",
+      licenseState: "",
+      startDate: new Date("2024-11-01T00:00:00.000Z"),
+      onboardingStatus: "complete",
+      commissionPlanName: "",
+      avatarUrl: "",
+      internalExtension: "101"
+    }
+  ];
+
+  for (const profile of seededAgentProfiles) {
+    const membership = membershipByEmail.get(profile.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.agentProfile.upsert({
+      where: {
+        membershipId: membership.id
+      },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        displayName: profile.displayName,
+        bio: profile.bio,
+        notes: profile.notes,
+        licenseNumber: profile.licenseNumber || null,
+        licenseState: profile.licenseState || null,
+        startDate: profile.startDate,
+        onboardingStatus: profile.onboardingStatus,
+        commissionPlanName: profile.commissionPlanName || null,
+        avatarUrl: profile.avatarUrl || null,
+        internalExtension: profile.internalExtension || null
+      },
+      create: {
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        displayName: profile.displayName,
+        bio: profile.bio,
+        notes: profile.notes,
+        licenseNumber: profile.licenseNumber || null,
+        licenseState: profile.licenseState || null,
+        startDate: profile.startDate,
+        onboardingStatus: profile.onboardingStatus,
+        commissionPlanName: profile.commissionPlanName || null,
+        avatarUrl: profile.avatarUrl || null,
+        internalExtension: profile.internalExtension || null
+      }
+    });
+  }
+
+  const seededTeams = [
+    {
+      id: "seed-team-east-river",
+      name: "East River Team",
+      slug: "east-river-team",
+      isActive: true
+    },
+    {
+      id: "seed-team-operations",
+      name: "Operations",
+      slug: "operations",
+      isActive: true
+    }
+  ];
+
+  for (const team of seededTeams) {
+    await prisma.team.upsert({
+      where: {
+        organizationId_slug: {
+          organizationId: organization.id,
+          slug: team.slug
+        }
+      },
+      update: {
+        officeId: office.id,
+        name: team.name,
+        isActive: team.isActive
+      },
+      create: {
+        id: team.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        name: team.name,
+        slug: team.slug,
+        isActive: team.isActive
+      }
+    });
+  }
+
+  const seededTeamMemberships = [
+    {
+      id: "seed-team-membership-jane",
+      teamId: "seed-team-east-river",
+      membershipEmail: "jane@acre.com",
+      role: "lead"
+    },
+    {
+      id: "seed-team-membership-simon",
+      teamId: "seed-team-operations",
+      membershipEmail: "simon@acre.com",
+      role: "lead"
+    },
+    {
+      id: "seed-team-membership-naomi",
+      teamId: "seed-team-operations",
+      membershipEmail: "naomi@acre.com",
+      role: "member"
+    }
+  ];
+
+  for (const teamMembership of seededTeamMemberships) {
+    const membership = membershipByEmail.get(teamMembership.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.teamMembership.upsert({
+      where: {
+        teamId_membershipId: {
+          teamId: teamMembership.teamId,
+          membershipId: membership.id
+        }
+      },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        role: teamMembership.role
+      },
+      create: {
+        id: teamMembership.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        teamId: teamMembership.teamId,
+        membershipId: membership.id,
+        role: teamMembership.role
+      }
+    });
+  }
+
+  const janeMembership = membershipByEmail.get("jane@acre.com") ?? null;
+  const seededAgentOnboardingItems = janeMembership
+    ? [
+        {
+          id: "seed-agent-onboarding-license",
+          membershipId: janeMembership.id,
+          title: "Upload license and state ID",
+          description: "Provide the current NY license and state ID for compliance review.",
+          category: "Compliance",
+          dueAt: new Date("2026-03-18T00:00:00.000Z"),
+          status: "completed",
+          sortOrder: 0,
+          completedAt: new Date("2026-03-07T15:00:00.000Z"),
+          completedByMembershipId: membershipByEmail.get("naomi@acre.com")?.id ?? null
+        },
+        {
+          id: "seed-agent-onboarding-packet",
+          membershipId: janeMembership.id,
+          title: "Complete brokerage onboarding packet",
+          description: "Review commission setup, office policies, and required agreements.",
+          category: "Operations",
+          dueAt: new Date("2026-03-20T00:00:00.000Z"),
+          status: "in_progress",
+          sortOrder: 1,
+          completedAt: null,
+          completedByMembershipId: null
+        },
+        {
+          id: "seed-agent-onboarding-training",
+          membershipId: janeMembership.id,
+          title: "Review transaction workflow basics",
+          description: "Walk through tasks, documents, approvals, and finance checkpoints before going live.",
+          category: "Training",
+          dueAt: new Date("2026-03-24T00:00:00.000Z"),
+          status: "pending",
+          sortOrder: 2,
+          completedAt: null,
+          completedByMembershipId: null
+        }
+      ]
+    : [];
+
+  for (const item of seededAgentOnboardingItems) {
+    await prisma.agentOnboardingItem.upsert({
+      where: { id: item.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: item.membershipId,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        dueAt: item.dueAt,
+        status: item.status,
+        sortOrder: item.sortOrder,
+        completedAt: item.completedAt,
+        completedByMembershipId: item.completedByMembershipId
+      },
+      create: {
+        id: item.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: item.membershipId,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        dueAt: item.dueAt,
+        status: item.status,
+        sortOrder: item.sortOrder,
+        completedAt: item.completedAt,
+        completedByMembershipId: item.completedByMembershipId
+      }
+    });
+  }
+
+  const seededAgentGoals = [
+    {
+      id: "seed-agent-goal-jane-annual",
+      membershipEmail: "jane@acre.com",
+      periodType: "annual",
+      startsAt: new Date("2026-01-01T00:00:00.000Z"),
+      endsAt: new Date("2026-12-31T23:59:59.000Z"),
+      targetTransactionCount: 8,
+      targetClosedVolume: "6000000",
+      targetOfficeNet: "90000",
+      targetAgentNet: "55000",
+      notes: "Focus on buyer-side production and clean task compliance."
+    },
+    {
+      id: "seed-agent-goal-simon-quarterly",
+      membershipEmail: "simon@acre.com",
+      periodType: "quarterly",
+      startsAt: new Date("2026-01-01T00:00:00.000Z"),
+      endsAt: new Date("2026-03-31T23:59:59.000Z"),
+      targetTransactionCount: 4,
+      targetClosedVolume: "3000000",
+      targetOfficeNet: "45000",
+      targetAgentNet: "20000",
+      notes: "Balance office operations leadership with direct production."
+    }
+  ];
+
+  for (const goal of seededAgentGoals) {
+    const membership = membershipByEmail.get(goal.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.agentGoal.upsert({
+      where: { id: goal.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        periodType: goal.periodType,
+        startsAt: goal.startsAt,
+        endsAt: goal.endsAt,
+        targetTransactionCount: goal.targetTransactionCount,
+        targetClosedVolume: goal.targetClosedVolume,
+        targetOfficeNet: goal.targetOfficeNet,
+        targetAgentNet: goal.targetAgentNet,
+        notes: goal.notes
+      },
+      create: {
+        id: goal.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        periodType: goal.periodType,
+        startsAt: goal.startsAt,
+        endsAt: goal.endsAt,
+        targetTransactionCount: goal.targetTransactionCount,
+        targetClosedVolume: goal.targetClosedVolume,
+        targetOfficeNet: goal.targetOfficeNet,
+        targetAgentNet: goal.targetAgentNet,
+        notes: goal.notes
+      }
+    });
+  }
+
   const seededTransactions = [
     {
       id: "seed-tx-600-frank",
@@ -2726,7 +3042,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

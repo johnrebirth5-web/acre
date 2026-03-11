@@ -28,6 +28,11 @@ export const databaseModules = [
   "accounting_transaction_applications",
   "agent_recurring_charge_rules",
   "agent_payment_methods",
+  "agent_profiles",
+  "teams",
+  "team_memberships",
+  "agent_onboarding_items",
+  "agent_goals",
   "transaction_documents",
   "form_templates",
   "transaction_forms",
@@ -40,6 +45,19 @@ export { getOfficeActivitySnapshot } from "./activity";
 export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnapshot, recordActivityLogEvent } from "./activity-log";
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
+export {
+  addAgentToTeam,
+  createAgentGoal,
+  createAgentOnboardingItem,
+  createAgentTeam,
+  getOfficeAgentProfileSnapshot,
+  getOfficeAgentsRosterSnapshot,
+  removeAgentFromTeam,
+  saveAgentProfile,
+  updateAgentGoal,
+  updateAgentOnboardingItem,
+  updateAgentTeam
+} from "./agents";
 export {
   accountingSystemAccountCodes,
   createAccountingTransaction,
@@ -122,6 +140,27 @@ export {
   updateTransactionStatus
 } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
+export type {
+  AddAgentToTeamInput,
+  CreateAgentGoalInput,
+  CreateAgentOnboardingItemInput,
+  CreateAgentTeamInput,
+  GetOfficeAgentProfileInput,
+  GetOfficeAgentsRosterInput,
+  OfficeAgentGoalRecord,
+  OfficeAgentOnboardingItemRecord,
+  OfficeAgentProfileSnapshot,
+  OfficeAgentProfileTeam,
+  OfficeAgentRosterFilters,
+  OfficeAgentRosterRow,
+  OfficeAgentTeamSummary,
+  OfficeAgentsRosterSnapshot,
+  RemoveAgentFromTeamInput,
+  SaveAgentProfileInput,
+  UpdateAgentGoalInput,
+  UpdateAgentOnboardingItemInput,
+  UpdateAgentTeamInput
+} from "./agents";
 export type {
   AccountingTransactionLineItemInput,
   CreateEarnestMoneyRecordInput,

@@ -146,6 +146,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
               <option value="transaction">Transactions</option>
               <option value="contact">Contacts</option>
               <option value="task">Tasks</option>
+              <option value="agent">Agents / teams</option>
               <option value="document">Documents / forms</option>
               <option value="accounting">Accounting</option>
               <option value="comment">Comments</option>

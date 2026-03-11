@@ -5601,6 +5601,189 @@ a {
   gap: 12px;
 }
 
+.office-detail-two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 18px;
+}
+
+.office-filter-actions {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.office-inline-form-compact {
+  align-items: center;
+}
+
+.office-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.office-form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.office-form-grid-span-2 {
+  grid-column: span 2;
+}
+
+.office-form-grid-span-3 {
+  grid-column: 1 / -1;
+}
+
+.office-form-error {
+  margin: 0;
+  color: #b83e3e;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.office-inline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-data-table-row-anchor {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.8fr) minmax(120px, 1fr) minmax(110px, 0.8fr) minmax(130px, 1fr) minmax(120px, 0.9fr) minmax(90px, 0.65fr) minmax(120px, 0.8fr) minmax(130px, 0.9fr);
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+}
+
+.office-data-table-row-main {
+  display: grid;
+  gap: 3px;
+}
+
+.office-data-table-row-main strong {
+  color: var(--office-text);
+}
+
+.office-data-table-row-main small {
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-agents-layout,
+.office-agent-profile-page {
+  display: grid;
+  gap: 18px;
+}
+
+.office-agents-roster-head,
+.office-agents-roster-row {
+  grid-template-columns: minmax(240px, 1.8fr) minmax(120px, 1fr) minmax(110px, 0.8fr) minmax(130px, 1fr) minmax(140px, 0.95fr) minmax(90px, 0.65fr) minmax(120px, 0.8fr) minmax(130px, 0.9fr);
+}
+
+.office-agents-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.office-agents-team-card,
+.office-agents-onboarding-card,
+.office-agents-onboarding-create,
+.office-agents-goal-card,
+.office-agents-goal-create {
+  height: 100%;
+}
+
+.office-agents-team-card-head,
+.office-agents-onboarding-card-head,
+.office-agents-goal-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.office-agents-team-name-field,
+.office-agents-onboarding-title {
+  flex: 1;
+}
+
+.office-agents-team-members,
+.office-agents-profile-team-list,
+.office-agents-onboarding-list,
+.office-agents-goals-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.office-agents-team-members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.office-agents-team-members li,
+.office-agents-profile-team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--office-border);
+  border-radius: 12px;
+  background: var(--office-bg-muted);
+}
+
+.office-agents-team-members li a,
+.office-agents-profile-team-row a,
+.office-note-item a {
+  color: var(--office-accent);
+  font-weight: 700;
+}
+
+.office-agents-team-members li span,
+.office-agents-profile-team-row p {
+  margin: 0;
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-agents-team-empty {
+  color: var(--office-text-muted);
+  font-size: 0.88rem;
+  justify-content: flex-start;
+}
+
+.office-agents-onboarding-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--office-text-muted);
+  font-size: 0.88rem;
+}
+
+.office-agents-goals-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.office-agents-goal-card-head {
+  align-items: baseline;
+}
+
+.office-agents-goal-card-head strong {
+  font-size: 0.98rem;
+}
+
+.office-agents-goal-card-head span {
+  color: var(--office-text-muted);
+  font-size: 0.82rem;
+}
+
 .bm-link-row,
 .office-note-item {
   display: flex;

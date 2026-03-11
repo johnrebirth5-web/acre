@@ -213,6 +213,36 @@
     - refund / distribution
     - ledger-tracked optional posting
   - accounting 相关动作会写入 `AuditLog`
+- `Agent Management` 现在也已接入真实数据库，作为一个独立的 Office 模块：
+  - 路由：`/office/agents`
+  - 详情页：`/office/agents/[membershipId]`
+  - 以现有 `User / Membership / Office` 为身份基础
+  - 通过 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal` 扩展 agent 管理能力
+  - roster 页当前支持：
+    - office 过滤
+    - role 过滤
+    - team 过滤
+    - onboarding status 过滤
+    - keyword search
+  - profile 页当前支持：
+    - profile basics
+    - team roster 管理
+    - onboarding checklist create / edit / complete / reopen
+    - goal create / edit
+    - recent transactions
+    - active tasks / billing summary / recent activity 聚合
+  - onboarding 当前是 Back Office 可管理 checklist，不是 recruit/candidate pipeline
+  - goals 当前支持：
+    - monthly
+    - quarterly
+    - annual
+    并按真实 transactions / accounting 数据计算最小 progress
+  - team 管理当前支持：
+    - create
+    - rename
+    - activate / deactivate
+    - add / remove agent
+  - agent profile / team / onboarding / goal 变更会写入 `AuditLog`
 - `Activity` 现在也已接入真实数据库：
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源
@@ -265,6 +295,7 @@
   - `/office/pipeline`
   - `/office/transactions`
   - `/office/contacts`
+  - `/office/agents`
   - `/office/tasks`
   - `/office/reports`
   - `/office/activity`
@@ -299,6 +330,15 @@
   - `/api/office/contacts/:contactId/follow-up-tasks`
   - `/api/office/contacts/:contactId/transactions/:transactionId`
   - `/api/office/activity/comments`
+  - `/api/office/agents/teams`
+  - `/api/office/agents/teams/:teamId`
+  - `/api/office/agents/teams/:teamId/memberships`
+  - `/api/office/agents/teams/:teamId/memberships/:membershipId`
+  - `/api/office/agents/:membershipId/profile`
+  - `/api/office/agents/:membershipId/onboarding-items`
+  - `/api/office/agents/:membershipId/onboarding-items/:itemId`
+  - `/api/office/agents/:membershipId/goals`
+  - `/api/office/agents/:membershipId/goals/:goalId`
   - `/api/office/accounting/transactions`
   - `/api/office/accounting/transactions/:accountingTransactionId`
   - `/api/office/accounting/earnest-money`
@@ -345,6 +385,7 @@
   - `Transactions` 的 create / status update
   - `Contacts` 的 create / edit / follow-up task create / transaction link
   - `Accounting` 的最小 create / edit / EMD / Agent Billing write flows
+  - `Agent Management` 的 profile / team / onboarding / goal write flows
 - 其余模块仍未实现真实 CRUD
 - 未实现测试体系
 - Vercel 项目已绑定 GitHub 仓库，`main` 分支 push 会自动触发生产部署

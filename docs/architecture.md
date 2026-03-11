@@ -8,7 +8,7 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Activity Log` 和 `Office Accounting` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Activity Log`、`Office Accounting` 和 `Office Agent Management` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
@@ -218,6 +218,11 @@
 - `ListingAsset`
 - `ListingShareLink`
 - `Client`
+- `AgentProfile`
+- `Team`
+- `TeamMembership`
+- `AgentOnboardingItem`
+- `AgentGoal`
 - `FollowUpTask`
 - `TransactionTask`
 - `TaskListView`
@@ -284,6 +289,17 @@
 - `updateSignatureRequest`
 - `createIncomingUpdate`
 - `reviewIncomingUpdate`
+- `getOfficeAgentsRosterSnapshot`
+- `getOfficeAgentProfileSnapshot`
+- `saveAgentProfile`
+- `createAgentTeam`
+- `updateAgentTeam`
+- `addAgentToTeam`
+- `removeAgentFromTeam`
+- `createAgentOnboardingItem`
+- `updateAgentOnboardingItem`
+- `createAgentGoal`
+- `updateAgentGoal`
 
 ## 关键数据流
 
@@ -350,8 +366,11 @@
    - tasks awaiting your review
    - tasks awaiting second review
    - rejected tasks needing action
-31. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-32. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+31. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal`，并聚合 transactions / tasks / billing / activity 数据形成 roster snapshot
+32. `/office/agents/:membershipId` 读取 profile snapshot，展示 basics、teams、onboarding、goals、recent transactions、recent activity
+33. `/api/office/agents/*` 负责 profile、team、onboarding、goal 的最小 create / update 写入，并同步写入 `AuditLog`
+34. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+35. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
@@ -611,6 +630,37 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - due date / payment date / deposit date
 - held by office / held externally
 - optional ledger posting
+
+### 7. Agent Management 复用 Membership 作为身份主轴，只补必要的 profile / team / onboarding / goal 模型
+
+`/office/agents` 当前不是“用户列表重命名”，而是一个真正的 agent management 模块。
+
+这样设计的原因是：
+
+- `User / Membership / Office` 已经承担了 agent 身份、角色、权限和 office 归属
+- 如果再单独做一套 agent identity，会和 transactions / tasks / accounting / activity 分叉
+- 当前目标是 `BoldTrail / Brokermint` 风格的 Back Office Agent Management，不是 recruit/candidate pipeline
+
+当前实现方式：
+
+- `AgentProfile` 只补 membership 侧扩展字段：
+  - display name
+  - license info
+  - start date
+  - onboarding status
+  - commission plan name
+  - bio / notes
+- `Team / TeamMembership` 提供最小 team roster foundation
+- `AgentOnboardingItem` 作为独立 onboarding checklist，不和 transaction tasks 混成一套
+- `AgentGoal` 提供月 / 季 / 年目标，并尽量从 transactions / accounting 派生实际进度
+- `/office/agents/:membershipId` 聚合 profile basics、teams、onboarding、goals、recent transactions、billing summary、recent activity
+
+当前明确没做的部分：
+
+- recruit / candidate pipeline
+- coaching workflow
+- agent self-service portal
+- 更复杂的 commission-plan editor
 
 故意没做的范围：
 

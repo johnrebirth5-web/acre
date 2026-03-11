@@ -3,6 +3,14 @@ export type UserRole = "agent" | "office_manager" | "office_admin";
 export type AppPermission =
   | "dashboard:view"
   | "activity:view"
+  | "agents:view"
+  | "agents:manage"
+  | "onboarding:view"
+  | "onboarding:manage"
+  | "goals:view"
+  | "goals:manage"
+  | "teams:view"
+  | "teams:manage"
   | "documents:view"
   | "documents:manage"
   | "documents:approve"
@@ -62,6 +70,14 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_manager: [
     "dashboard:view",
     "activity:view",
+    "agents:view",
+    "agents:manage",
+    "onboarding:view",
+    "onboarding:manage",
+    "goals:view",
+    "goals:manage",
+    "teams:view",
+    "teams:manage",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -90,6 +106,14 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_admin: [
     "dashboard:view",
     "activity:view",
+    "agents:view",
+    "agents:manage",
+    "onboarding:view",
+    "onboarding:manage",
+    "goals:view",
+    "goals:manage",
+    "teams:view",
+    "teams:manage",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -140,6 +164,38 @@ export function isOfficeRole(role: UserRole): boolean {
 
 export function canAccessAccountActivity(role: UserRole): boolean {
   return can(role, "activity:view");
+}
+
+export function canViewOfficeAgents(role: UserRole): boolean {
+  return can(role, "agents:view");
+}
+
+export function canManageOfficeAgents(role: UserRole): boolean {
+  return can(role, "agents:manage");
+}
+
+export function canViewOfficeOnboarding(role: UserRole): boolean {
+  return can(role, "onboarding:view");
+}
+
+export function canManageOfficeOnboarding(role: UserRole): boolean {
+  return can(role, "onboarding:manage");
+}
+
+export function canViewOfficeGoals(role: UserRole): boolean {
+  return can(role, "goals:view");
+}
+
+export function canManageOfficeGoals(role: UserRole): boolean {
+  return can(role, "goals:manage");
+}
+
+export function canViewOfficeTeams(role: UserRole): boolean {
+  return can(role, "teams:view");
+}
+
+export function canManageOfficeTeams(role: UserRole): boolean {
+  return can(role, "teams:manage");
 }
 
 export function canViewOfficeDocuments(role: UserRole): boolean {
