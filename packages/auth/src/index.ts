@@ -3,6 +3,11 @@ export type UserRole = "agent" | "office_manager" | "office_admin";
 export type AppPermission =
   | "dashboard:view"
   | "activity:view"
+  | "documents:view"
+  | "documents:manage"
+  | "forms:use"
+  | "signatures:manage"
+  | "incoming_updates:review"
   | "accounting:view"
   | "accounting:manage"
   | "tasks:view"
@@ -52,6 +57,11 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_manager: [
     "dashboard:view",
     "activity:view",
+    "documents:view",
+    "documents:manage",
+    "forms:use",
+    "signatures:manage",
+    "incoming_updates:review",
     "accounting:view",
     "accounting:manage",
     "tasks:view",
@@ -71,6 +81,11 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_admin: [
     "dashboard:view",
     "activity:view",
+    "documents:view",
+    "documents:manage",
+    "forms:use",
+    "signatures:manage",
+    "incoming_updates:review",
     "accounting:view",
     "accounting:manage",
     "tasks:view",
@@ -111,6 +126,26 @@ export function isOfficeRole(role: UserRole): boolean {
 
 export function canAccessAccountActivity(role: UserRole): boolean {
   return can(role, "activity:view");
+}
+
+export function canViewOfficeDocuments(role: UserRole): boolean {
+  return can(role, "documents:view");
+}
+
+export function canManageOfficeDocuments(role: UserRole): boolean {
+  return can(role, "documents:manage");
+}
+
+export function canUseOfficeForms(role: UserRole): boolean {
+  return can(role, "forms:use");
+}
+
+export function canManageOfficeSignatures(role: UserRole): boolean {
+  return can(role, "signatures:manage");
+}
+
+export function canReviewOfficeIncomingUpdates(role: UserRole): boolean {
+  return can(role, "incoming_updates:review");
 }
 
 export function canAccessOfficeAccounting(role: UserRole): boolean {

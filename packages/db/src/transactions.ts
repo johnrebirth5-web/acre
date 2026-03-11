@@ -2,6 +2,13 @@ import { Prisma, TransactionRepresenting, TransactionStatus, TransactionType } f
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 import { listAvailableContactsForTransaction, type OfficeTransactionContact, type OfficeTransactionContactOption } from "./transaction-contacts";
+import {
+  listTransactionDocumentsSnapshot,
+  type OfficeFormTemplateOption,
+  type OfficeIncomingUpdate,
+  type OfficeTransactionDocument,
+  type OfficeTransactionForm
+} from "./transaction-documents";
 
 export type OfficeTransactionStatus = "Opportunity" | "Active" | "Pending" | "Closed" | "Cancelled";
 
@@ -65,6 +72,10 @@ export type OfficeTransactionDetail = {
   additionalFields: Record<string, string>;
   contacts: OfficeTransactionContact[];
   availableContacts: OfficeTransactionContactOption[];
+  documents: OfficeTransactionDocument[];
+  forms: OfficeTransactionForm[];
+  incomingUpdates: OfficeIncomingUpdate[];
+  formTemplates: OfficeFormTemplateOption[];
   createdAt: string;
   updatedAt: string;
 };
@@ -377,6 +388,10 @@ function mapTransactionDetail(
     } | null;
     transactionContacts?: OfficeTransactionContact[];
     availableContacts?: OfficeTransactionContactOption[];
+    documents?: OfficeTransactionDocument[];
+    forms?: OfficeTransactionForm[];
+    incomingUpdates?: OfficeIncomingUpdate[];
+    formTemplates?: OfficeFormTemplateOption[];
   }
 ): OfficeTransactionDetail {
   const ownerName = transaction.ownerMembership
@@ -422,6 +437,10 @@ function mapTransactionDetail(
         : {},
     contacts: transaction.transactionContacts ?? [],
     availableContacts: transaction.availableContacts ?? [],
+    documents: transaction.documents ?? [],
+    forms: transaction.forms ?? [],
+    incomingUpdates: transaction.incomingUpdates ?? [],
+    formTemplates: transaction.formTemplates ?? [],
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString()
   };
@@ -566,7 +585,10 @@ export async function getTransactionById(organizationId: string, transactionId: 
     return null;
   }
 
-  const availableContacts = await listAvailableContactsForTransaction(organizationId, transactionId);
+  const [availableContacts, documentsSnapshot] = await Promise.all([
+    listAvailableContactsForTransaction(organizationId, transactionId),
+    listTransactionDocumentsSnapshot(organizationId, transactionId)
+  ]);
 
   return mapTransactionDetail({
     ...transaction,
@@ -584,7 +606,11 @@ export async function getTransactionById(organizationId: string, transactionId: 
       isPrimary: transactionContact.isPrimary,
       notes: transactionContact.notes ?? ""
     })),
-    availableContacts
+    availableContacts,
+    documents: documentsSnapshot.documents,
+    forms: documentsSnapshot.forms,
+    incomingUpdates: documentsSnapshot.incomingUpdates,
+    formTemplates: documentsSnapshot.formTemplates
   });
 }
 

@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { Prisma, TaskStatus, TransactionStatus, TransactionTaskStatus } from "@prisma/client";
+import {
+  IncomingUpdateStatus,
+  Prisma,
+  SignatureRequestStatus,
+  TaskStatus,
+  TransactionDocumentStatus,
+  TransactionStatus,
+  TransactionTaskStatus
+} from "@prisma/client";
 import { prisma } from "./client";
 
 export const activityLogActions = {
@@ -12,6 +20,19 @@ export const activityLogActions = {
   transactionContactUnlinked: "transaction.contact_unlinked",
   transactionPrimaryContactChanged: "transaction.primary_contact_changed",
   transactionFinanceUpdated: "transaction.finance_updated",
+  documentUploaded: "document.uploaded",
+  documentUpdated: "document.updated",
+  documentDeleted: "document.deleted",
+  documentOpened: "document.opened",
+  formCreated: "form.created",
+  formUpdated: "form.updated",
+  signatureRequestSent: "signature_request.sent",
+  signatureUpdated: "signature_request.updated",
+  signatureCompleted: "signature_request.completed",
+  signatureDeclined: "signature_request.declined",
+  incomingUpdateReceived: "incoming_update.received",
+  incomingUpdateAccepted: "incoming_update.accepted",
+  incomingUpdateRejected: "incoming_update.rejected",
   transactionTaskCreated: "transaction.task_created",
   transactionTaskUpdated: "transaction.task_updated",
   transactionTaskReviewRequested: "transaction.task_review_requested",
@@ -47,9 +68,13 @@ export type ActivityLogEntityType =
   | "follow_up_task"
   | "activity_comment"
   | "session"
+  | "transaction_document"
+  | "transaction_form"
+  | "signature_request"
+  | "incoming_update"
   | "accounting_transaction"
   | "earnest_money";
-export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "comment" | "auth" | "accounting";
+export type ActivityLogObjectType = "all" | "transaction" | "contact" | "task" | "document" | "comment" | "auth" | "accounting";
 
 export type ActivityLogChange = {
   label: string;
@@ -77,6 +102,7 @@ export type ActivityLogSectionKey =
   | "transactions"
   | "contacts"
   | "tasks-checklists"
+  | "documents-forms-signatures"
   | "finance-commissions"
   | "authentication"
   | "comments";
@@ -87,7 +113,10 @@ export type ActivityAlertSectionKey =
   | "overdue-transaction-tasks"
   | "contacts-follow-up-soon"
   | "overdue-follow-up-tasks"
-  | "transaction-finance-incomplete";
+  | "transaction-finance-incomplete"
+  | "missing-required-documents"
+  | "signature-pending"
+  | "incoming-updates-awaiting-review";
 
 export type OfficeActivityLogSection = {
   key: ActivityLogSectionKey;
@@ -234,6 +263,19 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.contact_unlinked": "Transaction contact unlinked",
   "transaction.primary_contact_changed": "Transaction primary contact changed",
   "transaction.finance_updated": "Transaction finance updated",
+  "document.uploaded": "Document uploaded",
+  "document.updated": "Document updated",
+  "document.deleted": "Document deleted",
+  "document.opened": "Document opened",
+  "form.created": "Form created",
+  "form.updated": "Form updated",
+  "signature_request.sent": "Signature request sent",
+  "signature_request.updated": "Signature request updated",
+  "signature_request.completed": "Signature completed",
+  "signature_request.declined": "Signature declined",
+  "incoming_update.received": "Incoming update received",
+  "incoming_update.accepted": "Incoming update accepted",
+  "incoming_update.rejected": "Incoming update rejected",
   "transaction.task_created": "Task created",
   "transaction.task_updated": "Task updated",
   "transaction.task_review_requested": "Task review requested",
@@ -296,6 +338,24 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.followUpTaskCreated
   },
   {
+    key: "documents-forms-signatures",
+    label: "Documents / Forms / Signatures",
+    matches: (action) =>
+      action === activityLogActions.documentUploaded ||
+      action === activityLogActions.documentUpdated ||
+      action === activityLogActions.documentDeleted ||
+      action === activityLogActions.documentOpened ||
+      action === activityLogActions.formCreated ||
+      action === activityLogActions.formUpdated ||
+      action === activityLogActions.signatureRequestSent ||
+      action === activityLogActions.signatureUpdated ||
+      action === activityLogActions.signatureCompleted ||
+      action === activityLogActions.signatureDeclined ||
+      action === activityLogActions.incomingUpdateReceived ||
+      action === activityLogActions.incomingUpdateAccepted ||
+      action === activityLogActions.incomingUpdateRejected
+  },
+  {
     key: "finance-commissions",
     label: "Finance / Commissions",
     matches: (action) =>
@@ -331,6 +391,10 @@ const activityAlertSectionDefinitions: ActivityAlertSectionDefinition[] = [
   { key: "contacts-follow-up-soon", label: "Contacts needing follow-up soon", matches: (alert) => alert.type === "contacts-follow-up-soon" },
   { key: "overdue-follow-up-tasks", label: "Overdue follow-up tasks", matches: (alert) => alert.type === "overdue-follow-up-tasks" },
   { key: "transaction-finance-incomplete", label: "Transaction finance incomplete", matches: (alert) => alert.type === "transaction-finance-incomplete" }
+  ,
+  { key: "missing-required-documents", label: "Missing required documents", matches: (alert) => alert.type === "missing-required-documents" },
+  { key: "signature-pending", label: "Signature pending", matches: (alert) => alert.type === "signature-pending" },
+  { key: "incoming-updates-awaiting-review", label: "Incoming updates awaiting review", matches: (alert) => alert.type === "incoming-updates-awaiting-review" }
 ];
 
 function formatTimestamp(date: Date) {
@@ -433,6 +497,11 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
       return "transaction";
     case "contact":
       return "contact";
+    case "transaction_document":
+    case "transaction_form":
+    case "signature_request":
+    case "incoming_update":
+      return "document";
     case "transaction_task":
     case "follow_up_task":
       return "task";
@@ -449,7 +518,15 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
 }
 
 function normalizeObjectType(value: string | undefined): ActivityLogObjectType {
-  if (value === "transaction" || value === "contact" || value === "task" || value === "comment" || value === "auth" || value === "accounting") {
+  if (
+    value === "transaction" ||
+    value === "contact" ||
+    value === "task" ||
+    value === "document" ||
+    value === "comment" ||
+    value === "auth" ||
+    value === "accounting"
+  ) {
     return value;
   }
 
@@ -477,6 +554,22 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "accounting_transaction") {
     return `/office/accounting?entryId=${record.entityId}`;
+  }
+
+  if (record.entityType === "transaction_document" && payload.transactionId) {
+    return `/office/transactions/${payload.transactionId}#transaction-documents`;
+  }
+
+  if (record.entityType === "transaction_form" && payload.transactionId) {
+    return `/office/transactions/${payload.transactionId}#transaction-forms-signatures`;
+  }
+
+  if (record.entityType === "signature_request" && payload.transactionId) {
+    return `/office/transactions/${payload.transactionId}#transaction-forms-signatures`;
+  }
+
+  if (record.entityType === "incoming_update") {
+    return payload.contextHref ?? (payload.transactionId ? `/office/transactions/${payload.transactionId}#transaction-incoming-updates` : "/office/activity");
   }
 
   if (record.entityType === "earnest_money") {
@@ -568,6 +661,32 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "changed the primary transaction contact";
     case activityLogActions.transactionFinanceUpdated:
       return payload.changes.length === 1 ? `updated ${payload.changes[0].label.toLowerCase()}` : "updated transaction finance";
+    case activityLogActions.documentUploaded:
+      return "uploaded a document";
+    case activityLogActions.documentUpdated:
+      return payload.changes.length === 1 ? `updated document ${payload.changes[0].label.toLowerCase()}` : "updated a document";
+    case activityLogActions.documentDeleted:
+      return "deleted a document";
+    case activityLogActions.documentOpened:
+      return "opened a document";
+    case activityLogActions.formCreated:
+      return "created a form packet";
+    case activityLogActions.formUpdated:
+      return payload.changes.length === 1 ? `updated form ${payload.changes[0].label.toLowerCase()}` : "updated a form packet";
+    case activityLogActions.signatureRequestSent:
+      return "sent a signature request";
+    case activityLogActions.signatureUpdated:
+      return payload.changes.length === 1 ? `updated signature ${payload.changes[0].label.toLowerCase()}` : "updated a signature request";
+    case activityLogActions.signatureCompleted:
+      return "completed a signature request";
+    case activityLogActions.signatureDeclined:
+      return "recorded a declined signature request";
+    case activityLogActions.incomingUpdateReceived:
+      return "received an incoming update";
+    case activityLogActions.incomingUpdateAccepted:
+      return "accepted an incoming update";
+    case activityLogActions.incomingUpdateRejected:
+      return "rejected an incoming update";
     case activityLogActions.transactionTaskCreated:
       return "created a transaction task";
     case activityLogActions.transactionTaskUpdated: {
@@ -801,7 +920,16 @@ async function listOperationalAlerts(input: {
     input.endDate
   );
 
-  const [closingSoonTransactions, overdueTransactionTasks, contactsNeedingFollowUpSoon, overdueFollowUpTasks, financeIncompleteTransactions] =
+  const [
+    closingSoonTransactions,
+    overdueTransactionTasks,
+    contactsNeedingFollowUpSoon,
+    overdueFollowUpTasks,
+    financeIncompleteTransactions,
+    missingRequiredDocumentTasks,
+    pendingSignatureRequests,
+    pendingIncomingUpdates
+  ] =
     await Promise.all([
       closingSoonWindow && (input.objectType === "all" || input.objectType === "transaction")
         ? prisma.transaction.findMany({
@@ -963,6 +1091,82 @@ async function listOperationalAlerts(input: {
             },
             orderBy: [{ updatedAt: "desc" }]
           })
+        : Promise.resolve([]),
+      input.objectType === "all" || input.objectType === "document"
+        ? prisma.transactionTask.findMany({
+            where: {
+              organizationId: input.organizationId,
+              requiresDocument: true,
+              status: {
+                in: [
+                  TransactionTaskStatus.todo,
+                  TransactionTaskStatus.in_progress,
+                  TransactionTaskStatus.review_requested,
+                  TransactionTaskStatus.reopened
+                ]
+              },
+              documents: {
+                none: {
+                  status: {
+                    in: [TransactionDocumentStatus.uploaded, TransactionDocumentStatus.submitted, TransactionDocumentStatus.approved, TransactionDocumentStatus.signed]
+                  }
+                }
+              },
+              transaction: input.officeId
+                ? {
+                    officeId: input.officeId
+                  }
+                : undefined
+            },
+            include: {
+              transaction: true
+            },
+            orderBy: [{ updatedAt: "desc" }]
+          })
+        : Promise.resolve([]),
+      input.objectType === "all" || input.objectType === "document"
+        ? prisma.signatureRequest.findMany({
+            where: {
+              organizationId: input.organizationId,
+              status: {
+                in: [SignatureRequestStatus.sent, SignatureRequestStatus.viewed]
+              },
+              transaction: input.officeId
+                ? {
+                    officeId: input.officeId
+                  }
+                : undefined
+            },
+            include: {
+              transaction: true,
+              form: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              },
+              document: {
+                select: {
+                  id: true,
+                  title: true
+                }
+              }
+            },
+            orderBy: [{ sentAt: "asc" }, { createdAt: "asc" }]
+          })
+        : Promise.resolve([]),
+      input.objectType === "all" || input.objectType === "document"
+        ? prisma.incomingUpdate.findMany({
+            where: {
+              organizationId: input.organizationId,
+              status: IncomingUpdateStatus.pending_review,
+              ...(input.officeId ? { officeId: input.officeId } : {})
+            },
+            include: {
+              transaction: true
+            },
+            orderBy: [{ receivedAt: "asc" }]
+          })
         : Promise.resolve([])
     ]);
 
@@ -1103,6 +1307,76 @@ async function listOperationalAlerts(input: {
         `Owner: ${transaction.ownerMembership ? `${transaction.ownerMembership.user.firstName} ${transaction.ownerMembership.user.lastName}` : "Unassigned"}`
       ],
       sortAt: transaction.updatedAt
+    });
+  }
+
+  for (const task of missingRequiredDocumentTasks) {
+    alerts.push({
+      id: `alert-missing-required-document-${task.id}`,
+      type: "missing-required-documents",
+      typeLabel: "Missing required document",
+      severity: "high",
+      severityLabel: getSeverityLabel("high"),
+      objectType: "document",
+      title: "Required document is still missing",
+      summary: `${task.title} still needs a document before the workflow can move forward.`,
+      objectLabel: `${task.transaction.title} · ${task.transaction.address}, ${task.transaction.city}, ${task.transaction.state}`,
+      href: `/office/transactions/${task.transactionId}#transaction-documents`,
+      referenceLabel: task.dueAt ? buildAlertReferenceLabel("Due date", task.dueAt) : "No due date",
+      detailSummary: [
+        `Checklist group: ${task.checklistGroup}`,
+        `Requires approval: ${task.requiresDocumentApproval ? "Yes" : "No"}`
+      ],
+      sortAt: task.dueAt ?? task.updatedAt
+    });
+  }
+
+  for (const request of pendingSignatureRequests) {
+    const referenceDate = request.sentAt ?? request.createdAt;
+
+    alerts.push({
+      id: `alert-signature-pending-${request.id}`,
+      type: "signature-pending",
+      typeLabel: "Signature pending",
+      severity: request.status === SignatureRequestStatus.viewed ? "medium" : "high",
+      severityLabel: getSeverityLabel(request.status === SignatureRequestStatus.viewed ? "medium" : "high"),
+      objectType: "document",
+      title: "Signature request is still pending",
+      summary: `${request.recipientName} has not completed signature yet.`,
+      objectLabel: request.document?.title ?? request.form?.name ?? request.transaction.title,
+      href: `/office/transactions/${request.transactionId}#transaction-forms-signatures`,
+      referenceLabel: buildAlertReferenceLabel("Sent", referenceDate),
+      detailSummary: [
+        `Recipient: ${request.recipientName}`,
+        `Email: ${request.recipientEmail}`,
+        `Status: ${request.status === SignatureRequestStatus.viewed ? "Viewed" : "Sent"}`
+      ],
+      sortAt: referenceDate
+    });
+  }
+
+  for (const incomingUpdate of pendingIncomingUpdates) {
+    alerts.push({
+      id: `alert-incoming-update-${incomingUpdate.id}`,
+      type: "incoming-updates-awaiting-review",
+      typeLabel: "Incoming update awaiting review",
+      severity: "medium",
+      severityLabel: getSeverityLabel("medium"),
+      objectType: "document",
+      title: "Incoming update needs review",
+      summary: incomingUpdate.summary,
+      objectLabel: incomingUpdate.transaction
+        ? `${incomingUpdate.transaction.title} · ${incomingUpdate.transaction.address}, ${incomingUpdate.transaction.city}, ${incomingUpdate.transaction.state}`
+        : `${incomingUpdate.sourceSystem} · ${incomingUpdate.sourceReference}`,
+      href: incomingUpdate.transactionId
+        ? `/office/transactions/${incomingUpdate.transactionId}#transaction-incoming-updates`
+        : "/office/activity?view=alerts&alertSection=incoming-updates-awaiting-review",
+      referenceLabel: buildAlertReferenceLabel("Received", incomingUpdate.receivedAt),
+      detailSummary: [
+        `Source system: ${incomingUpdate.sourceSystem}`,
+        `Reference: ${incomingUpdate.sourceReference}`
+      ],
+      sortAt: incomingUpdate.receivedAt
     });
   }
 

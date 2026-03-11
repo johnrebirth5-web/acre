@@ -24,7 +24,12 @@ export const databaseModules = [
   "accounting_transactions",
   "accounting_transaction_line_items",
   "general_ledger_entries",
-  "earnest_money_records"
+  "earnest_money_records",
+  "transaction_documents",
+  "form_templates",
+  "transaction_forms",
+  "signature_requests",
+  "incoming_updates"
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
@@ -53,6 +58,22 @@ export {
 } from "./contacts";
 export { getOfficePipelineWorkspaceSnapshot } from "./pipeline";
 export { getOfficeReportsSnapshot, listOfficeReportTransactionsForExport } from "./reports";
+export {
+  createIncomingUpdate,
+  createSignatureRequest,
+  createTransactionDocument,
+  createTransactionForm,
+  deleteTransactionDocument,
+  getTransactionDocumentStorageRecord,
+  listTransactionDocumentsSnapshot,
+  listTransactionFormTemplates,
+  prepareTransactionFormDraft,
+  recordTransactionDocumentOpened,
+  reviewIncomingUpdate,
+  updateSignatureRequest,
+  updateTransactionDocument,
+  updateTransactionForm
+} from "./transaction-documents";
 export {
   getDefaultTransactionContactRole,
   getTransactionContactLink,
@@ -166,6 +187,25 @@ export type {
   OfficeReportsFilters,
   OfficeReportsSnapshot
 } from "./reports";
+export type {
+  CreateIncomingUpdateInput,
+  CreateSignatureRequestInput,
+  CreateTransactionDocumentInput,
+  CreateTransactionFormInput,
+  OfficeFormTemplateOption,
+  OfficeIncomingUpdate,
+  OfficeSignatureRequest,
+  OfficeTransactionDocument,
+  OfficeTransactionDocumentFilter,
+  OfficeTransactionDocumentsSnapshot,
+  OfficeTransactionForm,
+  PreparedTransactionFormDraft,
+  PrepareTransactionFormDraftInput,
+  ReviewIncomingUpdateInput,
+  UpdateSignatureRequestInput,
+  UpdateTransactionDocumentInput,
+  UpdateTransactionFormInput
+} from "./transaction-documents";
 export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
 export type {
   CreateTransactionTaskInput,

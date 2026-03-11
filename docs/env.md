@@ -12,6 +12,7 @@
 - transaction detail 下的 checklist/tasks 也已经依赖 `DATABASE_URL`
 - `Office Reports` 的 CSV 导出 route 也依赖 `DATABASE_URL`
 - `/api/office/activity/comments` 也依赖 `DATABASE_URL`
+- transaction detail 下的 documents / forms / signatures / incoming updates 也已经依赖 `DATABASE_URL`
 - 一旦执行 Prisma 相关命令，或访问这些数据库路径，`DATABASE_URL` 就变成必需项
 - 当前本地 auth/session 可以使用默认开发 secret，但建议显式配置 `ACRE_SESSION_SECRET`
 
@@ -42,6 +43,7 @@
 - 对 transaction detail 下的 finance 读写也是必填
 - 对 `/api/office/activity/comments` 也是必填
 - 对 `/api/office/accounting/transactions*` 和 `/api/office/accounting/earnest-money*` 也是必填
+- 对 `/api/office/transactions/:transactionId/documents*` / `forms*` / `signatures*` / `incoming-updates*` 也是必填
 
 示例格式：
 
@@ -69,6 +71,10 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/acre"
 - `/api/office/activity/comments` 会失败
 - `/api/office/accounting/transactions*` 会失败
 - `/api/office/accounting/earnest-money*` 会失败
+- `/api/office/transactions/:transactionId/documents*` 会失败
+- `/api/office/transactions/:transactionId/forms*` 会失败
+- `/api/office/transactions/:transactionId/signatures*` 会失败
+- `/api/office/transactions/:transactionId/incoming-updates*` 会失败
 - 后续如果更多页面/API 接入 Prisma runtime，相关查询也会失败
 
 开发和生产差异：
@@ -103,6 +109,35 @@ ACRE_SESSION_SECRET="replace-with-a-long-random-string"
 
 - 开发环境可用 fallback 启动
 - 生产或共享环境应始终显式配置
+
+### `ACRE_DOCUMENTS_STORAGE_DIR`
+
+用途：
+
+- 覆盖 transaction document 文件的本地存储目录
+- 当前 document upload / generated form document / file open 都通过这个目录读写文件
+
+是否必填：
+
+- 不是必填
+- 不配置时，默认落到仓库根目录下的 `.local-storage/documents`
+
+示例格式：
+
+```env
+ACRE_DOCUMENTS_STORAGE_DIR="/absolute/path/to/acre-documents"
+```
+
+缺失后的影响：
+
+- 不会导致应用报错
+- 会使用默认本地目录
+- 这适合开发，不适合作为生产对象存储方案
+
+开发和生产差异：
+
+- 开发环境可直接使用默认目录或显式指定一个本地路径
+- 生产环境如果继续保留这个实现，需要保证文件系统持久化；更合理的方向仍是后续替换到对象存储
 
 ## 当前代码中的来源
 

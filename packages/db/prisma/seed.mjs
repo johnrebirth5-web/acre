@@ -1,9 +1,40 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required to run the Acre seed workflow.");
+}
+
+function getSeedDocumentsRoot() {
+  return process.env.ACRE_DOCUMENTS_STORAGE_DIR?.trim() || path.join(process.cwd(), ".local-storage", "documents");
+}
+
+function sanitizeStorageSegment(value) {
+  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 120) || "file";
+}
+
+async function writeSeedStoredDocument({ organizationId, transactionId, fileName, content }) {
+  const directory = path.join(
+    getSeedDocumentsRoot(),
+    sanitizeStorageSegment(organizationId),
+    sanitizeStorageSegment(transactionId)
+  );
+  await mkdir(directory, { recursive: true });
+
+  const normalizedFileName = sanitizeStorageSegment(fileName);
+  const absolutePath = path.join(directory, normalizedFileName);
+  const fileBody = typeof content === "string" ? content : JSON.stringify(content, null, 2);
+
+  await writeFile(absolutePath, fileBody, "utf8");
+
+  return {
+    fileName: normalizedFileName,
+    storageKey: absolutePath,
+    fileSizeBytes: Buffer.byteLength(fileBody)
+  };
 }
 
 async function upsertUser({ email, firstName, lastName }) {
@@ -925,6 +956,477 @@ async function main() {
     });
   }
 
+  const seededFormTemplates = [
+    {
+      id: "seed-form-template-buyer-agreement",
+      key: "buyer-agreement-packet",
+      name: "Buyer agreement packet",
+      description: "Basic buyer-side agreement packet merged from transaction and contact data.",
+      documentType: "Buyer agreement",
+      mergeFields: [
+        "transaction_title",
+        "transaction_address",
+        "transaction_city",
+        "transaction_state",
+        "transaction_zip_code",
+        "transaction_type",
+        "transaction_status",
+        "transaction_representing",
+        "transaction_owner",
+        "primary_contact_name",
+        "primary_contact_email",
+        "primary_contact_phone",
+        "finance_gross_commission",
+        "finance_office_net"
+      ]
+    },
+    {
+      id: "seed-form-template-emd-receipt",
+      key: "emd-receipt",
+      name: "Earnest money receipt",
+      description: "Internal receipt used to document EMD expectations and receipt details.",
+      documentType: "Earnest money receipt",
+      mergeFields: [
+        "transaction_title",
+        "transaction_address",
+        "transaction_status",
+        "finance_office_net",
+        "closing_date"
+      ]
+    }
+  ];
+
+  for (const template of seededFormTemplates) {
+    await prisma.formTemplate.upsert({
+      where: { key: template.key },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        name: template.name,
+        description: template.description,
+        documentType: template.documentType,
+        mergeFields: template.mergeFields,
+        isSystem: true,
+        isActive: true
+      },
+      create: {
+        id: template.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        key: template.key,
+        name: template.name,
+        description: template.description,
+        documentType: template.documentType,
+        mergeFields: template.mergeFields,
+        isSystem: true,
+        isActive: true
+      }
+    });
+  }
+
+  const storedSeedFiles = {
+    grahamContractUpload: await writeSeedStoredDocument({
+      organizationId: organization.id,
+      transactionId: "seed-tx-graham-court",
+      fileName: "graham-court-buyer-agreement-upload.txt",
+      content: [
+        "Graham Court 4F buyer agreement upload",
+        "Uploaded by Jane Wu for contract review.",
+        "Linked task: Collect signed buyer agreement."
+      ].join("\n")
+    }),
+    grahamUnsortedEmail: await writeSeedStoredDocument({
+      organizationId: organization.id,
+      transactionId: "seed-tx-graham-court",
+      fileName: "graham-court-unsorted-email-pdf.txt",
+      content: [
+        "Loose PDF from email import.",
+        "This file is intentionally unsorted so the transaction workflow has something to classify."
+      ].join("\n")
+    }),
+    grahamGeneratedPacket: await writeSeedStoredDocument({
+      organizationId: organization.id,
+      transactionId: "seed-tx-graham-court",
+      fileName: "graham-court-buyer-packet.json",
+      content: {
+        template: "Buyer agreement packet",
+        transaction: "Graham Court 4F",
+        primaryContact: "Evelyn Zhao",
+        owner: "Jane Wu"
+      }
+    }),
+    courtSquareInvoicePackage: await writeSeedStoredDocument({
+      organizationId: organization.id,
+      transactionId: "seed-tx-45-10-court-square",
+      fileName: "court-square-vendor-invoice-package.txt",
+      content: [
+        "Vendor invoice package",
+        "Prepared for secondary approval in the finance checklist."
+      ].join("\n")
+    })
+  };
+
+  const seededTransactionDocuments = [
+    {
+      id: "seed-doc-graham-contract-upload",
+      transactionId: "seed-tx-graham-court",
+      uploadedByEmail: "jane@acre.com",
+      linkedTaskId: "seed-transaction-task-graham-contract",
+      title: "Buyer agreement upload",
+      fileName: storedSeedFiles.grahamContractUpload.fileName,
+      mimeType: "text/plain",
+      fileSizeBytes: storedSeedFiles.grahamContractUpload.fileSizeBytes,
+      storageKey: storedSeedFiles.grahamContractUpload.storageKey,
+      documentType: "Buyer agreement",
+      status: "submitted",
+      source: "manual_upload",
+      isRequired: true,
+      isSigned: false,
+      isUnsorted: false,
+      signedAt: null
+    },
+    {
+      id: "seed-doc-graham-unsorted-email",
+      transactionId: "seed-tx-graham-court",
+      uploadedByEmail: "jane@acre.com",
+      linkedTaskId: null,
+      title: "Loose email PDF",
+      fileName: storedSeedFiles.grahamUnsortedEmail.fileName,
+      mimeType: "text/plain",
+      fileSizeBytes: storedSeedFiles.grahamUnsortedEmail.fileSizeBytes,
+      storageKey: storedSeedFiles.grahamUnsortedEmail.storageKey,
+      documentType: "Email PDF",
+      status: "uploaded",
+      source: "email_pdf",
+      isRequired: false,
+      isSigned: false,
+      isUnsorted: true,
+      signedAt: null
+    },
+    {
+      id: "seed-doc-graham-generated-packet",
+      transactionId: "seed-tx-graham-court",
+      uploadedByEmail: "jane@acre.com",
+      linkedTaskId: "seed-transaction-task-graham-contract",
+      title: "Buyer agreement packet document",
+      fileName: storedSeedFiles.grahamGeneratedPacket.fileName,
+      mimeType: "application/json",
+      fileSizeBytes: storedSeedFiles.grahamGeneratedPacket.fileSizeBytes,
+      storageKey: storedSeedFiles.grahamGeneratedPacket.storageKey,
+      documentType: "Buyer agreement",
+      status: "signed",
+      source: "generated_form",
+      isRequired: true,
+      isSigned: true,
+      isUnsorted: false,
+      signedAt: new Date("2026-03-10T18:00:00.000Z")
+    },
+    {
+      id: "seed-doc-court-square-invoice-package",
+      transactionId: "seed-tx-45-10-court-square",
+      uploadedByEmail: "simon@acre.com",
+      linkedTaskId: "seed-transaction-task-court-square-invoice",
+      title: "Vendor invoice support package",
+      fileName: storedSeedFiles.courtSquareInvoicePackage.fileName,
+      mimeType: "text/plain",
+      fileSizeBytes: storedSeedFiles.courtSquareInvoicePackage.fileSizeBytes,
+      storageKey: storedSeedFiles.courtSquareInvoicePackage.storageKey,
+      documentType: "Vendor invoice",
+      status: "approved",
+      source: "manual_upload",
+      isRequired: true,
+      isSigned: false,
+      isUnsorted: false,
+      signedAt: null
+    }
+  ];
+
+  for (const document of seededTransactionDocuments) {
+    const uploadedByMembership = document.uploadedByEmail ? membershipByEmail.get(document.uploadedByEmail) ?? null : null;
+
+    await prisma.transactionDocument.upsert({
+      where: { id: document.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: document.transactionId,
+        uploadedByMembershipId: uploadedByMembership?.id ?? null,
+        linkedTaskId: document.linkedTaskId,
+        title: document.title,
+        fileName: document.fileName,
+        mimeType: document.mimeType,
+        fileSizeBytes: document.fileSizeBytes,
+        storageKey: document.storageKey,
+        storageUrl: null,
+        documentType: document.documentType,
+        status: document.status,
+        source: document.source,
+        isRequired: document.isRequired,
+        isSigned: document.isSigned,
+        isUnsorted: document.isUnsorted,
+        signedAt: document.signedAt
+      },
+      create: {
+        id: document.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: document.transactionId,
+        uploadedByMembershipId: uploadedByMembership?.id ?? null,
+        linkedTaskId: document.linkedTaskId,
+        title: document.title,
+        fileName: document.fileName,
+        mimeType: document.mimeType,
+        fileSizeBytes: document.fileSizeBytes,
+        storageKey: document.storageKey,
+        storageUrl: null,
+        documentType: document.documentType,
+        status: document.status,
+        source: document.source,
+        isRequired: document.isRequired,
+        isSigned: document.isSigned,
+        isUnsorted: document.isUnsorted,
+        signedAt: document.signedAt
+      }
+    });
+  }
+
+  const seededTransactionForms = [
+    {
+      id: "seed-form-graham-buyer-agreement",
+      transactionId: "seed-tx-graham-court",
+      templateKey: "buyer-agreement-packet",
+      linkedTaskId: "seed-transaction-task-graham-contract",
+      documentId: "seed-doc-graham-generated-packet",
+      name: "Graham Court buyer agreement packet",
+      status: "fully_signed",
+      createdByEmail: "jane@acre.com",
+      generatedPayload: {
+        transaction_title: "Graham Court 4F",
+        transaction_address: "Graham Court 4F",
+        transaction_city: "Brooklyn",
+        transaction_state: "NY",
+        transaction_zip_code: "11206",
+        transaction_type: "Sales",
+        transaction_status: "Opportunity",
+        transaction_representing: "Buyer",
+        transaction_owner: "Jane Wu",
+        primary_contact_name: "Evelyn Zhao",
+        primary_contact_email: "evelyn@example.com",
+        finance_gross_commission: "",
+        finance_office_net: ""
+      }
+    },
+    {
+      id: "seed-form-court-square-emd-receipt",
+      transactionId: "seed-tx-45-10-court-square",
+      templateKey: "emd-receipt",
+      linkedTaskId: null,
+      documentId: null,
+      name: "Court Square earnest money receipt",
+      status: "prepared",
+      createdByEmail: "simon@acre.com",
+      generatedPayload: {
+        transaction_title: "45-10 Court Square W",
+        transaction_address: "45-10 Court Square W",
+        transaction_status: "Pending",
+        finance_office_net: "18000",
+        closing_date: ""
+      }
+    }
+  ];
+
+  for (const form of seededTransactionForms) {
+    const createdByMembership = membershipByEmail.get(form.createdByEmail) ?? null;
+    const template = seededFormTemplates.find((template) => template.key === form.templateKey);
+
+    await prisma.transactionForm.upsert({
+      where: { id: form.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: form.transactionId,
+        templateId: template?.id ?? null,
+        linkedTaskId: form.linkedTaskId,
+        documentId: form.documentId,
+        name: form.name,
+        status: form.status,
+        generatedPayload: form.generatedPayload,
+        createdByMembershipId: createdByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id
+      },
+      create: {
+        id: form.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: form.transactionId,
+        templateId: template?.id ?? null,
+        linkedTaskId: form.linkedTaskId,
+        documentId: form.documentId,
+        name: form.name,
+        status: form.status,
+        generatedPayload: form.generatedPayload,
+        createdByMembershipId: createdByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id
+      }
+    });
+  }
+
+  const seededSignatureRequests = [
+    {
+      id: "seed-signature-graham-buyer",
+      transactionId: "seed-tx-graham-court",
+      formId: "seed-form-graham-buyer-agreement",
+      documentId: "seed-doc-graham-generated-packet",
+      requestedByEmail: "jane@acre.com",
+      recipientName: "Evelyn Zhao",
+      recipientEmail: "evelyn@example.com",
+      recipientRole: "Buyer",
+      signingOrder: 1,
+      status: "signed",
+      sentAt: new Date("2026-03-10T15:00:00.000Z"),
+      viewedAt: new Date("2026-03-10T16:00:00.000Z"),
+      completedAt: new Date("2026-03-10T18:00:00.000Z"),
+      declinedAt: null
+    },
+    {
+      id: "seed-signature-court-square-manager",
+      transactionId: "seed-tx-45-10-court-square",
+      formId: "seed-form-court-square-emd-receipt",
+      documentId: null,
+      requestedByEmail: "simon@acre.com",
+      recipientName: "Office manager review",
+      recipientEmail: "simon@acre.com",
+      recipientRole: "Office manager",
+      signingOrder: 1,
+      status: "sent",
+      sentAt: new Date("2026-03-11T14:00:00.000Z"),
+      viewedAt: null,
+      completedAt: null,
+      declinedAt: null
+    }
+  ];
+
+  for (const request of seededSignatureRequests) {
+    const requestedByMembership = membershipByEmail.get(request.requestedByEmail) ?? null;
+
+    await prisma.signatureRequest.upsert({
+      where: { id: request.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: request.transactionId,
+        formId: request.formId,
+        documentId: request.documentId,
+        requestedByMembershipId: requestedByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
+        recipientName: request.recipientName,
+        recipientEmail: request.recipientEmail,
+        recipientRole: request.recipientRole,
+        signingOrder: request.signingOrder,
+        status: request.status,
+        sentAt: request.sentAt,
+        viewedAt: request.viewedAt,
+        completedAt: request.completedAt,
+        declinedAt: request.declinedAt
+      },
+      create: {
+        id: request.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: request.transactionId,
+        formId: request.formId,
+        documentId: request.documentId,
+        requestedByMembershipId: requestedByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
+        recipientName: request.recipientName,
+        recipientEmail: request.recipientEmail,
+        recipientRole: request.recipientRole,
+        signingOrder: request.signingOrder,
+        status: request.status,
+        sentAt: request.sentAt,
+        viewedAt: request.viewedAt,
+        completedAt: request.completedAt,
+        declinedAt: request.declinedAt
+      }
+    });
+  }
+
+  const seededIncomingUpdates = [
+    {
+      id: "seed-incoming-graham-closing-review",
+      transactionId: "seed-tx-graham-court",
+      sourceSystem: "Manual test feed",
+      sourceReference: "graham-closing-review-001",
+      status: "pending_review",
+      summary: "Closing date revision requires review",
+      payload: {
+        closingDate: "2026-03-28",
+        importantDate: "2026-03-22",
+        status: "pending"
+      },
+      reviewedAt: null,
+      reviewedByEmail: null,
+      acceptedAt: null,
+      rejectedAt: null
+    },
+    {
+      id: "seed-incoming-graham-price-rejected",
+      transactionId: "seed-tx-graham-court",
+      sourceSystem: "Manual test feed",
+      sourceReference: "graham-price-rejected-001",
+      status: "rejected",
+      summary: "Unsupported outside price revision was rejected",
+      payload: {
+        price: "950000",
+        summary: "Price update from external intake"
+      },
+      reviewedAt: new Date("2026-03-10T13:15:00.000Z"),
+      reviewedByEmail: "simon@acre.com",
+      acceptedAt: null,
+      rejectedAt: new Date("2026-03-10T13:15:00.000Z")
+    }
+  ];
+
+  for (const incomingUpdate of seededIncomingUpdates) {
+    const reviewedByMembership = incomingUpdate.reviewedByEmail
+      ? membershipByEmail.get(incomingUpdate.reviewedByEmail) ?? null
+      : null;
+
+    await prisma.incomingUpdate.upsert({
+      where: {
+        organizationId_sourceSystem_sourceReference: {
+          organizationId: organization.id,
+          sourceSystem: incomingUpdate.sourceSystem,
+          sourceReference: incomingUpdate.sourceReference
+        }
+      },
+      update: {
+        officeId: office.id,
+        transactionId: incomingUpdate.transactionId,
+        status: incomingUpdate.status,
+        summary: incomingUpdate.summary,
+        payload: incomingUpdate.payload,
+        receivedAt: new Date("2026-03-10T12:00:00.000Z"),
+        reviewedAt: incomingUpdate.reviewedAt,
+        reviewedByMembershipId: reviewedByMembership?.id ?? null,
+        acceptedAt: incomingUpdate.acceptedAt,
+        rejectedAt: incomingUpdate.rejectedAt
+      },
+      create: {
+        id: incomingUpdate.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: incomingUpdate.transactionId,
+        sourceSystem: incomingUpdate.sourceSystem,
+        sourceReference: incomingUpdate.sourceReference,
+        status: incomingUpdate.status,
+        summary: incomingUpdate.summary,
+        payload: incomingUpdate.payload,
+        receivedAt: new Date("2026-03-10T12:00:00.000Z"),
+        reviewedAt: incomingUpdate.reviewedAt,
+        reviewedByMembershipId: reviewedByMembership?.id ?? null,
+        acceptedAt: incomingUpdate.acceptedAt,
+        rejectedAt: incomingUpdate.rejectedAt
+      }
+    });
+  }
+
   const seededLedgerAccounts = [
     { code: "1000", name: "Operating Bank", accountType: "asset" },
     { code: "1010", name: "Earnest Money Holding Bank", accountType: "asset" },
@@ -1561,6 +2063,76 @@ async function main() {
       }
     },
     {
+      id: "seed-audit-document-uploaded-graham-contract",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction_document",
+      entityId: "seed-doc-graham-contract-upload",
+      action: "document.uploaded",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Buyer agreement upload",
+        details: ["Document type: Buyer agreement", "Status: Submitted", "Linked task: Collect signed buyer agreement"]
+      }
+    },
+    {
+      id: "seed-audit-form-created-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "transaction_form",
+      entityId: "seed-form-graham-buyer-agreement",
+      action: "form.created",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Graham Court buyer agreement packet",
+        details: ["Template: Buyer agreement packet", "Status: Fully signed"]
+      }
+    },
+    {
+      id: "seed-audit-signature-completed-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "signature_request",
+      entityId: "seed-signature-graham-buyer",
+      action: "signature_request.completed",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Signature request · Evelyn Zhao",
+        details: ["Recipient: Evelyn Zhao", "Status: Signed", "Completed: Mar 10, 2026"]
+      }
+    },
+    {
+      id: "seed-audit-incoming-update-received-graham",
+      membershipEmail: "jane@acre.com",
+      entityType: "incoming_update",
+      entityId: "seed-incoming-graham-closing-review",
+      action: "incoming_update.received",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Closing date revision requires review",
+        details: ["Source: Manual test feed", "Status: Pending review"]
+      }
+    },
+    {
+      id: "seed-audit-incoming-update-rejected-graham",
+      membershipEmail: "simon@acre.com",
+      entityType: "incoming_update",
+      entityId: "seed-incoming-graham-price-rejected",
+      action: "incoming_update.rejected",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-graham-court",
+        transactionLabel: "Graham Court 4F · Graham Court 4F, Brooklyn, NY",
+        objectLabel: "Unsupported outside price revision was rejected",
+        details: ["Source: Manual test feed", "Decision: Rejected"]
+      }
+    },
+    {
       id: "seed-audit-accounting-invoice-parson",
       membershipEmail: "naomi@acre.com",
       entityType: "accounting_transaction",
@@ -1674,7 +2246,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

@@ -14,7 +14,12 @@
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
 - `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
-- `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；documents / approvals / settings 变更还没有真实事件源
+- `Transaction detail` 现在已经进入真实 workflow 阶段，除 overview / status / contacts / finance / tasks 外，还包含：
+  - documents
+  - unsorted documents
+  - forms / eSignature
+  - incoming updates
+- `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；当前 documents / forms / signatures / incoming updates 已接入事件，但 approvals / settings 变更还没有真实事件源
 - `Activity` 当前还是一个受限访问的 account activity 模块，不把它当作所有 office 角色都能直接访问的普通页面；首版只允许 `office_admin` 和 `office_manager`
 
 ## 技术栈
@@ -53,7 +58,7 @@
 - 当前 API 已包含最小读写路径：
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
-  - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update
+  - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update、documents / forms / signatures / incoming updates
   - `Activity`：server-side 同时读取真实 `AuditLog` 和实时派生 alerts，渲染 `Activity Log + Operational Alerts`
     - `AuditLog` 是唯一活动事件源
     - 页面支持 `actor / object type / date range` 过滤
@@ -69,6 +74,7 @@
 - 当前已有最小本地登录 / 登出 / cookie session
 - 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
 - 当前 dashboard 业务指标也已有最小查询 service
+- 当前 transaction documents 使用本地文件系统 storage adapter，metadata 和 workflow 放在 Prisma
 - 当前没有 worker、queue、cron
 
 ### 数据库
@@ -118,6 +124,12 @@
 - `PostgreSQL / Prisma runtime`：代码已接入，本机已验证 local migrate + seed + query，但主页面和主 API 尚未切换到数据库
 - 对象存储：未实现
 - OCR / AI / 外部地产系统集成：未实现
+
+补充说明：
+
+- 当前文档文件不是接入 S3 / R2，而是本地文件系统 MVP
+- 当前 eSignature 不是第三方 vendor integration，而是内部状态机 foundation
+- 当前 incoming updates 不是 live Folio sync，而是内部 review-ready model
 
 不要把“规划中”当成“已接入”。
 
@@ -216,6 +228,11 @@
 - `AccountingTransactionLineItem`
 - `GeneralLedgerEntry`
 - `EarnestMoneyRecord`
+- `TransactionDocument`
+- `FormTemplate`
+- `TransactionForm`
+- `SignatureRequest`
+- `IncomingUpdate`
 
 当前已提供的数据库运行时入口：
 
@@ -252,6 +269,17 @@
 - `updateAccountingTransaction`
 - `createEarnestMoneyRecord`
 - `updateEarnestMoneyRecord`
+- `listTransactionDocumentsSnapshot`
+- `createTransactionDocument`
+- `updateTransactionDocument`
+- `deleteTransactionDocument`
+- `prepareTransactionFormDraft`
+- `createTransactionForm`
+- `updateTransactionForm`
+- `createSignatureRequest`
+- `updateSignatureRequest`
+- `createIncomingUpdate`
+- `reviewIncomingUpdate`
 
 ## 关键数据流
 
@@ -296,8 +324,15 @@
 21. `/office/tasks` 读取 `TransactionTask + TaskListView`，按 built-in view、saved view 和 query-param filters 返回真实任务列表
 22. `/office/tasks` 的 create / edit / complete / reopen / request review / approve / reject 都直接写数据库，并同步写入 `AuditLog`
 23. `/api/office/tasks/views` 以 membership 维度持久化 saved views
-24. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-25. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+24. transaction detail 的 documents / forms / signatures / incoming updates 统一通过 `packages/db/src/transaction-documents.ts` 读取和写入
+25. 文件本体当前通过 `apps/web/lib/document-storage.ts` 写入本地文件系统；document metadata 仍在 PostgreSQL
+26. document / form / signature / incoming update 的关键动作会写入 `AuditLog`
+27. `Activity Log + Operational Alerts` 现在也会显示：
+   - missing required document
+   - signature pending
+   - incoming update awaiting review
+28. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+29. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 

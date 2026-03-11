@@ -218,6 +218,11 @@ export function TransactionTasksCard({ transactionId, tasks, assigneeOptions }: 
                           <span>{task.complianceStatus}</span>
                         </div>
                         <div className="bm-transaction-task-actions">
+                          {task.requiresDocument || task.requiresDocumentApproval ? (
+                            <Link className="bm-view-toggle" href={`/office/transactions/${transactionId}#transaction-forms-signatures`}>
+                              Use forms
+                            </Link>
+                          ) : null}
                           {task.canCompleteDirectly ? (
                             <button
                               className="bm-view-toggle"

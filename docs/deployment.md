@@ -68,6 +68,8 @@ npm run db:seed
 - `/api/office/accounting/transactions*` 和 `/api/office/accounting/earnest-money*` 现在也属于真实数据库写路径
 - `Reports` 的 CSV 导出 route 也依赖真实数据库和有效 office session
 - `/api/office/activity/comments` 也依赖真实数据库和有效 office session
+- transaction detail 下的 documents / forms / signatures / incoming updates 现在也依赖真实数据库和有效 office session
+- transaction documents 当前还依赖本地文件系统存储目录；默认写到 `.local-storage/documents`
 - 所以当前并不存在“完整生产部署”
 
 ## 构建与发布
@@ -148,6 +150,7 @@ git push origin main
 - `/office/transactions` 现在的 `q / status / page / pageSize` 服务端分页查询也依赖真实数据库
 - `/office/contacts` 现在的 `q / stage / page / pageSize` 服务端分页查询也依赖真实数据库
 - accounting create / edit / EMD 写路径也依赖真实数据库
+- document upload / open / delete、form draft、signature workflow、incoming update review 也依赖真实数据库和本地文件存储
 - 如果只执行 `db:validate`，只需要一个格式正确的 `DATABASE_URL`
 
 ### 测试环境

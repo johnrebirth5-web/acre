@@ -124,6 +124,49 @@ enum TransactionTaskComplianceStatus {
   rejected
 }
 
+enum TransactionDocumentStatus {
+  uploaded
+  submitted
+  approved
+  rejected
+  signed
+  archived
+}
+
+enum TransactionDocumentSource {
+  manual_upload
+  generated_form
+  incoming_update
+  synced_external
+  email_pdf
+}
+
+enum TransactionFormStatus {
+  draft
+  prepared
+  sent_for_signature
+  partially_signed
+  fully_signed
+  rejected
+  voided
+}
+
+enum SignatureRequestStatus {
+  draft
+  sent
+  viewed
+  signed
+  declined
+  canceled
+}
+
+enum IncomingUpdateStatus {
+  pending_review
+  accepted
+  rejected
+  applied
+}
+
 enum LedgerAccountType {
   asset
   liability
@@ -203,6 +246,11 @@ model Organization {
   accountingTransactionLineItems AccountingTransactionLineItem[]
   generalLedgerEntries GeneralLedgerEntry[]
   earnestMoneyRecords EarnestMoneyRecord[]
+  transactionDocuments TransactionDocument[]
+  formTemplates FormTemplate[]
+  transactionForms TransactionForm[]
+  signatureRequests SignatureRequest[]
+  incomingUpdates IncomingUpdate[]
 }
 
 model Office {
@@ -227,6 +275,11 @@ model Office {
   accountingTransactionLineItems AccountingTransactionLineItem[]
   generalLedgerEntries GeneralLedgerEntry[]
   earnestMoneyRecords EarnestMoneyRecord[]
+  transactionDocuments TransactionDocument[]
+  formTemplates FormTemplate[]
+  transactionForms TransactionForm[]
+  signatureRequests SignatureRequest[]
+  incomingUpdates IncomingUpdate[]
 
   @@unique([organizationId, slug])
 }
@@ -275,6 +328,10 @@ model Membership {
   accountingTransactionsCreated AccountingTransaction[] @relation("AccountingTransactionCreatedBy")
   accountingTransactionsRelated AccountingTransaction[] @relation("AccountingTransactionRelatedMembership")
   earnestMoneyRecordsCreated EarnestMoneyRecord[] @relation("EarnestMoneyCreatedBy")
+  uploadedTransactionDocuments TransactionDocument[] @relation("TransactionDocumentUploadedBy")
+  createdTransactionForms TransactionForm[] @relation("TransactionFormCreatedBy")
+  requestedSignatureRequests SignatureRequest[] @relation("SignatureRequestRequestedBy")
+  reviewedIncomingUpdates IncomingUpdate[] @relation("IncomingUpdateReviewedBy")
 
   @@unique([organizationId, userId])
 }
@@ -323,6 +380,10 @@ model Transaction {
   accountingTransactionLineItems AccountingTransactionLineItem[]
   generalLedgerEntries        GeneralLedgerEntry[]
   earnestMoneyRecords         EarnestMoneyRecord[]
+  documents                   TransactionDocument[]
+  forms                       TransactionForm[]
+  signatureRequests           SignatureRequest[]
+  incomingUpdates             IncomingUpdate[]
 
   @@index([organizationId, status])
   @@index([organizationId, officeId])
@@ -470,6 +531,8 @@ model TransactionTask {
   firstApprovedByMembership Membership?                     @relation("TransactionTaskFirstApprovedBy", fields: [firstApprovedByMembershipId], references: [id], onDelete: SetNull)
   secondApprovedByMembership Membership?                    @relation("TransactionTaskSecondApprovedBy", fields: [secondApprovedByMembershipId], references: [id], onDelete: SetNull)
   rejectedByMembership      Membership?                     @relation("TransactionTaskRejectedBy", fields: [rejectedByMembershipId], references: [id], onDelete: SetNull)
+  documents                 TransactionDocument[]
+  forms                     TransactionForm[]
 
   @@index([organizationId, transactionId])
   @@index([organizationId, assigneeMembershipId])
@@ -626,6 +689,150 @@ model AuditLog {
   membership     Membership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, entityType])
+}
+
+model TransactionDocument {
+  id                   String                    @id @default(cuid())
+  organizationId       String
+  officeId             String?
+  transactionId        String
+  uploadedByMembershipId String?
+  linkedTaskId         String?
+  title                String
+  fileName             String
+  mimeType             String
+  fileSizeBytes        Int
+  storageKey           String
+  storageUrl           String?
+  documentType         String
+  status               TransactionDocumentStatus @default(uploaded)
+  source               TransactionDocumentSource @default(manual_upload)
+  isRequired           Boolean                   @default(false)
+  isSigned             Boolean                   @default(false)
+  isUnsorted           Boolean                   @default(false)
+  signedAt             DateTime?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  organization         Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office               Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction          Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  uploadedByMembership Membership?              @relation("TransactionDocumentUploadedBy", fields: [uploadedByMembershipId], references: [id], onDelete: SetNull)
+  linkedTask           TransactionTask?          @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  forms                TransactionForm[]         @relation("TransactionFormDocument")
+  signatureRequests    SignatureRequest[]        @relation("SignatureRequestDocument")
+
+  @@index([organizationId, transactionId, status])
+  @@index([organizationId, transactionId, isUnsorted])
+  @@index([organizationId, linkedTaskId])
+  @@index([organizationId, officeId])
+}
+
+model FormTemplate {
+  id             String      @id @default(cuid())
+  organizationId String?
+  officeId       String?
+  key            String      @unique
+  name           String
+  description    String?
+  documentType   String
+  mergeFields    Json
+  isSystem       Boolean     @default(true)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?     @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transactionForms TransactionForm[]
+
+  @@index([organizationId, officeId, isActive])
+}
+
+model TransactionForm {
+  id                   String               @id @default(cuid())
+  organizationId       String
+  officeId             String?
+  transactionId        String
+  templateId           String?
+  linkedTaskId         String?
+  documentId           String?
+  name                 String
+  status               TransactionFormStatus @default(draft)
+  generatedPayload     Json
+  createdByMembershipId String
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction          Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  template             FormTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  linkedTask           TransactionTask?     @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  document             TransactionDocument? @relation("TransactionFormDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  createdByMembership  Membership           @relation("TransactionFormCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  signatureRequests    SignatureRequest[]   @relation("SignatureRequestForm")
+
+  @@index([organizationId, transactionId, status])
+  @@index([organizationId, linkedTaskId])
+  @@index([organizationId, officeId])
+}
+
+model SignatureRequest {
+  id                   String                @id @default(cuid())
+  organizationId       String
+  officeId             String?
+  transactionId        String
+  formId               String?
+  documentId           String?
+  requestedByMembershipId String
+  recipientName        String
+  recipientEmail       String
+  recipientRole        String
+  signingOrder         Int?
+  status               SignatureRequestStatus @default(draft)
+  sentAt               DateTime?
+  viewedAt             DateTime?
+  completedAt          DateTime?
+  declinedAt           DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction          Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  form                 TransactionForm?     @relation("SignatureRequestForm", fields: [formId], references: [id], onDelete: SetNull)
+  document             TransactionDocument? @relation("SignatureRequestDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  requestedByMembership Membership          @relation("SignatureRequestRequestedBy", fields: [requestedByMembershipId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, transactionId, status])
+  @@index([organizationId, officeId])
+  @@index([organizationId, formId])
+  @@index([organizationId, documentId])
+}
+
+model IncomingUpdate {
+  id                   String               @id @default(cuid())
+  organizationId       String
+  officeId             String?
+  transactionId        String?
+  sourceSystem         String
+  sourceReference      String
+  status               IncomingUpdateStatus @default(pending_review)
+  summary              String
+  payload              Json
+  receivedAt           DateTime             @default(now())
+  reviewedAt           DateTime?
+  reviewedByMembershipId String?
+  acceptedAt           DateTime?
+  rejectedAt           DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction          Transaction?         @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  reviewedByMembership Membership?          @relation("IncomingUpdateReviewedBy", fields: [reviewedByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([organizationId, transactionId])
+  @@index([organizationId, officeId, receivedAt])
+  @@unique([organizationId, sourceSystem, sourceReference])
 }
 
 model LedgerAccount {

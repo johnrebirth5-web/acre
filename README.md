@@ -66,6 +66,40 @@
   - transaction detail 现在会渲染真实 linked contacts，并支持 link / unlink / set primary
   - transaction detail 现在有最小真实 `Checklist / Tasks` 区块，可创建、编辑并切换完成状态
   - transaction detail 现在有最小真实 `Finance` 区块，可编辑 gross commission / referral fee / office net / agent net / finance notes
+  - transaction detail 现在有最小真实 `Documents / Forms / eSignature / Incoming updates` workflow：
+    - `Documents`
+    - `Unsorted documents`
+    - `Forms & eSignature`
+    - `Incoming updates`
+  - `Documents` 当前支持：
+    - upload
+    - open / download
+    - delete
+    - unsorted -> structured
+    - link / unlink to task
+  - `Forms` 当前支持：
+    - 从内部模板创建 form instance
+    - 按 transaction 数据做确定性 merge
+    - 保存 draft
+    - 生成关联 document 记录
+  - `eSignature` 当前支持内部状态机：
+    - draft
+    - sent
+    - viewed
+    - signed
+    - declined
+    - canceled
+    当前没有第三方签名 vendor integration
+  - `Incoming updates` 当前支持内部 review model：
+    - pending_review
+    - accepted
+    - rejected
+    - applied
+    当前没有 live Folio / vendor sync
+  - 文档文件当前使用本地文件系统存储：
+    - 默认目录：`.local-storage/documents`
+    - 可用 `ACRE_DOCUMENTS_STORAGE_DIR` 覆盖
+    - 这是开发 / MVP 存储方案，不是生产对象存储方案
   - 已有 status update 写路径
 - `Office Tasks` 现在是一个独立的真实数据库工作流模块：
   - 路由：`/office/tasks`
@@ -216,6 +250,15 @@
   - `/api/office/transactions/:transactionId/tasks`
   - `/api/office/transactions/:transactionId/tasks/:taskId`
   - `/api/office/transactions/:transactionId/tasks/:taskId/workflow`
+  - `/api/office/transactions/:transactionId/documents`
+  - `/api/office/transactions/:transactionId/documents/:documentId`
+  - `/api/office/transactions/:transactionId/documents/:documentId/file`
+  - `/api/office/transactions/:transactionId/forms`
+  - `/api/office/transactions/:transactionId/forms/:formId`
+  - `/api/office/transactions/:transactionId/signatures`
+  - `/api/office/transactions/:transactionId/signatures/:signatureRequestId`
+  - `/api/office/transactions/:transactionId/incoming-updates`
+  - `/api/office/transactions/:transactionId/incoming-updates/:incomingUpdateId`
   - `/api/office/tasks/views`
   - `/api/office/contacts`
   - `/api/office/contacts/:contactId`

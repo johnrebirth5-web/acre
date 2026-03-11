@@ -192,6 +192,8 @@ Trade-off：
 - 已有 Vercel 生产部署实例，但还没有完整生产业务能力
 - `@acre/backoffice` 目前同时承担“领域模型”和“临时数据源”两种职责
 - 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但除 `Dashboard` 业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 外，大部分仍是静态示例数据和简化交互，不应误判为已复刻完成
+- 文档文件当前采用本地文件系统 MVP，而不是对象存储；这适合开发和本地验证，不应误判为生产可用存储层
+- `Forms / eSignature / Incoming updates` 当前是内部 workflow foundation，不是外部 vendor integration
 
 ## 明确的临时方案
 
@@ -272,7 +274,57 @@ Trade-off：
 
 - 再决定是否升级到更完整的 auth provider、session store、数据级权限
 
-### 5. `Activity` 现在以 `AuditLog` 为主，并同页补了实时 `Operational Alerts`
+### 5. Documents / Forms / eSignature 先做内部 workflow foundation，不直接接第三方
+
+原因：
+
+- 当前最重要的是把 transaction detail 的 document workflow 真实接起来
+- 需要先有 durable models，避免以后接 DocuSign / Dotloop / Folio 时重做 schema
+- 当前仓库还没有稳定的外部 vendor 写路径，不能假装已经存在
+
+影响：
+
+- 当前已有：
+  - `TransactionDocument`
+  - `FormTemplate`
+  - `TransactionForm`
+  - `SignatureRequest`
+  - `IncomingUpdate`
+- transaction detail 已支持：
+  - 文档上传 / 删除 / 打开
+  - unsorted documents
+  - 从 task 进入 forms
+  - 内部签名请求状态机
+  - incoming update review
+- activity log 已经能记录 document / form / signature / incoming update 事件
+
+Trade-off：
+
+- 现在不是完整文档平台
+- 没有 live external sync
+- 没有真正第三方签名 transport
+- 但数据库和 workflow foundation 已经稳定，后续接 vendor 不需要完全推翻
+
+### 6. 文件存储先用本地文件系统 MVP，而不是对象存储
+
+原因：
+
+- 现在需要真实 upload / open / delete 能力，不能继续停留在假链接
+- 当前还没到必须引入 S3 / R2 / signed URL 的阶段
+
+影响：
+
+- 当前文档文件默认写到 `.local-storage/documents`
+- 可以用 `ACRE_DOCUMENTS_STORAGE_DIR` 覆盖
+- 这套存储实现和 document metadata 已经解耦，后续可以替换 storage adapter
+
+Trade-off：
+
+- 本地开发简单
+- 生产环境不合适
+- 后续切对象存储时，需要替换底层存储实现，但不必重做 transaction document schema
+
+### 7. `Activity` 现在以 `AuditLog` 为主，并同页补了实时 `Operational Alerts`
 
 原因：
 
@@ -310,7 +362,7 @@ Trade-off：
 - 但它已经是一个真实、actor-aware 的 activity log，并能把最关键的运营告警收进系统内
 - 当前还没有 documents / settings / team / invoice payment lifecycle 这些模块的完整真实事件覆盖，所以页面不会假装这些分类已经可用
 
-## 关键决策 6：Accounting 先做 transaction-side accounting MVP，不做通用会计平台
+## 关键决策 8：Accounting 先做 transaction-side accounting MVP，不做通用会计平台
 
 原因：
 

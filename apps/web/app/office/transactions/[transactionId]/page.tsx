@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { getTransactionById, listTransactionTaskAssigneeOptions, listTransactionTasks } from "@acre/db";
+import {
+  canManageOfficeDocuments,
+  canManageOfficeSignatures,
+  canReviewOfficeIncomingUpdates,
+  canUseOfficeForms,
+  canViewOfficeDocuments
+} from "@acre/auth";
 import { DetailSection, PageHeader, PageShell, SectionCard, SecondaryMetaList } from "@acre/ui";
 import { notFound } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
 import { TransactionContactsCard } from "./contacts-card";
+import { TransactionDocumentsCard, TransactionUnsortedDocumentsCard } from "./documents-card";
 import { TransactionFinanceForm } from "./finance-form";
+import { TransactionFormsSignaturesCard } from "./forms-signatures-card";
+import { TransactionIncomingUpdatesCard } from "./incoming-updates-card";
 import { TransactionStatusForm } from "./status-form";
 import { TransactionTasksCard } from "./tasks-card";
 
@@ -26,6 +36,16 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
   if (!transaction) {
     notFound();
   }
+
+  const taskOptions = tasks.map((task) => ({
+    id: task.id,
+    title: task.title
+  }));
+  const canViewDocumentsForRole = canViewOfficeDocuments(context.currentMembership.role);
+  const canManageDocumentsForRole = canManageOfficeDocuments(context.currentMembership.role);
+  const canUseFormsForRole = canUseOfficeForms(context.currentMembership.role);
+  const canManageSignaturesForRole = canManageOfficeSignatures(context.currentMembership.role);
+  const canReviewIncomingUpdatesForRole = canReviewOfficeIncomingUpdates(context.currentMembership.role);
 
   return (
     <PageShell className="bm-transaction-detail-page office-detail-page">
@@ -116,6 +136,38 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
       />
 
       <TransactionTasksCard assigneeOptions={taskAssigneeOptions} tasks={tasks} transactionId={transaction.id} />
+
+      <TransactionDocumentsCard
+        canManageDocuments={canManageDocumentsForRole}
+        canViewDocuments={canViewDocumentsForRole}
+        documents={transaction.documents}
+        taskOptions={taskOptions}
+        transactionId={transaction.id}
+      />
+
+      <TransactionUnsortedDocumentsCard
+        canManageDocuments={canManageDocumentsForRole}
+        canViewDocuments={canViewDocumentsForRole}
+        documents={transaction.documents}
+        taskOptions={taskOptions}
+        transactionId={transaction.id}
+      />
+
+      <TransactionFormsSignaturesCard
+        canManageSignatures={canManageSignaturesForRole}
+        canUseForms={canUseFormsForRole}
+        canViewDocuments={canViewDocumentsForRole}
+        formTemplates={transaction.formTemplates}
+        forms={transaction.forms}
+        taskOptions={taskOptions}
+        transactionId={transaction.id}
+      />
+
+      <TransactionIncomingUpdatesCard
+        canReviewIncomingUpdates={canReviewIncomingUpdatesForRole}
+        incomingUpdates={transaction.incomingUpdates}
+        transactionId={transaction.id}
+      />
 
       <SectionCard subtitle="Minimal finance layer for commissions, office net, and notes." title="Finance">
         <TransactionFinanceForm
