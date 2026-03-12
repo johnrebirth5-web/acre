@@ -1,8 +1,10 @@
 import { activityLogActions, prisma, recordActivityLogEvent } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext, getSessionCookieName, getSessionCookieSettings } from "../../../../lib/auth-session";
+import { getRequestOrigin } from "../../../../lib/request-origin";
 
 export async function POST(request: NextRequest) {
+  const requestOrigin = getRequestOrigin(request);
   const context = await getRequestSessionContext(request);
 
   if (context) {
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const response = NextResponse.redirect(new URL("/login", request.url), 303);
+  const response = NextResponse.redirect(new URL("/login", requestOrigin), 303);
 
   response.cookies.set(getSessionCookieName(), "", {
     ...getSessionCookieSettings(),
