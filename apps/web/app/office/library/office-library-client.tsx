@@ -607,17 +607,21 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
               </div>
 
               <div className="office-library-preview-actions">
-                <Link className="bm-view-toggle" href={selectedDocument.openUrl} target="_blank">
+                <Link className="office-button office-button-secondary office-inline-action" href={selectedDocument.openUrl} target="_blank">
                   Open
                 </Link>
-                <Link className="bm-view-toggle" href={selectedDocument.downloadUrl} target="_blank">
+                <Link
+                  className="office-button office-button-secondary office-inline-action"
+                  href={selectedDocument.downloadUrl}
+                  target="_blank"
+                >
                   Download
                 </Link>
                 {canManageLibrary ? (
                   <Button
+                    className="office-inline-action"
                     disabled={pendingAction === "delete-document"}
                     onClick={handleDeleteDocument}
-                    size="sm"
                     type="button"
                     variant="danger"
                   >

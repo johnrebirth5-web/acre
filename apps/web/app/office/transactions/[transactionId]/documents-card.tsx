@@ -279,12 +279,13 @@ export function TransactionDocumentsCard({
 
                   <div className="bm-document-row-actions">
                     {canViewDocuments ? (
-                      <Link className="bm-view-toggle" href={document.storageUrl} target="_blank">
+                      <Link className="office-button office-button-secondary office-button-sm office-inline-action-sm" href={document.storageUrl} target="_blank">
                         Open
                       </Link>
                     ) : null}
                     {canManageDocuments ? (
                       <Button
+                        className="office-inline-action-sm"
                         disabled={pendingAction === `delete:${document.id}`}
                         onClick={() => handleDeleteDocument(document.id)}
                         size="sm"
@@ -520,12 +521,13 @@ export function TransactionUnsortedDocumentsCard({
 
                 <div className="bm-document-row-actions">
                   {canViewDocuments ? (
-                    <Link className="bm-view-toggle" href={document.storageUrl} target="_blank">
+                    <Link className="office-button office-button-secondary office-button-sm office-inline-action-sm" href={document.storageUrl} target="_blank">
                       Open
                     </Link>
                   ) : null}
                   {canManageDocuments ? (
                     <Button
+                      className="office-inline-action-sm"
                       disabled={pendingAction === `delete:${document.id}`}
                       onClick={() => handleDelete(document.id)}
                       size="sm"

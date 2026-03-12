@@ -2017,7 +2017,7 @@ select {
   letter-spacing: 0.01em;
 }
 
-.bm-transaction-modal-header button {
+.bm-transaction-modal-header > button:not(.office-button) {
   border: 0;
   padding: 0;
   background: transparent;
@@ -5542,6 +5542,14 @@ a {
 .office-button-danger {
   background: var(--office-danger);
   color: #fff;
+}
+
+.office-inline-action {
+  min-width: 120px;
+}
+
+.office-inline-action-sm {
+  min-width: 96px;
 }
 
 .office-button-sm {
