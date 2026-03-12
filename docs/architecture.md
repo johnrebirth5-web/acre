@@ -15,12 +15,14 @@
 - 但还没有复杂权限管理或数据级权限
 - `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 - `Transaction detail` 现在已经进入真实 workflow 阶段，除 overview / status / contacts / finance / tasks 外，还包含：
+  - offers
   - documents
   - unsorted documents
   - forms / eSignature
   - incoming updates
   - commission management
 - `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；当前 documents / forms / signatures / incoming updates 已接入事件，但 approvals / settings 变更还没有真实事件源
+- `Buyer Offers` 当前已经作为 transaction hub 内的真实 workflow foundation 落地，但仍是内部 Back Office offer management，不包含 MLS / email ingestion 或 client-facing portal
 - `Activity` 当前还是一个受限访问的 account activity 模块，不把它当作所有 office 角色都能直接访问的普通页面；首版只允许 `office_admin` 和 `office_manager`
 
 ## 技术栈
@@ -251,6 +253,8 @@
 - `TransactionForm`
 - `SignatureRequest`
 - `IncomingUpdate`
+- `Offer`
+- `OfferComment`
 
 当前已提供的数据库运行时入口：
 
@@ -304,6 +308,11 @@
 - `updateTransactionForm`
 - `createSignatureRequest`
 - `updateSignatureRequest`
+- `listTransactionOffersSnapshot`
+- `createOffer`
+- `updateOffer`
+- `transitionOfferStatus`
+- `createOfferComment`
 - `createIncomingUpdate`
 - `reviewIncomingUpdate`
 - `getOfficeAgentsRosterSnapshot`
@@ -378,16 +387,20 @@
 29. transaction detail 的 documents / forms / signatures / incoming updates 统一通过 `packages/db/src/transaction-documents.ts` 读取和写入
 30. 文件本体当前通过 `apps/web/lib/document-storage.ts` 写入本地文件系统；document metadata 仍在 PostgreSQL
 31. document / form / signature / incoming update 的关键动作会写入 `AuditLog`
-32. `/office/transactions/:transactionId` 还会通过 `getTransactionCommissionSnapshot` 读取 assigned plan、persisted calculations 和 transaction-level summary
-33. `/office/agents/:membershipId` 还会通过 `getAgentCommissionSummary` 聚合 active plan、recent calculations、statement-ready / payable / paid totals
-34. `Activity Log + Operational Alerts` 现在也会显示：
+32. buyer offers 继续落在 transaction hub 内，不另建第二个 offer app；offer 的 documents / forms / signatures 直接复用现有 foundation，并通过 `offerId` 做 linkage
+33. offer workflow 当前支持显式状态迁移、internal comments、comparison，以及 accepted offer -> transaction field 的可见回写
+34. `/office/transactions/:transactionId` 还会通过 `getTransactionCommissionSnapshot` 读取 assigned plan、persisted calculations 和 transaction-level summary
+35. `/office/agents/:membershipId` 还会通过 `getAgentCommissionSummary` 聚合 active plan、recent calculations、statement-ready / payable / paid totals
+36. `Activity Log + Operational Alerts` 现在也会显示：
    - missing required document
    - signature pending
    - incoming update awaiting review
    - tasks awaiting your review
    - tasks awaiting second review
    - rejected tasks needing action
-35. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal / AgentOnboardingTemplateItem`，并聚合 transactions / tasks / billing / activity 数据形成更接近管理工作台的 roster snapshot
+   - offers awaiting review
+   - offers expiring soon
+37. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal / AgentOnboardingTemplateItem`，并聚合 transactions / tasks / billing / activity 数据形成更接近管理工作台的 roster snapshot
 36. roster snapshot 当前会额外提供：
    - membership status
    - onboarding progress label

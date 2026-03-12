@@ -180,6 +180,32 @@ Trade-off：
 - 现在的 `office` UI 会比最初的 Acre PRD 更“像现有系统”，创新空间被暂时压后
 - 但这更符合当前阶段目标，也更利于后续做功能等价系统
 
+## 关键决策 8.5：Buyer Offers 继续放在 Transaction hub 内，而不是另建一个分离产品
+
+原因：
+
+- `Brokermint / BoldTrail` 的 buyer offers 本质上仍是 transaction management 的一部分
+- offer 会直接依赖当前已经存在的：
+  - transaction
+  - documents
+  - forms / signatures
+  - tasks
+  - activity log
+- 如果现在另起第二套 offer app，后面会把 transaction detail、documents 和 workflow 再拆碎一次
+
+影响：
+
+- offer 当前落在 transaction detail 内
+- `Offer` / `OfferComment` 进入 Prisma schema
+- document / form / signature 直接通过 `offerId` 复用现有 foundation
+- accepted offer 可以显式回写 transaction 的 price / closing date / acceptance context
+
+Trade-off：
+
+- 现在没有单独的 top-level `Offers` 工作台
+- 也没有 MLS / email ingestion
+- 但这样能先把内部 Back Office offer workflow 做实，而不是假装外部入口已经存在
+
 ## 当前已知限制
 
 这些限制是当前真实存在的，不应忽略：

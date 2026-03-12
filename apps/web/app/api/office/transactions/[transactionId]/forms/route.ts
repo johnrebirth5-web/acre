@@ -28,6 +28,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     | {
         templateId?: string;
         linkedTaskId?: string;
+        offerId?: string;
         name?: string;
       }
     | null;
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       transactionId,
       templateId: body.templateId,
       linkedTaskId: body.linkedTaskId?.trim() || null,
+      offerId: body.offerId?.trim() || null,
       name: body.name
     });
 
@@ -63,6 +65,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       actorMembershipId: context.currentMembership.id,
       templateId: draft.templateId,
       linkedTaskId: draft.linkedTaskId,
+      offerId: draft.offerId,
       name: draft.name,
       generatedPayload: draft.generatedPayload,
       generatedDocument: {

@@ -71,6 +71,23 @@
     - `Unsorted documents`
     - `Forms & eSignature`
     - `Incoming updates`
+  - transaction detail 现在也有真实 `Offers` workflow：
+    - offer create / edit
+    - explicit status transitions：
+      - `draft`
+      - `submitted`
+      - `received`
+      - `under_review`
+      - `countered`
+      - `accepted`
+      - `rejected`
+      - `withdrawn`
+      - `expired`
+    - offer comparison
+    - internal comments
+    - offer-linked documents / forms / signatures
+    - accepted offer 可以显式写回 transaction price / closing date / acceptance context
+  - 当前 offers 是 Back Office internal workflow，不是外部 MLS / email ingestion，也不是 client-facing portal
   - `Documents` 当前支持：
     - upload
     - open / download
@@ -425,7 +442,7 @@
 - `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
 - 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity`、`Accounting` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
 - 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
-- 未实现 `Brokermint` 中更深层的 buyer offers，以及更完整的 accounting workflows（如 reconciliation、QuickBooks sync、ACH/网关自动扣款）
+- 未实现 `Brokermint` 中更深层的 offer ingestion / MLS-email sync，以及更完整的 accounting workflows（如 reconciliation、QuickBooks sync、ACH/网关自动扣款）
 - 写操作接口当前只覆盖：
   - `Transactions` 的 create / status update
   - `Contacts` 的 create / edit / follow-up task create / transaction link

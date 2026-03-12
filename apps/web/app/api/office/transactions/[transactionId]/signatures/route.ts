@@ -25,6 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     | {
         formId?: string | null;
         documentId?: string | null;
+        offerId?: string | null;
         recipientName?: string;
         recipientEmail?: string;
         recipientRole?: string;
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       actorMembershipId: context.currentMembership.id,
       formId: body.formId?.trim() || null,
       documentId: body.documentId?.trim() || null,
+      offerId: body.offerId?.trim() || null,
       recipientName: body.recipientName,
       recipientEmail: body.recipientEmail,
       recipientRole: body.recipientRole,

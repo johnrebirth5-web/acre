@@ -63,6 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       mimeType: fileEntry.type || "application/octet-stream",
       fileSizeBytes: uploadedFile.fileSizeBytes,
       storageKey: uploadedFile.storageKey,
+      offerId: String(formData.get("offerId") ?? "").trim() || null,
       documentType: String(formData.get("documentType") ?? "General"),
       isRequired: parseBooleanField(formData.get("isRequired")),
       isUnsorted: parseBooleanField(formData.get("isUnsorted")),

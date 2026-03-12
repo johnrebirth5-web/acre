@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   IncomingUpdateStatus,
+  OfferStatus,
   Prisma,
   SignatureRequestStatus,
   TaskStatus,
@@ -34,6 +35,16 @@ export const activityLogActions = {
   transactionContactUnlinked: "transaction.contact_unlinked",
   transactionPrimaryContactChanged: "transaction.primary_contact_changed",
   transactionFinanceUpdated: "transaction.finance_updated",
+  offerCreated: "offer.created",
+  offerUpdated: "offer.updated",
+  offerSubmitted: "offer.submitted",
+  offerReceived: "offer.received",
+  offerCountered: "offer.countered",
+  offerAccepted: "offer.accepted",
+  offerRejected: "offer.rejected",
+  offerWithdrawn: "offer.withdrawn",
+  offerCommentAdded: "offer.comment_added",
+  offerDocumentLinked: "offer.document_linked",
   documentUploaded: "document.uploaded",
   documentUpdated: "document.updated",
   documentDeleted: "document.deleted",
@@ -98,6 +109,7 @@ export type ActivityLogEntityType =
   | "agent_onboarding_item"
   | "agent_goal"
   | "transaction"
+  | "offer"
   | "contact"
   | "transaction_task"
   | "follow_up_task"
@@ -150,6 +162,8 @@ export type ActivityLogSectionKey =
 
 export type ActivityAlertSectionKey =
   | "all"
+  | "offers-awaiting-review"
+  | "offers-expiring-soon"
   | "tasks-awaiting-your-review"
   | "tasks-awaiting-second-review"
   | "rejected-tasks-needing-action"
@@ -324,6 +338,16 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "transaction.contact_unlinked": "Transaction contact unlinked",
   "transaction.primary_contact_changed": "Transaction primary contact changed",
   "transaction.finance_updated": "Transaction finance updated",
+  "offer.created": "Offer created",
+  "offer.updated": "Offer updated",
+  "offer.submitted": "Offer submitted",
+  "offer.received": "Offer received",
+  "offer.countered": "Offer countered",
+  "offer.accepted": "Offer accepted",
+  "offer.rejected": "Offer rejected",
+  "offer.withdrawn": "Offer withdrawn",
+  "offer.comment_added": "Offer comment added",
+  "offer.document_linked": "Offer document linked",
   "document.uploaded": "Document uploaded",
   "document.updated": "Document updated",
   "document.deleted": "Document deleted",
@@ -412,7 +436,16 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.transactionCancelled ||
       action === activityLogActions.transactionContactLinked ||
       action === activityLogActions.transactionContactUnlinked ||
-      action === activityLogActions.transactionPrimaryContactChanged
+      action === activityLogActions.transactionPrimaryContactChanged ||
+      action === activityLogActions.offerCreated ||
+      action === activityLogActions.offerUpdated ||
+      action === activityLogActions.offerSubmitted ||
+      action === activityLogActions.offerReceived ||
+      action === activityLogActions.offerCountered ||
+      action === activityLogActions.offerAccepted ||
+      action === activityLogActions.offerRejected ||
+      action === activityLogActions.offerWithdrawn ||
+      action === activityLogActions.offerCommentAdded
   },
   {
     key: "contacts",
@@ -446,6 +479,7 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.documentOpened ||
       action === activityLogActions.formCreated ||
       action === activityLogActions.formUpdated ||
+      action === activityLogActions.offerDocumentLinked ||
       action === activityLogActions.signatureRequestSent ||
       action === activityLogActions.signatureUpdated ||
       action === activityLogActions.signatureCompleted ||
@@ -500,6 +534,8 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
 ];
 
 const activityAlertSectionDefinitions: ActivityAlertSectionDefinition[] = [
+  { key: "offers-awaiting-review", label: "Offers awaiting review", matches: (alert) => alert.type === "offers-awaiting-review" },
+  { key: "offers-expiring-soon", label: "Offers expiring soon", matches: (alert) => alert.type === "offers-expiring-soon" },
   { key: "tasks-awaiting-your-review", label: "Tasks awaiting your review", matches: (alert) => alert.type === "tasks-awaiting-your-review" },
   { key: "tasks-awaiting-second-review", label: "Tasks awaiting second review", matches: (alert) => alert.type === "tasks-awaiting-second-review" },
   { key: "rejected-tasks-needing-action", label: "Rejected tasks needing action", matches: (alert) => alert.type === "rejected-tasks-needing-action" },
@@ -616,6 +652,7 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
     case "agent_goal":
       return "agent";
     case "transaction":
+    case "offer":
       return "transaction";
     case "contact":
       return "contact";
@@ -678,6 +715,18 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
     }
 
     return `/office/transactions/${transactionId}`;
+  }
+
+  if (record.entityType === "offer") {
+    if (payload.contextHref) {
+      return payload.contextHref;
+    }
+
+    if (payload.transactionId) {
+      return `/office/transactions/${payload.transactionId}#offer-${record.entityId}`;
+    }
+
+    return null;
   }
 
   if (record.entityType === "accounting_transaction") {
@@ -841,6 +890,26 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "changed the primary transaction contact";
     case activityLogActions.transactionFinanceUpdated:
       return payload.changes.length === 1 ? `updated ${payload.changes[0].label.toLowerCase()}` : "updated transaction finance";
+    case activityLogActions.offerCreated:
+      return "created an offer";
+    case activityLogActions.offerUpdated:
+      return payload.changes.length === 1 ? `updated offer ${payload.changes[0].label.toLowerCase()}` : "updated an offer";
+    case activityLogActions.offerSubmitted:
+      return "submitted an offer";
+    case activityLogActions.offerReceived:
+      return "marked an offer as received";
+    case activityLogActions.offerCountered:
+      return "countered an offer";
+    case activityLogActions.offerAccepted:
+      return "accepted an offer";
+    case activityLogActions.offerRejected:
+      return "rejected an offer";
+    case activityLogActions.offerWithdrawn:
+      return "withdrew an offer";
+    case activityLogActions.offerCommentAdded:
+      return "added an offer comment";
+    case activityLogActions.offerDocumentLinked:
+      return "linked a document to an offer";
     case activityLogActions.documentUploaded:
       return "uploaded a document";
     case activityLogActions.documentUpdated:
@@ -1139,6 +1208,8 @@ async function listOperationalAlerts(input: {
 
   const [
     closingSoonTransactions,
+    offersAwaitingReview,
+    offersExpiringSoon,
     tasksAwaitingReview,
     tasksAwaitingSecondReview,
     rejectedTasksNeedingAction,
@@ -1172,6 +1243,52 @@ async function listOperationalAlerts(input: {
               }
             },
             orderBy: [{ closingDate: "asc" }]
+          })
+        : Promise.resolve([]),
+      input.objectType === "all" || input.objectType === "transaction"
+        ? prisma.offer.findMany({
+            where: {
+              organizationId: input.organizationId,
+              ...(input.officeId ? { officeId: input.officeId } : {}),
+              status: {
+                in: [OfferStatus.received, OfferStatus.under_review, OfferStatus.countered]
+              }
+            },
+            include: {
+              transaction: true,
+              createdByMembership: {
+                include: {
+                  user: true
+                }
+              }
+            },
+            orderBy: [{ updatedAt: "desc" }]
+          })
+        : Promise.resolve([]),
+      input.objectType === "all" || input.objectType === "transaction"
+        ? prisma.offer.findMany({
+            where: {
+              organizationId: input.organizationId,
+              ...(input.officeId ? { officeId: input.officeId } : {}),
+              status: {
+                in: [OfferStatus.submitted, OfferStatus.received, OfferStatus.under_review, OfferStatus.countered]
+              },
+              expirationAt: {
+                gte: now,
+                lte: new Date(now.getTime() + 72 * 60 * 60 * 1000),
+                ...(input.startDate ? { gte: input.startDate > now ? input.startDate : now } : {}),
+                ...(input.endDate ? { lte: input.endDate < new Date(now.getTime() + 72 * 60 * 60 * 1000) ? input.endDate : new Date(now.getTime() + 72 * 60 * 60 * 1000) } : {})
+              }
+            },
+            include: {
+              transaction: true,
+              createdByMembership: {
+                include: {
+                  user: true
+                }
+              }
+            },
+            orderBy: [{ expirationAt: "asc" }]
           })
         : Promise.resolve([]),
       input.canReviewTasks && input.currentMembershipId && (input.objectType === "all" || input.objectType === "task")
@@ -1488,6 +1605,58 @@ async function listOperationalAlerts(input: {
     ]);
 
   const alerts: Array<OfficeOperationalAlert & { sortAt: Date }> = [];
+
+  for (const offer of offersAwaitingReview) {
+    alerts.push({
+      id: `alert-offer-review-${offer.id}`,
+      type: "offers-awaiting-review",
+      typeLabel: "Offers awaiting review",
+      severity: "medium",
+      severityLabel: getSeverityLabel("medium"),
+      objectType: "transaction",
+      title: "Offer awaiting review",
+      summary: `${offer.title} needs offer review attention.`,
+      objectLabel: `${offer.transaction.title} · ${offer.transaction.address}, ${offer.transaction.city}, ${offer.transaction.state}`,
+      href: `/office/transactions/${offer.transactionId}#offer-${offer.id}`,
+      referenceLabel: buildAlertReferenceLabel("Updated", offer.updatedAt),
+      detailSummary: [
+        `Status: ${offer.status.replaceAll("_", " ")}`,
+        `Buyer / party: ${offer.buyerName?.trim() || offer.offeringPartyName}`,
+        ...(offer.price ? [`Price: ${formatCurrency(offer.price)}`] : []),
+        `Created by: ${offer.createdByMembership.user.firstName} ${offer.createdByMembership.user.lastName}`
+      ],
+      sortAt: offer.updatedAt
+    });
+  }
+
+  for (const offer of offersExpiringSoon) {
+    if (!offer.expirationAt) {
+      continue;
+    }
+
+    const hoursRemaining = Math.ceil((offer.expirationAt.getTime() - now.getTime()) / (60 * 60 * 1000));
+    const severity: OfficeOperationalAlertSeverity = hoursRemaining <= 24 ? "high" : "medium";
+
+    alerts.push({
+      id: `alert-offer-expiring-${offer.id}`,
+      type: "offers-expiring-soon",
+      typeLabel: "Offers expiring soon",
+      severity,
+      severityLabel: getSeverityLabel(severity),
+      objectType: "transaction",
+      title: "Offer expiring soon",
+      summary: `${offer.title} is close to expiration.`,
+      objectLabel: `${offer.transaction.title} · ${offer.transaction.address}, ${offer.transaction.city}, ${offer.transaction.state}`,
+      href: `/office/transactions/${offer.transactionId}#offer-${offer.id}`,
+      referenceLabel: buildAlertReferenceLabel("Expiration", offer.expirationAt),
+      detailSummary: [
+        `Status: ${offer.status.replaceAll("_", " ")}`,
+        `Buyer / party: ${offer.buyerName?.trim() || offer.offeringPartyName}`,
+        ...(offer.price ? [`Price: ${formatCurrency(offer.price)}`] : [])
+      ],
+      sortAt: offer.expirationAt
+    });
+  }
 
   for (const task of tasksAwaitingReview) {
     const referenceDate = task.submittedForReviewAt ?? task.updatedAt;

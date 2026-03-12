@@ -26,6 +26,10 @@ export type AppPermission =
   | "commissions:manage"
   | "commissions:calculate"
   | "commissions:approve"
+  | "offers:view"
+  | "offers:manage"
+  | "offers:review"
+  | "offers:accept"
   | "tasks:view"
   | "tasks:manage"
   | "tasks:review"
@@ -97,6 +101,10 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "commissions:manage",
     "commissions:calculate",
     "commissions:approve",
+    "offers:view",
+    "offers:manage",
+    "offers:review",
+    "offers:accept",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -137,6 +145,10 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "commissions:manage",
     "commissions:calculate",
     "commissions:approve",
+    "offers:view",
+    "offers:manage",
+    "offers:review",
+    "offers:accept",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -256,6 +268,22 @@ export function canManageOfficePayments(role: UserRole): boolean {
 
 export function canViewOfficeCommissions(role: UserRole): boolean {
   return can(role, "commissions:view");
+}
+
+export function canViewOfficeOffers(role: UserRole): boolean {
+  return can(role, "offers:view");
+}
+
+export function canManageOfficeOffers(role: UserRole): boolean {
+  return can(role, "offers:manage");
+}
+
+export function canReviewOfficeOffers(role: UserRole): boolean {
+  return can(role, "offers:review");
+}
+
+export function canAcceptOfficeOffers(role: UserRole): boolean {
+  return can(role, "offers:accept");
 }
 
 export function canManageOfficeCommissions(role: UserRole): boolean {

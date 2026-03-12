@@ -167,6 +167,18 @@ enum IncomingUpdateStatus {
   applied
 }
 
+enum OfferStatus {
+  draft
+  submitted
+  received
+  under_review
+  countered
+  accepted
+  rejected
+  withdrawn
+  expired
+}
+
 enum LedgerAccountType {
   asset
   liability
@@ -334,6 +346,8 @@ model Organization {
   transactionForms TransactionForm[]
   signatureRequests SignatureRequest[]
   incomingUpdates IncomingUpdate[]
+  offers          Offer[]
+  offerComments   OfferComment[]
   agentProfiles   AgentProfile[]
   teams           Team[]
   teamMemberships TeamMembership[]
@@ -376,6 +390,8 @@ model Office {
   transactionForms TransactionForm[]
   signatureRequests SignatureRequest[]
   incomingUpdates IncomingUpdate[]
+  offers          Offer[]
+  offerComments   OfferComment[]
   agentProfiles   AgentProfile[]
   teams           Team[]
   teamMemberships TeamMembership[]
@@ -441,6 +457,8 @@ model Membership {
   createdTransactionForms TransactionForm[] @relation("TransactionFormCreatedBy")
   requestedSignatureRequests SignatureRequest[] @relation("SignatureRequestRequestedBy")
   reviewedIncomingUpdates IncomingUpdate[] @relation("IncomingUpdateReviewedBy")
+  createdOffers          Offer[]               @relation("OfferCreatedBy")
+  offerComments          OfferComment[]
   agentProfile         AgentProfile?
   teamMemberships      TeamMembership[]
   agentOnboardingItems AgentOnboardingItem[]
@@ -501,6 +519,7 @@ model Transaction {
   forms                       TransactionForm[]
   signatureRequests           SignatureRequest[]
   incomingUpdates             IncomingUpdate[]
+  offers                      Offer[]
   commissionCalculations      CommissionCalculation[]
 
   @@index([organizationId, status])
@@ -818,6 +837,7 @@ model TransactionDocument {
   organizationId       String
   officeId             String?
   transactionId        String
+  offerId              String?
   uploadedByMembershipId String?
   linkedTaskId         String?
   title                String
@@ -838,6 +858,7 @@ model TransactionDocument {
   organization         Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office               Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
   transaction          Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  offer                Offer?                    @relation(fields: [offerId], references: [id], onDelete: SetNull)
   uploadedByMembership Membership?              @relation("TransactionDocumentUploadedBy", fields: [uploadedByMembershipId], references: [id], onDelete: SetNull)
   linkedTask           TransactionTask?          @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
   forms                TransactionForm[]         @relation("TransactionFormDocument")
@@ -847,6 +868,7 @@ model TransactionDocument {
   @@index([organizationId, transactionId, isUnsorted])
   @@index([organizationId, linkedTaskId])
   @@index([organizationId, officeId])
+  @@index([organizationId, offerId])
 }
 
 model FormTemplate {
@@ -874,6 +896,7 @@ model TransactionForm {
   organizationId       String
   officeId             String?
   transactionId        String
+  offerId              String?
   templateId           String?
   linkedTaskId         String?
   documentId           String?
@@ -886,6 +909,7 @@ model TransactionForm {
   organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
   transaction          Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  offer                Offer?               @relation(fields: [offerId], references: [id], onDelete: SetNull)
   template             FormTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
   linkedTask           TransactionTask?     @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
   document             TransactionDocument? @relation("TransactionFormDocument", fields: [documentId], references: [id], onDelete: SetNull)
@@ -895,6 +919,7 @@ model TransactionForm {
   @@index([organizationId, transactionId, status])
   @@index([organizationId, linkedTaskId])
   @@index([organizationId, officeId])
+  @@index([organizationId, offerId])
 }
 
 model SignatureRequest {
@@ -902,6 +927,7 @@ model SignatureRequest {
   organizationId       String
   officeId             String?
   transactionId        String
+  offerId              String?
   formId               String?
   documentId           String?
   requestedByMembershipId String
@@ -919,6 +945,7 @@ model SignatureRequest {
   organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
   transaction          Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  offer                Offer?               @relation(fields: [offerId], references: [id], onDelete: SetNull)
   form                 TransactionForm?     @relation("SignatureRequestForm", fields: [formId], references: [id], onDelete: SetNull)
   document             TransactionDocument? @relation("SignatureRequestDocument", fields: [documentId], references: [id], onDelete: SetNull)
   requestedByMembership Membership          @relation("SignatureRequestRequestedBy", fields: [requestedByMembershipId], references: [id], onDelete: Cascade)
@@ -927,6 +954,7 @@ model SignatureRequest {
   @@index([organizationId, officeId])
   @@index([organizationId, formId])
   @@index([organizationId, documentId])
+  @@index([organizationId, offerId])
 }
 
 model IncomingUpdate {
@@ -955,6 +983,62 @@ model IncomingUpdate {
   @@index([organizationId, transactionId])
   @@index([organizationId, officeId, receivedAt])
   @@unique([organizationId, sourceSystem, sourceReference])
+}
+
+model Offer {
+  id                   String      @id @default(cuid())
+  organizationId       String
+  officeId             String?
+  transactionId        String
+  createdByMembershipId String
+  title                String
+  offeringPartyName    String
+  buyerName            String?
+  status               OfferStatus @default(draft)
+  price                Decimal?    @db.Decimal(12, 2)
+  earnestMoneyAmount   Decimal?    @db.Decimal(12, 2)
+  financingType        String?
+  closingDateOffered   DateTime?
+  expirationAt         DateTime?
+  isPrimaryOffer       Boolean     @default(false)
+  notes                String?
+  submittedAt          DateTime?
+  acceptedAt           DateTime?
+  rejectedAt           DateTime?
+  withdrawnAt          DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office               Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction          Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  createdByMembership  Membership   @relation("OfferCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  documents            TransactionDocument[]
+  forms                TransactionForm[]
+  signatureRequests    SignatureRequest[]
+  comments             OfferComment[]
+
+  @@index([organizationId, transactionId, status])
+  @@index([organizationId, officeId, createdAt])
+  @@index([organizationId, expirationAt])
+  @@index([organizationId, createdByMembershipId])
+}
+
+model OfferComment {
+  id             String   @id @default(cuid())
+  organizationId String
+  officeId       String?
+  offerId        String
+  membershipId   String
+  body           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  offer          Offer        @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  membership     Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, offerId, createdAt])
+  @@index([organizationId, membershipId])
 }
 
 model LedgerAccount {

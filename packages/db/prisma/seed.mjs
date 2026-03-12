@@ -1364,6 +1364,142 @@ async function main() {
     });
   }
 
+  const seededOffers = [
+    {
+      id: "seed-offer-graham-evelyn",
+      transactionId: "seed-tx-graham-court",
+      createdByEmail: "jane@acre.com",
+      title: "Offer from Evelyn Zhao",
+      offeringPartyName: "Evelyn Zhao",
+      buyerName: "Evelyn Zhao",
+      status: "received",
+      price: "910000",
+      earnestMoneyAmount: "45000",
+      financingType: "Conventional",
+      closingDateOffered: new Date("2026-04-01T00:00:00.000Z"),
+      expirationAt: new Date("2026-03-15T20:00:00.000Z"),
+      isPrimaryOffer: false,
+      notes: "Buyer agent delivered signed packet and pre-approval letter.",
+      submittedAt: new Date("2026-03-11T13:30:00.000Z"),
+      acceptedAt: null,
+      rejectedAt: null,
+      withdrawnAt: null
+    },
+    {
+      id: "seed-offer-graham-countered",
+      transactionId: "seed-tx-graham-court",
+      createdByEmail: "jane@acre.com",
+      title: "Countered cash offer",
+      offeringPartyName: "Brookline Holdings LLC",
+      buyerName: "Brookline Holdings LLC",
+      status: "countered",
+      price: "925000",
+      earnestMoneyAmount: "50000",
+      financingType: "Cash",
+      closingDateOffered: new Date("2026-03-28T00:00:00.000Z"),
+      expirationAt: new Date("2026-03-13T19:00:00.000Z"),
+      isPrimaryOffer: true,
+      notes: "Seller asked for faster close and shorter contingency window.",
+      submittedAt: new Date("2026-03-11T16:00:00.000Z"),
+      acceptedAt: null,
+      rejectedAt: null,
+      withdrawnAt: null
+    }
+  ];
+
+  for (const offer of seededOffers) {
+    const createdByMembership = membershipByEmail.get(offer.createdByEmail) ?? null;
+
+    await prisma.offer.upsert({
+      where: { id: offer.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: offer.transactionId,
+        createdByMembershipId: createdByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
+        title: offer.title,
+        offeringPartyName: offer.offeringPartyName,
+        buyerName: offer.buyerName,
+        status: offer.status,
+        price: offer.price,
+        earnestMoneyAmount: offer.earnestMoneyAmount,
+        financingType: offer.financingType,
+        closingDateOffered: offer.closingDateOffered,
+        expirationAt: offer.expirationAt,
+        isPrimaryOffer: offer.isPrimaryOffer,
+        notes: offer.notes,
+        submittedAt: offer.submittedAt,
+        acceptedAt: offer.acceptedAt,
+        rejectedAt: offer.rejectedAt,
+        withdrawnAt: offer.withdrawnAt
+      },
+      create: {
+        id: offer.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: offer.transactionId,
+        createdByMembershipId: createdByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
+        title: offer.title,
+        offeringPartyName: offer.offeringPartyName,
+        buyerName: offer.buyerName,
+        status: offer.status,
+        price: offer.price,
+        earnestMoneyAmount: offer.earnestMoneyAmount,
+        financingType: offer.financingType,
+        closingDateOffered: offer.closingDateOffered,
+        expirationAt: offer.expirationAt,
+        isPrimaryOffer: offer.isPrimaryOffer,
+        notes: offer.notes,
+        submittedAt: offer.submittedAt,
+        acceptedAt: offer.acceptedAt,
+        rejectedAt: offer.rejectedAt,
+        withdrawnAt: offer.withdrawnAt
+      }
+    });
+  }
+
+  const seededOfferComments = [
+    {
+      id: "seed-offer-comment-graham-1",
+      offerId: "seed-offer-graham-countered",
+      membershipEmail: "jane@acre.com",
+      body: "Counter package is strongest on price, but seller wants a faster close.",
+      createdAt: new Date("2026-03-11T16:30:00.000Z")
+    },
+    {
+      id: "seed-offer-comment-graham-2",
+      offerId: "seed-offer-graham-countered",
+      membershipEmail: "simon@acre.com",
+      body: "Keep an eye on expiration. Ask for proof of funds before accepting.",
+      createdAt: new Date("2026-03-11T17:00:00.000Z")
+    }
+  ];
+
+  for (const comment of seededOfferComments) {
+    const membership = membershipByEmail.get(comment.membershipEmail) ?? null;
+
+    await prisma.offerComment.upsert({
+      where: { id: comment.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        offerId: comment.offerId,
+        membershipId: membership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
+        body: comment.body,
+        createdAt: comment.createdAt
+      },
+      create: {
+        id: comment.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        offerId: comment.offerId,
+        membershipId: membership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
+        body: comment.body,
+        createdAt: comment.createdAt
+      }
+    });
+  }
+
   const seededFormTemplates = [
     {
       id: "seed-form-template-buyer-agreement",
@@ -1478,6 +1614,7 @@ async function main() {
     {
       id: "seed-doc-graham-contract-upload",
       transactionId: "seed-tx-graham-court",
+      offerId: "seed-offer-graham-evelyn",
       uploadedByEmail: "jane@acre.com",
       linkedTaskId: "seed-transaction-task-graham-contract",
       title: "Buyer agreement upload",
@@ -1496,6 +1633,7 @@ async function main() {
     {
       id: "seed-doc-graham-unsorted-email",
       transactionId: "seed-tx-graham-court",
+      offerId: null,
       uploadedByEmail: "jane@acre.com",
       linkedTaskId: null,
       title: "Loose email PDF",
@@ -1514,6 +1652,7 @@ async function main() {
     {
       id: "seed-doc-graham-generated-packet",
       transactionId: "seed-tx-graham-court",
+      offerId: "seed-offer-graham-countered",
       uploadedByEmail: "jane@acre.com",
       linkedTaskId: "seed-transaction-task-graham-contract",
       title: "Buyer agreement packet document",
@@ -1532,6 +1671,7 @@ async function main() {
     {
       id: "seed-doc-court-square-invoice-package",
       transactionId: "seed-tx-45-10-court-square",
+      offerId: null,
       uploadedByEmail: "simon@acre.com",
       linkedTaskId: "seed-transaction-task-court-square-invoice",
       title: "Vendor invoice support package",
@@ -1558,6 +1698,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         transactionId: document.transactionId,
+        offerId: document.offerId,
         uploadedByMembershipId: uploadedByMembership?.id ?? null,
         linkedTaskId: document.linkedTaskId,
         title: document.title,
@@ -1579,6 +1720,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         transactionId: document.transactionId,
+        offerId: document.offerId,
         uploadedByMembershipId: uploadedByMembership?.id ?? null,
         linkedTaskId: document.linkedTaskId,
         title: document.title,
@@ -1602,6 +1744,7 @@ async function main() {
     {
       id: "seed-form-graham-buyer-agreement",
       transactionId: "seed-tx-graham-court",
+      offerId: "seed-offer-graham-countered",
       templateKey: "buyer-agreement-packet",
       linkedTaskId: "seed-transaction-task-graham-contract",
       documentId: "seed-doc-graham-generated-packet",
@@ -1627,6 +1770,7 @@ async function main() {
     {
       id: "seed-form-court-square-emd-receipt",
       transactionId: "seed-tx-45-10-court-square",
+      offerId: null,
       templateKey: "emd-receipt",
       linkedTaskId: null,
       documentId: null,
@@ -1653,6 +1797,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         transactionId: form.transactionId,
+        offerId: form.offerId,
         templateId: template?.id ?? null,
         linkedTaskId: form.linkedTaskId,
         documentId: form.documentId,
@@ -1666,6 +1811,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         transactionId: form.transactionId,
+        offerId: form.offerId,
         templateId: template?.id ?? null,
         linkedTaskId: form.linkedTaskId,
         documentId: form.documentId,
@@ -1681,6 +1827,7 @@ async function main() {
     {
       id: "seed-signature-graham-buyer",
       transactionId: "seed-tx-graham-court",
+      offerId: "seed-offer-graham-countered",
       formId: "seed-form-graham-buyer-agreement",
       documentId: "seed-doc-graham-generated-packet",
       requestedByEmail: "jane@acre.com",
@@ -1697,6 +1844,7 @@ async function main() {
     {
       id: "seed-signature-court-square-manager",
       transactionId: "seed-tx-45-10-court-square",
+      offerId: null,
       formId: "seed-form-court-square-emd-receipt",
       documentId: null,
       requestedByEmail: "simon@acre.com",
@@ -1721,6 +1869,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         transactionId: request.transactionId,
+        offerId: request.offerId,
         formId: request.formId,
         documentId: request.documentId,
         requestedByMembershipId: requestedByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,
@@ -1739,6 +1888,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         transactionId: request.transactionId,
+        offerId: request.offerId,
         formId: request.formId,
         documentId: request.documentId,
         requestedByMembershipId: requestedByMembership?.id ?? membershipByEmail.get("naomi@acre.com")?.id,

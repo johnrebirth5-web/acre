@@ -31,6 +31,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         isRequired?: boolean;
         isUnsorted?: boolean;
         linkedTaskId?: string | null;
+        offerId?: string | null;
       }
     | null;
 
@@ -45,7 +46,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       status: body?.status as never,
       isRequired: body?.isRequired,
       isUnsorted: body?.isUnsorted,
-      linkedTaskId: body?.linkedTaskId ?? undefined
+      linkedTaskId: body?.linkedTaskId ?? undefined,
+      offerId: body?.offerId ?? undefined
     });
 
     if (!document) {

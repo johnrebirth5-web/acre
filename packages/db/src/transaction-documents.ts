@@ -113,6 +113,7 @@ export type CreateTransactionDocumentInput = {
   officeId?: string | null;
   transactionId: string;
   actorMembershipId?: string;
+  offerId?: string | null;
   title: string;
   fileName: string;
   mimeType: string;
@@ -132,6 +133,7 @@ export type UpdateTransactionDocumentInput = {
   transactionId: string;
   documentId: string;
   actorMembershipId?: string;
+  offerId?: string | null;
   title?: string;
   documentType?: string;
   status?: TransactionDocumentStatus;
@@ -145,6 +147,7 @@ export type PrepareTransactionFormDraftInput = {
   transactionId: string;
   templateId: string;
   linkedTaskId?: string | null;
+  offerId?: string | null;
   name?: string;
 };
 
@@ -155,6 +158,7 @@ export type PreparedTransactionFormDraft = {
   name: string;
   generatedPayload: Record<string, string>;
   linkedTaskId: string | null;
+  offerId: string | null;
 };
 
 export type CreateTransactionFormInput = {
@@ -164,6 +168,7 @@ export type CreateTransactionFormInput = {
   actorMembershipId: string;
   templateId: string;
   linkedTaskId?: string | null;
+  offerId?: string | null;
   name: string;
   generatedPayload: Record<string, string>;
   generatedDocument?: {
@@ -184,6 +189,7 @@ export type UpdateTransactionFormInput = {
   actorMembershipId?: string;
   name?: string;
   linkedTaskId?: string | null;
+  offerId?: string | null;
   generatedPayload?: Record<string, string>;
   status?: TransactionFormStatus;
 };
@@ -195,6 +201,7 @@ export type CreateSignatureRequestInput = {
   actorMembershipId: string;
   formId?: string | null;
   documentId?: string | null;
+  offerId?: string | null;
   recipientName: string;
   recipientEmail: string;
   recipientRole: string;
@@ -296,6 +303,20 @@ type MergeContextTransaction = Prisma.TransactionGetPayload<{
         client: true;
       };
     };
+  };
+}>;
+
+type MergeContextOffer = Prisma.OfferGetPayload<{
+  select: {
+    id: true;
+    title: true;
+    offeringPartyName: true;
+    buyerName: true;
+    price: true;
+    earnestMoneyAmount: true;
+    financingType: true;
+    closingDateOffered: true;
+    expirationAt: true;
   };
 }>;
 
@@ -411,6 +432,11 @@ function formatMembershipName(membership: { user: { firstName: string; lastName:
 
 function buildTransactionObjectLabel(transaction: { title: string; address: string; city: string; state: string }) {
   return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
+}
+
+function buildOfferObjectLabel(offer: { title: string; offeringPartyName: string; buyerName: string | null }) {
+  const party = offer.buyerName?.trim() || offer.offeringPartyName;
+  return `${offer.title} · ${party}`;
 }
 
 function normalizeJsonRecord(value: Prisma.JsonValue | null | undefined): Record<string, string> {
@@ -566,7 +592,61 @@ async function getTransactionMergeContext(organizationId: string, transactionId:
   });
 }
 
-function buildTransactionFormPayload(transaction: MergeContextTransaction) {
+async function getOfferMergeContext(
+  organizationId: string,
+  transactionId: string,
+  offerId: string | null | undefined
+): Promise<MergeContextOffer | null> {
+  if (!offerId) {
+    return null;
+  }
+
+  return prisma.offer.findFirst({
+    where: {
+      id: offerId,
+      organizationId,
+      transactionId
+    },
+    select: {
+      id: true,
+      title: true,
+      offeringPartyName: true,
+      buyerName: true,
+      price: true,
+      earnestMoneyAmount: true,
+      financingType: true,
+      closingDateOffered: true,
+      expirationAt: true
+    }
+  });
+}
+
+async function getValidatedOfferLink(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  transactionId: string,
+  offerId: string | null | undefined
+) {
+  if (!offerId) {
+    return null;
+  }
+
+  return tx.offer.findFirst({
+    where: {
+      id: offerId,
+      organizationId,
+      transactionId
+    },
+    select: {
+      id: true,
+      title: true,
+      offeringPartyName: true,
+      buyerName: true
+    }
+  });
+}
+
+function buildTransactionFormPayload(transaction: MergeContextTransaction, offer: MergeContextOffer | null) {
   const primaryContact = transaction.transactionContacts[0]?.client ?? null;
   const ownerName = transaction.ownerMembership
     ? `${transaction.ownerMembership.user.firstName} ${transaction.ownerMembership.user.lastName}`
@@ -586,6 +666,13 @@ function buildTransactionFormPayload(transaction: MergeContextTransaction) {
     primaryContactName: primaryContact?.fullName ?? "",
     primaryContactEmail: primaryContact?.email ?? "",
     primaryContactPhone: primaryContact?.phone ?? "",
+    offerTitle: offer?.title ?? "",
+    offerPartyName: (offer?.buyerName?.trim() || offer?.offeringPartyName) ?? "",
+    offerPrice: formatCurrency(offer?.price),
+    offerEarnestMoney: formatCurrency(offer?.earnestMoneyAmount),
+    offerFinancingType: offer?.financingType ?? "",
+    offerClosingDate: formatDateValue(offer?.closingDateOffered ?? null),
+    offerExpirationDate: formatDateValue(offer?.expirationAt ?? null),
     grossCommission: formatCurrency(transaction.grossCommission),
     referralFee: formatCurrency(transaction.referralFee),
     officeNet: formatCurrency(transaction.officeNet),
@@ -904,7 +991,7 @@ export async function recordTransactionDocumentOpened(
 
 export async function createTransactionDocument(input: CreateTransactionDocumentInput): Promise<OfficeTransactionDocument | null> {
   const documentId = await prisma.$transaction(async (tx) => {
-    const [transaction, linkedTask] = await Promise.all([
+    const [transaction, linkedTask, linkedOffer] = await Promise.all([
       tx.transaction.findFirst({
         where: {
           id: input.transactionId,
@@ -932,6 +1019,8 @@ export async function createTransactionDocument(input: CreateTransactionDocument
             }
           })
         : Promise.resolve(null)
+      ,
+      getValidatedOfferLink(tx, input.organizationId, input.transactionId, input.offerId)
     ]);
 
     if (!transaction) {
@@ -945,6 +1034,7 @@ export async function createTransactionDocument(input: CreateTransactionDocument
         transactionId: input.transactionId,
         uploadedByMembershipId: input.actorMembershipId ?? null,
         linkedTaskId: linkedTask?.id ?? null,
+        offerId: linkedOffer?.id ?? null,
         title: input.title.trim(),
         fileName: input.fileName,
         mimeType: input.mimeType,
@@ -974,11 +1064,30 @@ export async function createTransactionDocument(input: CreateTransactionDocument
           `Document type: ${created.documentType}`,
           `Source: ${documentSourceLabelMap[created.source]}`,
           ...(created.isUnsorted ? ["Unsorted: Yes"] : []),
-          ...(linkedTask ? [`Linked task: ${linkedTask.title}`] : [])
+          ...(linkedTask ? [`Linked task: ${linkedTask.title}`] : []),
+          ...(linkedOffer ? [`Linked offer: ${buildOfferObjectLabel(linkedOffer)}`] : [])
         ],
         contextHref: `/office/transactions/${input.transactionId}#transaction-documents`
       }
     });
+
+    if (linkedOffer) {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "offer",
+        entityId: linkedOffer.id,
+        action: activityLogActions.offerDocumentLinked,
+        payload: {
+          officeId: transaction.officeId,
+          transactionId: input.transactionId,
+          transactionLabel: buildTransactionObjectLabel(transaction),
+          objectLabel: buildOfferObjectLabel(linkedOffer),
+          details: [`Document: ${created.title}`],
+          contextHref: `/office/transactions/${input.transactionId}#offer-${linkedOffer.id}`
+        }
+      });
+    }
 
     if (linkedTask?.id) {
       await reconcileLinkedWorkflowTasks(tx, {
@@ -1025,6 +1134,14 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
             id: true,
             title: true
           }
+        },
+        offer: {
+          select: {
+            id: true,
+            title: true,
+            offeringPartyName: true,
+            buyerName: true
+          }
         }
       }
     });
@@ -1033,19 +1150,24 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
       return null;
     }
 
-    const linkedTask = input.linkedTaskId
-      ? await tx.transactionTask.findFirst({
-          where: {
-            id: input.linkedTaskId,
-            transactionId: input.transactionId,
-            organizationId: input.organizationId
-          },
-          select: {
-            id: true,
-            title: true
-          }
-        })
-      : null;
+    const [linkedTask, linkedOffer] = await Promise.all([
+      input.linkedTaskId
+        ? tx.transactionTask.findFirst({
+            where: {
+              id: input.linkedTaskId,
+              transactionId: input.transactionId,
+              organizationId: input.organizationId
+            },
+            select: {
+              id: true,
+              title: true
+            }
+          })
+        : Promise.resolve(null),
+      input.offerId === undefined
+        ? Promise.resolve(existing.offer)
+        : getValidatedOfferLink(tx, input.organizationId, input.transactionId, input.offerId)
+    ]);
 
     const saved = await tx.transactionDocument.update({
       where: {
@@ -1057,7 +1179,8 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
         status: input.status ?? existing.status,
         isRequired: input.isRequired ?? existing.isRequired,
         isUnsorted: input.isUnsorted ?? existing.isUnsorted,
-        linkedTaskId: input.linkedTaskId === undefined ? existing.linkedTaskId : linkedTask?.id ?? null
+        linkedTaskId: input.linkedTaskId === undefined ? existing.linkedTaskId : linkedTask?.id ?? null,
+        offerId: input.offerId === undefined ? existing.offerId : linkedOffer?.id ?? null
       }
     });
 
@@ -1067,7 +1190,8 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
       ...buildChanges(documentStatusLabelMap[existing.status], documentStatusLabelMap[saved.status], "Status"),
       ...buildChanges(existing.isRequired ? "Yes" : "No", saved.isRequired ? "Yes" : "No", "Required"),
       ...buildChanges(existing.isUnsorted ? "Yes" : "No", saved.isUnsorted ? "Yes" : "No", "Unsorted"),
-      ...buildChanges(existing.linkedTask?.title ?? "None", linkedTask?.title ?? "None", "Linked task")
+      ...buildChanges(existing.linkedTask?.title ?? "None", linkedTask?.title ?? "None", "Linked task"),
+      ...buildChanges(existing.offer ? buildOfferObjectLabel(existing.offer) : "None", linkedOffer ? buildOfferObjectLabel(linkedOffer) : "None", "Linked offer")
     ];
 
     if (changes.length) {
@@ -1084,6 +1208,24 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
           objectLabel: buildDocumentObjectLabel(saved.title, existing.transaction),
           changes,
           contextHref: `/office/transactions/${input.transactionId}#transaction-documents`
+        }
+      });
+    }
+
+    if (input.offerId !== undefined && (existing.offer?.id ?? null) !== (linkedOffer?.id ?? null) && linkedOffer) {
+      await recordActivityLogEvent(tx, {
+        organizationId: input.organizationId,
+        membershipId: input.actorMembershipId ?? null,
+        entityType: "offer",
+        entityId: linkedOffer.id,
+        action: activityLogActions.offerDocumentLinked,
+        payload: {
+          officeId: existing.transaction.officeId,
+          transactionId: input.transactionId,
+          transactionLabel: buildTransactionObjectLabel(existing.transaction),
+          objectLabel: buildOfferObjectLabel(linkedOffer),
+          details: [`Document: ${saved.title}`],
+          contextHref: `/office/transactions/${input.transactionId}#offer-${linkedOffer.id}`
         }
       });
     }
@@ -1202,7 +1344,7 @@ export async function listTransactionFormTemplates(organizationId: string) {
 }
 
 export async function prepareTransactionFormDraft(input: PrepareTransactionFormDraftInput): Promise<PreparedTransactionFormDraft | null> {
-  const [transaction, template, linkedTask] = await Promise.all([
+  const [transaction, template, linkedTask, offer] = await Promise.all([
     getTransactionMergeContext(input.organizationId, input.transactionId),
     prisma.formTemplate.findFirst({
       where: {
@@ -1224,13 +1366,19 @@ export async function prepareTransactionFormDraft(input: PrepareTransactionFormD
           }
         })
       : Promise.resolve(null)
+    ,
+    getOfferMergeContext(input.organizationId, input.transactionId, input.offerId)
   ]);
 
   if (!transaction || !template) {
     return null;
   }
 
-  const payload = buildTransactionFormPayload(transaction);
+  if (input.offerId && !offer) {
+    return null;
+  }
+
+  const payload = buildTransactionFormPayload(transaction, offer);
   const mergeFields =
     template.mergeFields && typeof template.mergeFields === "object" && !Array.isArray(template.mergeFields)
       ? Object.keys(template.mergeFields as Record<string, Prisma.JsonValue>)
@@ -1247,13 +1395,14 @@ export async function prepareTransactionFormDraft(input: PrepareTransactionFormD
     documentType: template.documentType,
     name: input.name?.trim() || `${template.name} · ${transaction.title}`,
     generatedPayload,
-    linkedTaskId: linkedTask?.id ?? null
+    linkedTaskId: linkedTask?.id ?? null,
+    offerId: offer?.id ?? null
   };
 }
 
 export async function createTransactionForm(input: CreateTransactionFormInput): Promise<OfficeTransactionForm | null> {
   const formId = await prisma.$transaction(async (tx) => {
-    const [transaction, template, linkedTask] = await Promise.all([
+    const [transaction, template, linkedTask, linkedOffer] = await Promise.all([
       tx.transaction.findFirst({
         where: {
           id: input.transactionId,
@@ -1288,9 +1437,15 @@ export async function createTransactionForm(input: CreateTransactionFormInput): 
             }
           })
         : Promise.resolve(null)
+      ,
+      getValidatedOfferLink(tx, input.organizationId, input.transactionId, input.offerId)
     ]);
 
     if (!transaction || !template) {
+      return null;
+    }
+
+    if (input.offerId && !linkedOffer) {
       return null;
     }
 
@@ -1302,6 +1457,7 @@ export async function createTransactionForm(input: CreateTransactionFormInput): 
           organizationId: input.organizationId,
           officeId: input.officeId ?? transaction.officeId ?? null,
           transactionId: input.transactionId,
+          offerId: linkedOffer?.id ?? null,
           uploadedByMembershipId: input.actorMembershipId,
           linkedTaskId: linkedTask?.id ?? null,
           title: input.generatedDocument.title,
@@ -1335,6 +1491,24 @@ export async function createTransactionForm(input: CreateTransactionFormInput): 
           contextHref: `/office/transactions/${input.transactionId}#transaction-documents`
         }
       });
+
+      if (linkedOffer) {
+        await recordActivityLogEvent(tx, {
+          organizationId: input.organizationId,
+          membershipId: input.actorMembershipId,
+          entityType: "offer",
+          entityId: linkedOffer.id,
+          action: activityLogActions.offerDocumentLinked,
+          payload: {
+            officeId: transaction.officeId,
+            transactionId: input.transactionId,
+            transactionLabel: buildTransactionObjectLabel(transaction),
+            objectLabel: buildOfferObjectLabel(linkedOffer),
+            details: [`Generated form document: ${createdDocument.title}`],
+            contextHref: `/office/transactions/${input.transactionId}#offer-${linkedOffer.id}`
+          }
+        });
+      }
     }
 
     const createdForm = await tx.transactionForm.create({
@@ -1342,6 +1516,7 @@ export async function createTransactionForm(input: CreateTransactionFormInput): 
         organizationId: input.organizationId,
         officeId: input.officeId ?? transaction.officeId ?? null,
         transactionId: input.transactionId,
+        offerId: linkedOffer?.id ?? null,
         templateId: template.id,
         linkedTaskId: linkedTask?.id ?? null,
         documentId,
@@ -1369,6 +1544,7 @@ export async function createTransactionForm(input: CreateTransactionFormInput): 
           `Template: ${template.name}`,
           `Status: ${formStatusLabelMap[TransactionFormStatus.draft]}`,
           ...(linkedTask ? [`Linked task: ${linkedTask.title}`] : []),
+          ...(linkedOffer ? [`Linked offer: ${buildOfferObjectLabel(linkedOffer)}`] : []),
           ...(documentId ? ["Generated document: Yes"] : [])
         ],
         contextHref: `/office/transactions/${input.transactionId}#transaction-forms-signatures`
@@ -1410,6 +1586,14 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
             id: true,
             title: true
           }
+        },
+        offer: {
+          select: {
+            id: true,
+            title: true,
+            offeringPartyName: true,
+            buyerName: true
+          }
         }
       }
     });
@@ -1418,19 +1602,24 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
       return null;
     }
 
-    const linkedTask = input.linkedTaskId
-      ? await tx.transactionTask.findFirst({
-          where: {
-            id: input.linkedTaskId,
-            transactionId: input.transactionId,
-            organizationId: input.organizationId
-          },
-          select: {
-            id: true,
-            title: true
-          }
-        })
-      : null;
+    const [linkedTask, linkedOffer] = await Promise.all([
+      input.linkedTaskId
+        ? tx.transactionTask.findFirst({
+            where: {
+              id: input.linkedTaskId,
+              transactionId: input.transactionId,
+              organizationId: input.organizationId
+            },
+            select: {
+              id: true,
+              title: true
+            }
+          })
+        : Promise.resolve(null),
+      input.offerId === undefined
+        ? Promise.resolve(existing.offer)
+        : getValidatedOfferLink(tx, input.organizationId, input.transactionId, input.offerId)
+    ]);
 
     const saved = await tx.transactionForm.update({
       where: {
@@ -1439,6 +1628,7 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
       data: {
         name: input.name?.trim() || existing.name,
         linkedTaskId: input.linkedTaskId === undefined ? existing.linkedTaskId : linkedTask?.id ?? null,
+        offerId: input.offerId === undefined ? existing.offerId : linkedOffer?.id ?? null,
         generatedPayload: input.generatedPayload
           ? toInputJsonValue(input.generatedPayload)
           : toInputJsonValue(existing.generatedPayload),
@@ -1449,6 +1639,7 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
     const changes = [
       ...buildChanges(existing.name, saved.name, "Form name"),
       ...buildChanges(existing.linkedTask?.title ?? "None", linkedTask?.title ?? "None", "Linked task"),
+      ...buildChanges(existing.offer ? buildOfferObjectLabel(existing.offer) : "None", linkedOffer ? buildOfferObjectLabel(linkedOffer) : "None", "Linked offer"),
       ...buildChanges(formStatusLabelMap[existing.status], formStatusLabelMap[saved.status], "Form status")
     ];
 
@@ -1493,7 +1684,7 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
 
 export async function createSignatureRequest(input: CreateSignatureRequestInput): Promise<OfficeSignatureRequest | null> {
   const signatureRequestId = await prisma.$transaction(async (tx) => {
-    const [transaction, form, document] = await Promise.all([
+    const [transaction, form, document, linkedOffer] = await Promise.all([
       tx.transaction.findFirst({
         where: {
           id: input.transactionId,
@@ -1525,10 +1716,16 @@ export async function createSignatureRequest(input: CreateSignatureRequestInput)
               organizationId: input.organizationId
             }
           })
-        : Promise.resolve(null)
+        : Promise.resolve(null),
+      getValidatedOfferLink(tx, input.organizationId, input.transactionId, input.offerId)
     ]);
 
     if (!transaction || (!form && !document)) {
+      return null;
+    }
+
+    const effectiveOfferId = linkedOffer?.id ?? form?.offerId ?? document?.offerId ?? null;
+    if (input.offerId && !effectiveOfferId) {
       return null;
     }
 
@@ -1537,6 +1734,7 @@ export async function createSignatureRequest(input: CreateSignatureRequestInput)
         organizationId: input.organizationId,
         officeId: input.officeId ?? transaction.officeId ?? null,
         transactionId: input.transactionId,
+        offerId: effectiveOfferId,
         formId: form?.id ?? null,
         documentId: document?.id ?? form?.documentId ?? null,
         requestedByMembershipId: input.actorMembershipId,

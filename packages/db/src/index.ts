@@ -42,6 +42,9 @@ export const databaseModules = [
   "transaction_forms",
   "signature_requests",
   "incoming_updates"
+  ,
+  "offers",
+  "offer_comments"
 ] as const;
 
 export { assertDatabaseUrl, getPrismaClient, prisma } from "./client";
@@ -121,6 +124,13 @@ export {
   updateTransactionDocument,
   updateTransactionForm
 } from "./transaction-documents";
+export {
+  createOffer,
+  createOfferComment,
+  listTransactionOffersSnapshot,
+  transitionOfferStatus,
+  updateOffer
+} from "./offers";
 export {
   getDefaultTransactionContactRole,
   getTransactionContactLink,
@@ -323,6 +333,20 @@ export type {
   UpdateTransactionDocumentInput,
   UpdateTransactionFormInput
 } from "./transaction-documents";
+export type {
+  CreateOfferCommentInput,
+  CreateOfferInput,
+  OfficeOfferCommentRecord,
+  OfficeOfferComparisonRow,
+  OfficeOfferLinkedDocumentRecord,
+  OfficeOfferLinkedFormRecord,
+  OfficeOfferLinkedSignatureRecord,
+  OfficeOfferRecord,
+  OfficeTransactionOffersSnapshot,
+  TransitionOfferAction,
+  TransitionOfferStatusInput,
+  UpdateOfferInput
+} from "./offers";
 export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
 export type {
   CreateTransactionTaskInput,

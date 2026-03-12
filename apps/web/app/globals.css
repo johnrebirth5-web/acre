@@ -4998,6 +4998,241 @@ a {
   line-height: 1.45;
 }
 
+.office-table-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.bm-inline-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(184, 28, 47, 0.18);
+  border-radius: 12px;
+  background: rgba(184, 28, 47, 0.06);
+  color: var(--office-danger);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.bm-inline-link {
+  color: var(--office-accent-strong);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bm-inline-link:hover {
+  text-decoration: underline;
+}
+
+.bm-offer-head-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.bm-offer-list,
+.bm-offer-form-list,
+.bm-offer-comment-list {
+  display: grid;
+  gap: 14px;
+}
+
+.bm-offer-row,
+.bm-offer-linked-section,
+.bm-offer-form-row,
+.bm-offer-comment-list li,
+.bm-offer-comparison {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--office-border);
+  border-radius: 14px;
+  background: var(--office-surface-subtle);
+}
+
+.bm-offer-comments-section {
+  display: grid;
+  gap: 14px;
+}
+
+.bm-offer-row-top,
+.bm-offer-row-title,
+.bm-offer-row-metrics,
+.bm-offer-subhead,
+.bm-offer-comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bm-offer-row-top,
+.bm-offer-subhead,
+.bm-offer-comment-head {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.bm-offer-row-headline,
+.bm-offer-form-head {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bm-offer-row-headline strong,
+.bm-offer-form-head strong,
+.bm-offer-subhead h4 {
+  color: var(--office-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.bm-offer-row-headline p,
+.bm-offer-form-head p,
+.bm-offer-comment-list p {
+  margin: 0;
+  color: var(--office-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.bm-offer-row-metrics {
+  color: var(--office-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  justify-content: flex-end;
+}
+
+.bm-offer-meta-grid,
+.bm-offer-create-grid,
+.bm-offer-edit-grid,
+.bm-offer-upload-grid,
+.bm-offer-form-create-grid,
+.bm-offer-signature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bm-offer-meta-grid div,
+.bm-offer-comparison-title {
+  display: grid;
+  gap: 4px;
+}
+
+.bm-offer-meta-grid span,
+.bm-offer-comparison-title span {
+  color: var(--office-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bm-offer-meta-grid strong {
+  color: var(--office-text);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.bm-offer-create-notes,
+.bm-offer-edit-notes,
+.bm-offer-action-row {
+  grid-column: 1 / -1;
+}
+
+.bm-offer-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bm-offer-linked-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bm-offer-inline-list,
+.bm-offer-comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bm-offer-inline-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.bm-offer-inline-list a {
+  color: var(--office-accent-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bm-offer-inline-list a:hover {
+  text-decoration: underline;
+}
+
+.bm-offer-upload-grid > .office-button,
+.bm-offer-form-create-grid > .office-button,
+.bm-offer-signature-grid > .office-button {
+  align-self: end;
+  justify-self: start;
+}
+
+.bm-offer-comment-list li {
+  gap: 10px;
+  background: #fff;
+}
+
+.bm-offer-comment-head strong {
+  color: var(--office-text);
+  font-size: 0.86rem;
+}
+
+.bm-offer-comment-head span {
+  color: var(--office-text-muted);
+  font-size: 0.78rem;
+}
+
+.bm-offer-comment-compose {
+  display: grid;
+  gap: 10px;
+}
+
+.bm-offer-comparison-table {
+  min-width: 960px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bm-offer-comparison-table th,
+.bm-offer-comparison-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--office-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.bm-offer-comparison-table th {
+  color: var(--office-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bm-offer-comparison-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .office-stat-card,
 .office-kpi-card {
   display: grid;
@@ -6177,6 +6412,12 @@ a {
   .bm-accounting-form-grid,
   .bm-transaction-modal-grid,
   .bm-transaction-modal-grid-additional,
+  .bm-offer-meta-grid,
+  .bm-offer-create-grid,
+  .bm-offer-edit-grid,
+  .bm-offer-upload-grid,
+  .bm-offer-form-create-grid,
+  .bm-offer-signature-grid,
   .bm-detail-card .bm-document-upload-grid,
   .bm-detail-card .bm-form-payload-preview,
   .office-form-grid,
@@ -6205,7 +6446,8 @@ a {
   .office-dashboard-grid-wide,
   .bm-card-grid,
   .office-pipeline-layout,
-  .bm-activity-layout {
+  .bm-activity-layout,
+  .bm-offer-linked-grid {
     grid-template-columns: 1fr;
   }
 
@@ -6239,6 +6481,12 @@ a {
   .office-form-grid-3,
   .bm-transaction-modal-grid,
   .bm-transaction-modal-grid-additional,
+  .bm-offer-meta-grid,
+  .bm-offer-create-grid,
+  .bm-offer-edit-grid,
+  .bm-offer-upload-grid,
+  .bm-offer-form-create-grid,
+  .bm-offer-signature-grid,
   .bm-detail-card .bm-document-upload-grid,
   .bm-detail-card .bm-form-payload-preview {
     grid-template-columns: 1fr;

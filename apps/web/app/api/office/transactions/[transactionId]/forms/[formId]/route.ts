@@ -26,6 +26,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     | {
         name?: string;
         linkedTaskId?: string | null;
+        offerId?: string | null;
         generatedPayload?: Record<string, string>;
         status?: string;
       }
@@ -39,6 +40,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       actorMembershipId: context.currentMembership.id,
       name: body?.name,
       linkedTaskId: body?.linkedTaskId ?? undefined,
+      offerId: body?.offerId ?? undefined,
       generatedPayload: body?.generatedPayload,
       status: body?.status as never
     });
