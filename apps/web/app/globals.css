@@ -2563,7 +2563,7 @@ select {
 
 .bm-contacts-toolbar {
   display: flex;
-  align-items: center;
+  align-items: end;
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -2576,18 +2576,18 @@ select {
   cursor: pointer;
 }
 
-.bm-contacts-search,
-.bm-contacts-filter {
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid #d0d0d0;
-  background: #ffffff;
-  color: #464646;
-  font-size: 0.78rem;
+.bm-contacts-search-field {
+  flex: 1 1 340px;
+  min-width: min(320px, 100%);
 }
 
-.bm-contacts-search {
-  min-width: 280px;
+.bm-contacts-search-input {
+  min-width: 0;
+}
+
+.bm-contacts-stage-field {
+  flex: 0 0 220px;
+  min-width: min(220px, 100%);
 }
 
 .bm-contacts-empty {
@@ -5763,6 +5763,33 @@ a {
 .bm-contacts-table-header,
 .bm-contacts-table-row {
   min-width: 980px;
+}
+
+.bm-contacts-table-header,
+.bm-contacts-table-row {
+  grid-template-columns:
+    minmax(260px, 1.8fr)
+    minmax(120px, 0.7fr)
+    minmax(120px, 0.75fr)
+    minmax(230px, 1.3fr)
+    minmax(140px, 0.8fr)
+    minmax(150px, 0.85fr);
+  gap: 16px;
+}
+
+.bm-contacts-table-row {
+  align-items: start;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.bm-contacts-table-row .office-table-primary,
+.bm-contacts-table-row > span {
+  min-width: 0;
+}
+
+.bm-contacts-table-row > span {
+  line-height: 1.45;
 }
 
 .office-data-table-row-anchor,

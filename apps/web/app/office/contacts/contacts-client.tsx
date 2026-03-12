@@ -176,16 +176,17 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
 
         <SectionCard className="office-list-card" subtitle={summaryLabel} title="Contacts table">
           <FilterBar as="form" className="bm-contacts-toolbar" onSubmit={handleFilterSubmit}>
-            <FilterField className="bm-contacts-search" label="Search">
+            <FilterField className="bm-contacts-search-field" label="Search">
               <TextInput
                 aria-label="Search contacts"
+                className="bm-contacts-search-input"
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search name, email, phone, area..."
                 value={searchQuery}
               />
             </FilterField>
 
-            <FilterField label="Stage">
+            <FilterField className="bm-contacts-stage-field" label="Stage">
               <SelectInput onChange={(event) => setStageFilter(event.target.value as (typeof stageOptions)[number])} value={stageFilter}>
                 {stageOptions.map((option) => (
                   <option key={option} value={option}>
@@ -203,8 +204,8 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
             </Button>
           </FilterBar>
 
-          <DataTable className="office-table">
-            <DataTableHeader className="office-table-header office-table-row office-table-row-wide bm-contacts-table-header">
+          <DataTable className="office-table bm-contacts-table">
+            <DataTableHeader className="office-table-header bm-contacts-table-header">
               <span>Name</span>
               <span>Stage</span>
               <span>Intent</span>
@@ -214,7 +215,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
             </DataTableHeader>
             <DataTableBody>
               {contacts.map((contact) => (
-                <DataTableRow className="office-table-row office-table-row-wide bm-contacts-table-row" key={contact.id}>
+                <DataTableRow className="office-table-row bm-contacts-table-row" key={contact.id}>
                   <div className="office-table-primary">
                     <strong>
                       <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
