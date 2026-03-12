@@ -1,0 +1,312 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, type FormEvent } from "react";
+import { Badge, Button, EmptyState, FormField, SectionCard, SelectInput, StatCard, TextInput } from "@acre/ui";
+import type { OfficeAgentsRosterSnapshot } from "@acre/db";
+
+type OfficeSettingsTeamsClientProps = {
+  snapshot: OfficeAgentsRosterSnapshot;
+  canManageTeams: boolean;
+};
+
+type TeamDraft = {
+  name: string;
+  isActive: boolean;
+  nextMembershipId: string;
+};
+
+export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSettingsTeamsClientProps) {
+  const router = useRouter();
+  const [newTeamName, setNewTeamName] = useState("");
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState("");
+  const [teamDrafts, setTeamDrafts] = useState<Record<string, TeamDraft>>(
+    Object.fromEntries(
+      snapshot.teams.map((team) => [
+        team.id,
+        {
+          name: team.name,
+          isActive: team.isActive,
+          nextMembershipId: ""
+        }
+      ])
+    )
+  );
+
+  const memberOptions = useMemo(
+    () =>
+      snapshot.rows.map((row) => ({
+        membershipId: row.membershipId,
+        label: `${row.name} · ${row.role}`
+      })),
+    [snapshot.rows]
+  );
+
+  function setTeamDraft(teamId: string, field: keyof TeamDraft, value: string | boolean) {
+    setTeamDrafts((current) => ({
+      ...current,
+      [teamId]: {
+        ...(current[teamId] ?? { name: "", isActive: true, nextMembershipId: "" }),
+        [field]: value
+      }
+    }));
+  }
+
+  async function handleCreateTeam(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!newTeamName.trim()) {
+      return;
+    }
+
+    setPendingAction("create-team");
+    setSubmitError("");
+
+    try {
+      const response = await fetch("/api/office/agents/teams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: newTeamName })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to create team.");
+      }
+
+      setNewTeamName("");
+      router.refresh();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to create team.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleSaveTeam(teamId: string) {
+    const draft = teamDrafts[teamId];
+    if (!draft) {
+      return;
+    }
+
+    setPendingAction(`save-team:${teamId}`);
+    setSubmitError("");
+
+    try {
+      const response = await fetch(`/api/office/agents/teams/${teamId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: draft.name,
+          isActive: draft.isActive
+        })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to update team.");
+      }
+
+      router.refresh();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to update team.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleAddMember(teamId: string) {
+    const draft = teamDrafts[teamId];
+    if (!draft?.nextMembershipId) {
+      return;
+    }
+
+    setPendingAction(`add-member:${teamId}`);
+    setSubmitError("");
+
+    try {
+      const response = await fetch(`/api/office/agents/teams/${teamId}/memberships`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          membershipId: draft.nextMembershipId,
+          role: "member"
+        })
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to add team member.");
+      }
+
+      setTeamDraft(teamId, "nextMembershipId", "");
+      router.refresh();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to add team member.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleRemoveMember(teamId: string, membershipId: string) {
+    setPendingAction(`remove-member:${teamId}:${membershipId}`);
+    setSubmitError("");
+
+    try {
+      const response = await fetch(`/api/office/agents/teams/${teamId}/memberships/${membershipId}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to remove team member.");
+      }
+
+      router.refresh();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to remove team member.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  return (
+    <>
+      <section className="office-settings-summary-grid">
+        <StatCard hint="Current office scope" label="Teams" value={snapshot.summary.activeTeamCount} />
+        <StatCard hint="Onboarding still in progress" label="Roster in onboarding" value={snapshot.summary.onboardingInProgressCount} />
+        <StatCard hint="Members currently inactive" label="Inactive roster members" value={snapshot.summary.inactiveMemberCount} />
+        <StatCard hint="Members visible in roster" label="Rostered members" value={snapshot.summary.totalMembers} />
+      </section>
+
+      <SectionCard subtitle="Create and manage operational teams without leaving Back Office." title="Team administration">
+        {submitError ? <p className="office-inline-error">{submitError}</p> : null}
+
+        {canManageTeams ? (
+          <form className="office-settings-inline-form" onSubmit={handleCreateTeam}>
+            <FormField className="is-wide" label="New team name">
+              <TextInput onChange={(event) => setNewTeamName(event.target.value)} placeholder="Create a new team..." value={newTeamName} />
+            </FormField>
+            <Button disabled={pendingAction === "create-team"} type="submit">
+              {pendingAction === "create-team" ? "Creating..." : "Create team"}
+            </Button>
+          </form>
+        ) : null}
+
+        <div className="office-settings-card-grid">
+          {snapshot.teams.length ? (
+            snapshot.teams.map((team) => {
+              const draft = teamDrafts[team.id] ?? { name: team.name, isActive: team.isActive, nextMembershipId: "" };
+              const availableMembers = memberOptions.filter((option) => !team.members.some((member) => member.membershipId === option.membershipId));
+
+              return (
+                <SectionCard
+                  actions={<Badge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</Badge>}
+                  className="office-settings-team-card"
+                  key={team.id}
+                  subtitle={`${team.memberCount} members · ${team.openTaskCount} open tasks · ${team.openTransactionCount} open transactions`}
+                  title={team.name}
+                >
+                  <div className="office-settings-team-editor">
+                    <FormField label="Team name">
+                      <TextInput
+                        disabled={!canManageTeams}
+                        onChange={(event) => setTeamDraft(team.id, "name", event.target.value)}
+                        value={draft.name}
+                      />
+                    </FormField>
+
+                    <FormField label="Status">
+                      <SelectInput
+                        disabled={!canManageTeams}
+                        onChange={(event) => setTeamDraft(team.id, "isActive", event.target.value === "active")}
+                        value={draft.isActive ? "active" : "inactive"}
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </SelectInput>
+                    </FormField>
+
+                    {canManageTeams ? (
+                      <Button
+                        disabled={pendingAction === `save-team:${team.id}`}
+                        onClick={() => handleSaveTeam(team.id)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {pendingAction === `save-team:${team.id}` ? "Saving..." : "Save team"}
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  <div className="office-settings-team-members">
+                    <div className="office-settings-team-members-head">
+                      <strong>Members</strong>
+                      <span>{team.onboardingInProgressCount} onboarding in progress</span>
+                    </div>
+
+                    {team.members.length ? (
+                      <ul className="office-settings-pill-list">
+                        {team.members.map((member) => (
+                          <li className="office-settings-pill" key={member.membershipId}>
+                            <Link href={`/office/agents/${member.membershipId}`}>{member.label}</Link>
+                            <span>{member.role}</span>
+                            {canManageTeams ? (
+                              <button
+                                className="office-settings-pill-button"
+                                disabled={pendingAction === `remove-member:${team.id}:${member.membershipId}`}
+                                onClick={() => handleRemoveMember(team.id, member.membershipId)}
+                                type="button"
+                              >
+                                Remove
+                              </button>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <EmptyState description="Add members from the current roster to make this team operational." title="No team members yet" />
+                    )}
+                  </div>
+
+                  {canManageTeams ? (
+                    <div className="office-settings-team-assign">
+                      <FormField className="is-wide" label="Add member">
+                        <SelectInput onChange={(event) => setTeamDraft(team.id, "nextMembershipId", event.target.value)} value={draft.nextMembershipId}>
+                          <option value="">Select a roster member</option>
+                          {availableMembers.map((option) => (
+                            <option key={option.membershipId} value={option.membershipId}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </SelectInput>
+                      </FormField>
+
+                      <Button
+                        disabled={!draft.nextMembershipId || pendingAction === `add-member:${team.id}`}
+                        onClick={() => handleAddMember(team.id)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {pendingAction === `add-member:${team.id}` ? "Adding..." : "Add member"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </SectionCard>
+              );
+            })
+          ) : (
+            <EmptyState description="Create the first operational team for this office to start grouping agents." title="No teams configured yet" />
+          )}
+        </div>
+      </SectionCard>
+    </>
+  );
+}

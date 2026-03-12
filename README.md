@@ -27,6 +27,10 @@
   - `Library`
   - `Accounting`
   - `Settings > Company`
+  - `Settings > Users`
+  - `Settings > Teams`
+  - `Settings > Fields`
+  - `Settings > Checklists`
 - `Dashboard` 当前保留原有高保真布局，但业务指标已改为真实数据库查询：
   - `Goal Tracking`
   - 当前登录用户 / 角色 / office access 摘要
@@ -299,6 +303,31 @@
     - activate / deactivate
     - add / remove agent
   - agent profile / team / onboarding / goal 变更会写入 `AuditLog`
+- `Office Admin / Settings` 现在也已接入真实数据库，作为一个真实的 admin/config 模块：
+  - 路由：
+    - `/office/settings`
+    - `/office/settings/users`
+    - `/office/settings/teams`
+    - `/office/settings/fields`
+    - `/office/settings/checklists`
+  - `Users` 当前支持：
+    - role change
+    - active / inactive membership status
+    - office assignment
+  - `Teams` 当前在 admin context 内支持：
+    - create
+    - rename
+    - activate / deactivate
+    - add / remove members
+  - `Fields` 当前支持：
+    - required contact roles
+    - transaction field required / visible settings
+  - `Checklists` 当前支持：
+    - create template
+    - edit template
+    - activate / deactivate template
+    - grouped task rows with due offsets and document/compliance flags
+  - 当前 office access 仍基于单个 `Membership.officeId` 或 org-wide `null`，不是完整多 office ACL matrix；UI 按这个真实边界实现，没有伪造更复杂 access 模型
 - `Activity` 现在也已接入真实数据库：
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源

@@ -8,7 +8,7 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Activity Log`、`Office Accounting` 和 `Office Agent Management` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Activity Log`、`Office Accounting`、`Office Agent Management` 和 `Office Admin / Settings` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
@@ -78,6 +78,17 @@
   - `/office/accounting`
   - transaction detail
   - agent profile summary
+- 当前 `Office Admin / Settings` 已通过 Prisma service 和 route handlers 落地到：
+  - `/office/settings`
+  - `/office/settings/users`
+  - `/office/settings/teams`
+  - `/office/settings/fields`
+  - `/office/settings/checklists`
+  - 核心复用：
+    - `Membership` 做用户 role / status / office access
+    - `Team / TeamMembership` 做 team admin
+    - `RequiredContactRoleSetting / TransactionFieldSetting` 做 workflow requirements
+    - `ChecklistTemplate / ChecklistTemplateItem` 做 checklist template admin
 - 当前已有最小本地登录 / 登出 / cookie session
 - 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
 - 当前 dashboard 业务指标也已有最小查询 service
@@ -230,6 +241,10 @@
 - `TeamMembership`
 - `AgentOnboardingItem`
 - `AgentGoal`
+- `RequiredContactRoleSetting`
+- `TransactionFieldSetting`
+- `ChecklistTemplate`
+- `ChecklistTemplateItem`
 - `FollowUpTask`
 - `TransactionTask`
 - `TaskListView`
@@ -777,6 +792,39 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - coaching workflow
 - agent self-service portal
 - 更复杂的 commission-plan editor
+
+### 7.5 Office Admin / Settings 建在现有 Membership / Team / workflow foundation 之上
+
+原因：
+
+- Back Office 里真正需要 admin 可配置的对象，本质上就是现有运营模型的配置面
+- 当前最需要被配置的是：
+  - user role / status / office access
+  - team rosters
+  - required contact roles
+  - transaction field requirements
+  - checklist templates
+- 这些都已经有清晰的领域主轴，不值得再造一套 admin-only 影子模型
+
+当前实现方式：
+
+- `Users`：直接复用 `Membership`
+- `Teams`：直接复用 `Team / TeamMembership`
+- `Fields`：新增显式 settings 模型
+  - `RequiredContactRoleSetting`
+  - `TransactionFieldSetting`
+- `Checklists`：新增显式模板模型
+  - `ChecklistTemplate`
+  - `ChecklistTemplateItem`
+- settings 相关变更写入 `Activity Log`
+
+已知边界：
+
+- 当前 office access 不是完整多 office ACL matrix
+- 真实支持的只有：
+  - 单 office membership
+  - 或 `officeId = null` 的 org-wide access
+- 这比“伪装成支持多个 office access”更诚实，也避免后续回收错误产品假设
 
 故意没做的范围：
 

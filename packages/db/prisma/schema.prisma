@@ -270,6 +270,16 @@ enum AgentGoalPeriodType {
   annual
 }
 
+enum TransactionFieldKey {
+  price
+  important_date
+  closing_date
+  buyer_expiration_date
+  acceptance_date
+  company_referral
+  company_referral_employee_name
+}
+
 enum CommissionCalculationMode {
   split_and_fees
   flat_net
@@ -358,6 +368,10 @@ model Organization {
   commissionPlanAssignments CommissionPlanAssignment[]
   commissionPlanRules CommissionPlanRule[]
   commissionCalculations CommissionCalculation[]
+  requiredContactRoleSettings RequiredContactRoleSetting[]
+  transactionFieldSettings TransactionFieldSetting[]
+  checklistTemplates ChecklistTemplate[]
+  checklistTemplateItems ChecklistTemplateItem[]
 }
 
 model Office {
@@ -401,6 +415,10 @@ model Office {
   commissionPlans CommissionPlan[]
   commissionPlanAssignments CommissionPlanAssignment[]
   commissionCalculations CommissionCalculation[]
+  requiredContactRoleSettings RequiredContactRoleSetting[]
+  transactionFieldSettings TransactionFieldSetting[]
+  checklistTemplates ChecklistTemplate[]
+  checklistTemplateItems ChecklistTemplateItem[]
 
   @@unique([organizationId, slug])
 }
@@ -467,6 +485,8 @@ model Membership {
   commissionPlanAssignments CommissionPlanAssignment[]
   commissionCalculations CommissionCalculation[] @relation("CommissionCalculationMembership")
   calculatedCommissionCalculations CommissionCalculation[] @relation("CommissionCalculationCalculatedBy")
+  checklistTemplatesCreated ChecklistTemplate[] @relation("ChecklistTemplateCreatedBy")
+  checklistTemplatesUpdated ChecklistTemplate[] @relation("ChecklistTemplateUpdatedBy")
 
   @@unique([organizationId, userId])
 }
@@ -1359,6 +1379,82 @@ model AgentGoal {
 
   @@index([organizationId, officeId, membershipId])
   @@index([organizationId, startsAt, endsAt])
+}
+
+model RequiredContactRoleSetting {
+  id             String                 @id @default(cuid())
+  organizationId String
+  officeId       String?
+  role           TransactionContactRole
+  isRequired     Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?                @relation(fields: [officeId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, officeId, role])
+  @@index([organizationId, officeId, isRequired])
+}
+
+model TransactionFieldSetting {
+  id             String              @id @default(cuid())
+  organizationId String
+  officeId       String?
+  fieldKey       TransactionFieldKey
+  isRequired     Boolean             @default(false)
+  isVisible      Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?             @relation(fields: [officeId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, officeId, fieldKey])
+  @@index([organizationId, officeId, isVisible])
+}
+
+model ChecklistTemplate {
+  id                    String          @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  name                  String
+  description           String?
+  transactionType       TransactionType?
+  isActive              Boolean         @default(true)
+  createdByMembershipId String?
+  updatedByMembershipId String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?         @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  createdByMembership   Membership?     @relation("ChecklistTemplateCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  updatedByMembership   Membership?     @relation("ChecklistTemplateUpdatedBy", fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
+  items                 ChecklistTemplateItem[]
+
+  @@index([organizationId, officeId, isActive])
+  @@index([organizationId, transactionType])
+}
+
+model ChecklistTemplateItem {
+  id                        String            @id @default(cuid())
+  organizationId            String
+  officeId                  String?
+  checklistTemplateId       String
+  checklistGroup            String            @default("General")
+  title                     String
+  description               String?
+  dueDaysOffset             Int?
+  sortOrder                 Int               @default(0)
+  requiresDocument          Boolean           @default(false)
+  requiresDocumentApproval  Boolean           @default(false)
+  requiresSecondaryApproval Boolean           @default(false)
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+  organization              Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                    Office?           @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  checklistTemplate         ChecklistTemplate @relation(fields: [checklistTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, officeId, checklistTemplateId])
+  @@index([organizationId, sortOrder])
 }
 
 model CommissionPlan {

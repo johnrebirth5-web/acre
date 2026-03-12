@@ -545,6 +545,37 @@ Trade-off：
 - 当前没有 agent self-service portal
 - 但后续继续扩 agent management 时，不需要推翻现有 identity / team / goals 基础
 
+## 关键决策 10.5：Office Admin / Settings 直接建立在现有 Membership / Team / workflow foundation 之上
+
+原因：
+
+- 这轮要支持的 admin 能力本质上都是现有运营对象的配置面：
+  - user access
+  - team roster
+  - required contact roles
+  - transaction field rules
+  - checklist templates
+- 与其另建一套“只给设置页使用”的影子模型，不如直接把这些配置显式建模并复用现有主实体
+
+影响：
+
+- `Users` 直接复用 `Membership`
+- `Teams` 继续复用 `Team / TeamMembership`
+- 新增显式 settings 模型：
+  - `RequiredContactRoleSetting`
+  - `TransactionFieldSetting`
+  - `ChecklistTemplate`
+  - `ChecklistTemplateItem`
+- settings 写操作进入 `Activity Log`
+
+Trade-off：
+
+- 当前 office access 仍然不是完整多 office ACL matrix
+- 系统现在诚实支持的是：
+  - 单 office access
+  - org-wide access (`officeId = null`)
+- 这样看起来没有某些 SaaS 那么“花”，但不会伪造未实现的 access pattern，也避免之后高成本返工
+
 ## 后续接手时最需要先理解的几个决策
 
 如果你只读这一段，也要先理解下面四点：

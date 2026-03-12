@@ -456,6 +456,237 @@ async function main() {
     });
   }
 
+  const seededRequiredContactRoleSettings = [
+    { id: "seed-required-role-buyer", role: "buyer", isRequired: true },
+    { id: "seed-required-role-seller", role: "seller", isRequired: true },
+    { id: "seed-required-role-tenant", role: "tenant", isRequired: false },
+    { id: "seed-required-role-landlord", role: "landlord", isRequired: false }
+  ];
+
+  for (const roleSetting of seededRequiredContactRoleSettings) {
+    await prisma.requiredContactRoleSetting.upsert({
+      where: {
+        organizationId_officeId_role: {
+          organizationId: organization.id,
+          officeId: office.id,
+          role: roleSetting.role
+        }
+      },
+      update: {
+        isRequired: roleSetting.isRequired
+      },
+      create: {
+        id: roleSetting.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        role: roleSetting.role,
+        isRequired: roleSetting.isRequired
+      }
+    });
+  }
+
+  const seededTransactionFieldSettings = [
+    { id: "seed-field-price", fieldKey: "price", isRequired: true, isVisible: true },
+    { id: "seed-field-important-date", fieldKey: "important_date", isRequired: true, isVisible: true },
+    { id: "seed-field-closing-date", fieldKey: "closing_date", isRequired: false, isVisible: true },
+    { id: "seed-field-buyer-expiration", fieldKey: "buyer_expiration_date", isRequired: false, isVisible: true },
+    { id: "seed-field-acceptance-date", fieldKey: "acceptance_date", isRequired: false, isVisible: true },
+    { id: "seed-field-company-referral", fieldKey: "company_referral", isRequired: false, isVisible: true },
+    {
+      id: "seed-field-company-referral-employee",
+      fieldKey: "company_referral_employee_name",
+      isRequired: false,
+      isVisible: true
+    }
+  ];
+
+  for (const fieldSetting of seededTransactionFieldSettings) {
+    await prisma.transactionFieldSetting.upsert({
+      where: {
+        organizationId_officeId_fieldKey: {
+          organizationId: organization.id,
+          officeId: office.id,
+          fieldKey: fieldSetting.fieldKey
+        }
+      },
+      update: {
+        isRequired: fieldSetting.isRequired,
+        isVisible: fieldSetting.isVisible
+      },
+      create: {
+        id: fieldSetting.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        fieldKey: fieldSetting.fieldKey,
+        isRequired: fieldSetting.isRequired,
+        isVisible: fieldSetting.isVisible
+      }
+    });
+  }
+
+  const seededChecklistTemplates = [
+    {
+      id: "seed-checklist-template-office-default",
+      name: "Office default transaction checklist",
+      description: "Core office-wide transaction operations checklist for every deal.",
+      transactionType: null,
+      isActive: true,
+      items: [
+        {
+          id: "seed-checklist-template-office-default-0",
+          checklistGroup: "Intake",
+          title: "Confirm transaction data and contact roster",
+          description: "Validate address, price, key dates, and required contact roles before processing.",
+          dueDaysOffset: 0,
+          sortOrder: 0,
+          requiresDocument: false,
+          requiresDocumentApproval: false,
+          requiresSecondaryApproval: false
+        },
+        {
+          id: "seed-checklist-template-office-default-1",
+          checklistGroup: "Compliance",
+          title: "Upload contract package",
+          description: "Collect and upload the executed contract package into Back Office.",
+          dueDaysOffset: 1,
+          sortOrder: 1,
+          requiresDocument: true,
+          requiresDocumentApproval: true,
+          requiresSecondaryApproval: false
+        },
+        {
+          id: "seed-checklist-template-office-default-2",
+          checklistGroup: "Finance",
+          title: "Review finance and commission inputs",
+          description: "Confirm referral, finance values, and commission readiness for accounting.",
+          dueDaysOffset: 3,
+          sortOrder: 2,
+          requiresDocument: false,
+          requiresDocumentApproval: false,
+          requiresSecondaryApproval: false
+        }
+      ]
+    },
+    {
+      id: "seed-checklist-template-sales",
+      name: "Sales transaction checklist",
+      description: "Extra sales-side milestones for offer acceptance, contract, and closing prep.",
+      transactionType: "sales",
+      isActive: true,
+      items: [
+        {
+          id: "seed-checklist-template-sales-0",
+          checklistGroup: "Offer",
+          title: "Review accepted offer terms",
+          description: "Confirm accepted price, closing date, and buyer contact alignment.",
+          dueDaysOffset: 0,
+          sortOrder: 0,
+          requiresDocument: false,
+          requiresDocumentApproval: false,
+          requiresSecondaryApproval: false
+        },
+        {
+          id: "seed-checklist-template-sales-1",
+          checklistGroup: "Compliance",
+          title: "Submit signed disclosures for approval",
+          description: "Upload disclosures and route them for office review before completion.",
+          dueDaysOffset: 2,
+          sortOrder: 1,
+          requiresDocument: true,
+          requiresDocumentApproval: true,
+          requiresSecondaryApproval: true
+        }
+      ]
+    },
+    {
+      id: "seed-checklist-template-rental",
+      name: "Rental leasing checklist",
+      description: "Standard rental-side checklist for tenant package, approvals, and move-in readiness.",
+      transactionType: "rental_leasing",
+      isActive: true,
+      items: [
+        {
+          id: "seed-checklist-template-rental-0",
+          checklistGroup: "Documents",
+          title: "Collect rental application package",
+          description: "Upload pay stubs, ID, and tenant application documents.",
+          dueDaysOffset: 0,
+          sortOrder: 0,
+          requiresDocument: true,
+          requiresDocumentApproval: true,
+          requiresSecondaryApproval: false
+        },
+        {
+          id: "seed-checklist-template-rental-1",
+          checklistGroup: "Move-in",
+          title: "Confirm move-in logistics",
+          description: "Coordinate lease signing and move-in checklist after approval.",
+          dueDaysOffset: 5,
+          sortOrder: 1,
+          requiresDocument: false,
+          requiresDocumentApproval: false,
+          requiresSecondaryApproval: false
+        }
+      ]
+    }
+  ];
+
+  const checklistEditorMembershipId = membershipByEmail.get("naomi@acre.com")?.id ?? membershipByEmail.get("simon@acre.com")?.id ?? null;
+
+  for (const template of seededChecklistTemplates) {
+    if (!checklistEditorMembershipId) {
+      continue;
+    }
+
+    await prisma.checklistTemplate.upsert({
+      where: { id: template.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        name: template.name,
+        description: template.description,
+        transactionType: template.transactionType,
+        isActive: template.isActive,
+        createdByMembershipId: checklistEditorMembershipId,
+        updatedByMembershipId: checklistEditorMembershipId
+      },
+      create: {
+        id: template.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        name: template.name,
+        description: template.description,
+        transactionType: template.transactionType,
+        isActive: template.isActive,
+        createdByMembershipId: checklistEditorMembershipId,
+        updatedByMembershipId: checklistEditorMembershipId
+      }
+    });
+
+    await prisma.checklistTemplateItem.deleteMany({
+      where: {
+        checklistTemplateId: template.id
+      }
+    });
+
+    await prisma.checklistTemplateItem.createMany({
+      data: template.items.map((item) => ({
+        id: item.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        checklistTemplateId: template.id,
+        checklistGroup: item.checklistGroup,
+        title: item.title,
+        description: item.description,
+        dueDaysOffset: item.dueDaysOffset,
+        sortOrder: item.sortOrder,
+        requiresDocument: item.requiresDocument,
+        requiresDocumentApproval: item.requiresDocumentApproval,
+        requiresSecondaryApproval: item.requiresSecondaryApproval
+      }))
+    });
+  }
+
   const seededAgentOnboardingTemplates = [
     {
       id: "seed-agent-template-license",
@@ -3729,7 +3960,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededCommissionPlans.length} commission plans, ${seededCommissionAssignments.length} commission assignments, ${seededCommissionCalculations.length} commission calculations, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededRequiredContactRoleSettings.length} required contact role settings, ${seededTransactionFieldSettings.length} transaction field settings, ${seededChecklistTemplates.length} checklist templates, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededCommissionPlans.length} commission plans, ${seededCommissionAssignments.length} commission assignments, ${seededCommissionCalculations.length} commission calculations, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

@@ -3,6 +3,8 @@ export type UserRole = "agent" | "office_manager" | "office_admin";
 export type AppPermission =
   | "dashboard:view"
   | "activity:view"
+  | "settings:view"
+  | "settings:manage"
   | "agents:view"
   | "agents:manage"
   | "onboarding:view"
@@ -11,6 +13,7 @@ export type AppPermission =
   | "goals:manage"
   | "teams:view"
   | "teams:manage"
+  | "users:view"
   | "documents:view"
   | "documents:manage"
   | "documents:approve"
@@ -45,6 +48,10 @@ export type AppPermission =
   | "resources:manage"
   | "analytics:view"
   | "notifications:view"
+  | "fields:view"
+  | "fields:manage"
+  | "checklists:view"
+  | "checklists:manage"
   | "users:manage"
   | "integrations:manage"
   | "ai:use";
@@ -78,6 +85,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_manager: [
     "dashboard:view",
     "activity:view",
+    "settings:view",
+    "settings:manage",
     "agents:view",
     "agents:manage",
     "onboarding:view",
@@ -86,6 +95,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "goals:manage",
     "teams:view",
     "teams:manage",
+    "users:view",
+    "users:manage",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -117,11 +128,17 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "resources:manage",
     "analytics:view",
     "notifications:view",
+    "fields:view",
+    "fields:manage",
+    "checklists:view",
+    "checklists:manage",
     "ai:use"
   ],
   office_admin: [
     "dashboard:view",
     "activity:view",
+    "settings:view",
+    "settings:manage",
     "agents:view",
     "agents:manage",
     "onboarding:view",
@@ -130,6 +147,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "goals:manage",
     "teams:view",
     "teams:manage",
+    "users:view",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -164,6 +182,10 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "resources:manage",
     "analytics:view",
     "notifications:view",
+    "fields:view",
+    "fields:manage",
+    "checklists:view",
+    "checklists:manage",
     "users:manage",
     "integrations:manage",
     "ai:use"
@@ -188,6 +210,14 @@ export function isOfficeRole(role: UserRole): boolean {
 
 export function canAccessAccountActivity(role: UserRole): boolean {
   return can(role, "activity:view");
+}
+
+export function canAccessOfficeSettings(role: UserRole): boolean {
+  return can(role, "settings:view");
+}
+
+export function canManageOfficeSettings(role: UserRole): boolean {
+  return can(role, "settings:manage");
 }
 
 export function canViewOfficeAgents(role: UserRole): boolean {
@@ -220,6 +250,30 @@ export function canViewOfficeTeams(role: UserRole): boolean {
 
 export function canManageOfficeTeams(role: UserRole): boolean {
   return can(role, "teams:manage");
+}
+
+export function canViewOfficeUsers(role: UserRole): boolean {
+  return can(role, "users:view");
+}
+
+export function canManageOfficeUsers(role: UserRole): boolean {
+  return can(role, "users:manage");
+}
+
+export function canViewOfficeFields(role: UserRole): boolean {
+  return can(role, "fields:view");
+}
+
+export function canManageOfficeFields(role: UserRole): boolean {
+  return can(role, "fields:manage");
+}
+
+export function canViewOfficeChecklists(role: UserRole): boolean {
+  return can(role, "checklists:view");
+}
+
+export function canManageOfficeChecklists(role: UserRole): boolean {
+  return can(role, "checklists:manage");
 }
 
 export function canViewOfficeDocuments(role: UserRole): boolean {

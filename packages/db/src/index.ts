@@ -33,6 +33,10 @@ export const databaseModules = [
   "team_memberships",
   "agent_onboarding_items",
   "agent_goals",
+  "required_contact_role_settings",
+  "transaction_field_settings",
+  "checklist_templates",
+  "checklist_template_items",
   "commission_plans",
   "commission_plan_assignments",
   "commission_plan_rules",
@@ -108,6 +112,16 @@ export {
 } from "./contacts";
 export { getOfficePipelineWorkspaceSnapshot } from "./pipeline";
 export { getOfficeReportsSnapshot, listOfficeReportTransactionsForExport } from "./reports";
+export {
+  createChecklistTemplate,
+  getOfficeAdminUsersSnapshot,
+  getOfficeChecklistTemplatesSnapshot,
+  getOfficeFieldSettingsSnapshot,
+  getOfficeSettingsSummarySnapshot,
+  saveOfficeFieldSettings,
+  updateChecklistTemplate,
+  updateOfficeAdminUser
+} from "./settings";
 export {
   createIncomingUpdate,
   createSignatureRequest,
@@ -258,6 +272,23 @@ export type {
   OfficeOperationalAlert,
   OfficeOperationalAlertSeverity
 } from "./activity-log";
+export type {
+  ChecklistTemplateItemInput,
+  CreateChecklistTemplateInput,
+  GetOfficeAdminUsersInput,
+  OfficeAdminUserRow,
+  OfficeAdminUsersSnapshot,
+  OfficeChecklistTemplateItemRecord,
+  OfficeChecklistTemplateRecord,
+  OfficeChecklistTemplatesSnapshot,
+  OfficeFieldSettingsSnapshot,
+  OfficeRequiredContactRoleRecord,
+  OfficeSettingsSummarySnapshot,
+  OfficeTransactionFieldSettingRecord,
+  SaveOfficeFieldSettingsInput,
+  UpdateChecklistTemplateInput,
+  UpdateOfficeAdminUserInput
+} from "./settings";
 export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootstrap";
 export type { OfficeDashboardBusinessSnapshot, OfficeDashboardChartPoint, OfficeDashboardRecentTransaction, OfficeDashboardStatusMetric } from "./dashboard";
 export type {

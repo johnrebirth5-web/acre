@@ -35,11 +35,12 @@ const navGroups: NavGroup[] = [
     title: "Settings",
     icon: "⚙",
     items: [
-      { label: "Company", href: "/office/company" },
-      { label: "Users" },
-      { label: "Checklists" },
-      { label: "Fields" },
-      { label: "Commission plans" }
+      { label: "Settings", href: "/office/settings" },
+      { label: "Users", href: "/office/settings/users" },
+      { label: "Teams", href: "/office/settings/teams" },
+      { label: "Checklists", href: "/office/settings/checklists" },
+      { label: "Fields", href: "/office/settings/fields" },
+      { label: "Commission plans", href: "/office/accounting#commission-management" }
     ]
   },
   {
@@ -133,6 +134,9 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
         </Link>
         <Link className={pathname === "/office/accounting" ? "is-active" : ""} href="/office/accounting">
           Acct
+        </Link>
+        <Link className={pathname.startsWith("/office/settings") ? "is-active" : ""} href="/office/settings">
+          Admin
         </Link>
       </nav>
     </>

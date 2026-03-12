@@ -26,6 +26,16 @@ export const activityLogActions = {
   agentOnboardingTemplateApplied: "agent.onboarding_template_applied",
   agentGoalCreated: "agent.goal_created",
   agentGoalUpdated: "agent.goal_updated",
+  settingsUserRoleChanged: "settings.user_role_changed",
+  settingsUserActivated: "settings.user_activated",
+  settingsUserDeactivated: "settings.user_deactivated",
+  settingsOfficeAccessChanged: "settings.office_access_changed",
+  settingsRequiredContactRolesChanged: "settings.required_contact_roles_changed",
+  settingsTransactionFieldSettingsChanged: "settings.transaction_field_settings_changed",
+  settingsChecklistTemplateCreated: "settings.checklist_template_created",
+  settingsChecklistTemplateUpdated: "settings.checklist_template_updated",
+  settingsChecklistTemplateActivated: "settings.checklist_template_activated",
+  settingsChecklistTemplateDeactivated: "settings.checklist_template_deactivated",
   transactionCreated: "transaction.created",
   transactionUpdated: "transaction.updated",
   transactionStatusChanged: "transaction.status_changed",
@@ -108,6 +118,10 @@ export type ActivityLogEntityType =
   | "team"
   | "agent_onboarding_item"
   | "agent_goal"
+  | "membership"
+  | "required_contact_role_setting"
+  | "transaction_field_setting"
+  | "checklist_template"
   | "transaction"
   | "offer"
   | "contact"
@@ -329,6 +343,16 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "agent.onboarding_template_applied": "Onboarding template applied",
   "agent.goal_created": "Goal created",
   "agent.goal_updated": "Goal updated",
+  "settings.user_role_changed": "User role changed",
+  "settings.user_activated": "User activated",
+  "settings.user_deactivated": "User deactivated",
+  "settings.office_access_changed": "Office access changed",
+  "settings.required_contact_roles_changed": "Required contact roles changed",
+  "settings.transaction_field_settings_changed": "Transaction field settings changed",
+  "settings.checklist_template_created": "Checklist template created",
+  "settings.checklist_template_updated": "Checklist template updated",
+  "settings.checklist_template_activated": "Checklist template activated",
+  "settings.checklist_template_deactivated": "Checklist template deactivated",
   "transaction.created": "Transaction created",
   "transaction.updated": "Transaction updated",
   "transaction.status_changed": "Transaction status changed",
@@ -417,6 +441,10 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.teamDeactivated ||
       action === activityLogActions.teamMemberAdded ||
       action === activityLogActions.teamMemberRemoved ||
+      action === activityLogActions.settingsUserRoleChanged ||
+      action === activityLogActions.settingsUserActivated ||
+      action === activityLogActions.settingsUserDeactivated ||
+      action === activityLogActions.settingsOfficeAccessChanged ||
       action === activityLogActions.agentOnboardingItemCreated ||
       action === activityLogActions.agentOnboardingItemUpdated ||
       action === activityLogActions.agentOnboardingItemCompleted ||
@@ -437,6 +465,8 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.transactionContactLinked ||
       action === activityLogActions.transactionContactUnlinked ||
       action === activityLogActions.transactionPrimaryContactChanged ||
+      action === activityLogActions.settingsRequiredContactRolesChanged ||
+      action === activityLogActions.settingsTransactionFieldSettingsChanged ||
       action === activityLogActions.offerCreated ||
       action === activityLogActions.offerUpdated ||
       action === activityLogActions.offerSubmitted ||
@@ -467,7 +497,11 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.transactionTaskRejected ||
       action === activityLogActions.transactionTaskCompleted ||
       action === activityLogActions.transactionTaskReopened ||
-      action === activityLogActions.followUpTaskCreated
+      action === activityLogActions.followUpTaskCreated ||
+      action === activityLogActions.settingsChecklistTemplateCreated ||
+      action === activityLogActions.settingsChecklistTemplateUpdated ||
+      action === activityLogActions.settingsChecklistTemplateActivated ||
+      action === activityLogActions.settingsChecklistTemplateDeactivated
   },
   {
     key: "documents-forms-signatures",
@@ -650,7 +684,13 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
     case "team":
     case "agent_onboarding_item":
     case "agent_goal":
+    case "membership":
       return "agent";
+    case "required_contact_role_setting":
+    case "transaction_field_setting":
+      return "transaction";
+    case "checklist_template":
+      return "task";
     case "transaction":
     case "offer":
       return "transaction";
@@ -751,6 +791,18 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "agent_onboarding_item" || record.entityType === "agent_goal") {
     return payload.contextHref ?? "/office/agents";
+  }
+
+  if (record.entityType === "membership") {
+    return payload.contextHref ?? "/office/settings/users";
+  }
+
+  if (record.entityType === "required_contact_role_setting" || record.entityType === "transaction_field_setting") {
+    return payload.contextHref ?? "/office/settings/fields";
+  }
+
+  if (record.entityType === "checklist_template") {
+    return payload.contextHref ?? "/office/settings/checklists";
   }
 
   if (record.entityType === "agent_recurring_charge_rule" || record.entityType === "agent_payment_method") {
@@ -870,6 +922,26 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "created an agent goal";
     case activityLogActions.agentGoalUpdated:
       return payload.changes.length === 1 ? `updated goal ${payload.changes[0].label.toLowerCase()}` : "updated an agent goal";
+    case activityLogActions.settingsUserRoleChanged:
+      return "changed a user role";
+    case activityLogActions.settingsUserActivated:
+      return "activated a user";
+    case activityLogActions.settingsUserDeactivated:
+      return "deactivated a user";
+    case activityLogActions.settingsOfficeAccessChanged:
+      return "changed office access";
+    case activityLogActions.settingsRequiredContactRolesChanged:
+      return "updated required contact roles";
+    case activityLogActions.settingsTransactionFieldSettingsChanged:
+      return "updated transaction field settings";
+    case activityLogActions.settingsChecklistTemplateCreated:
+      return "created a checklist template";
+    case activityLogActions.settingsChecklistTemplateUpdated:
+      return payload.changes.length === 1 ? `updated checklist ${payload.changes[0].label.toLowerCase()}` : "updated a checklist template";
+    case activityLogActions.settingsChecklistTemplateActivated:
+      return "activated a checklist template";
+    case activityLogActions.settingsChecklistTemplateDeactivated:
+      return "deactivated a checklist template";
     case activityLogActions.transactionCreated:
       return "created a transaction";
     case activityLogActions.transactionUpdated:

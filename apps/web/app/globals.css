@@ -6584,3 +6584,265 @@ a {
     bottom: 18px;
   }
 }
+
+.office-settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.office-settings-nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--office-border);
+  border-radius: 999px;
+  background: var(--office-surface-subtle);
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.office-settings-nav-link.is-active {
+  border-color: var(--office-accent);
+  background: var(--office-accent-soft);
+  color: var(--office-accent-strong);
+}
+
+.office-settings-summary-grid,
+.office-settings-section-grid,
+.office-settings-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.office-settings-section-grid,
+.office-settings-card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.office-settings-copy {
+  margin: 0 0 14px;
+  color: var(--office-text-muted);
+  line-height: var(--office-line-body);
+}
+
+.office-settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--office-accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.office-inline-error {
+  margin: 0 0 16px;
+  color: var(--office-danger);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.office-settings-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.office-settings-inline-form .office-form-field.is-wide {
+  flex: 1 1 320px;
+}
+
+.office-table-row-settings-users,
+.office-table-row-settings-fields {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+}
+
+.office-table-row-settings-users {
+  grid-template-columns: minmax(220px, 1.8fr) minmax(150px, 0.8fr) minmax(180px, 1fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr);
+}
+
+.office-table-row-settings-fields {
+  grid-template-columns: minmax(220px, 1.5fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr);
+}
+
+.office-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.office-table-action-muted {
+  color: var(--office-text-soft);
+  font-size: 0.8rem;
+}
+
+.office-settings-team-card .office-section-body {
+  display: grid;
+  gap: 18px;
+}
+
+.office-settings-team-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(160px, 0.8fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.office-settings-team-members {
+  display: grid;
+  gap: 12px;
+}
+
+.office-settings-team-members-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-settings-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.office-settings-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--office-border);
+  border-radius: 999px;
+  background: var(--office-surface-subtle);
+  font-size: 0.82rem;
+}
+
+.office-settings-pill a {
+  font-weight: 700;
+}
+
+.office-settings-pill-button {
+  border: 0;
+  background: transparent;
+  color: var(--office-danger);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.office-settings-team-assign {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.office-settings-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.office-settings-checkbox-item {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--office-border);
+  border-radius: 12px;
+  background: var(--office-surface-subtle);
+}
+
+.office-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.office-settings-template-form,
+.office-settings-template-card .office-section-body {
+  display: grid;
+  gap: 18px;
+}
+
+.office-settings-template-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr);
+  gap: 12px;
+}
+
+.office-settings-template-items {
+  display: grid;
+  gap: 14px;
+}
+
+.office-settings-template-item {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--office-border);
+  border-radius: 14px;
+  background: var(--office-surface-subtle);
+}
+
+.office-settings-template-item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.office-settings-item-delete {
+  justify-self: end;
+}
+
+@media (max-width: 1120px) {
+  .office-settings-summary-grid,
+  .office-settings-section-grid,
+  .office-settings-card-grid,
+  .office-settings-checkbox-grid,
+  .office-settings-template-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .office-table-row-settings-users,
+  .office-table-row-settings-fields,
+  .office-settings-team-editor,
+  .office-settings-team-assign,
+  .office-settings-template-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .office-table-actions,
+  .office-settings-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 780px) {
+  .office-settings-summary-grid,
+  .office-settings-section-grid,
+  .office-settings-card-grid,
+  .office-settings-checkbox-grid,
+  .office-settings-template-item-grid {
+    grid-template-columns: 1fr;
+  }
+}
