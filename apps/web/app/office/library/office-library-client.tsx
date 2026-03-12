@@ -320,6 +320,10 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
     snapshot.selectedFolder.id !== null && snapshot.selectedFolder.key !== "all" && snapshot.selectedFolder.key !== "unfiled";
   const showAllFilesGroup = snapshot.filters.folderId === "all";
   const showUnfiledGroup = snapshot.filters.folderId === "unfiled";
+  const selectedDocumentPreviewUrl =
+    selectedDocument && selectedDocument.isPdf
+      ? `${selectedDocument.previewUrl}#toolbar=0&navpanes=0&view=FitH`
+      : selectedDocument?.previewUrl ?? "";
 
   function renderVisibleDocuments(documents: OfficeLibraryDocument[]) {
     if (!documents.length) {
@@ -625,7 +629,7 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                 {selectedDocument.isPdf ? (
                   <iframe
                     className="office-library-preview-frame office-library-preview-frame-modal"
-                    src={selectedDocument.previewUrl}
+                    src={selectedDocumentPreviewUrl}
                     title={selectedDocument.title}
                   />
                 ) : (
@@ -636,95 +640,101 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                 )}
               </div>
 
-              <div className="office-library-preview-modal-sidebar">
-                <SecondaryMetaList
-                  className="office-library-meta-list"
-                  items={[
-                    { label: "File", value: selectedDocument.originalFileName },
-                    { label: "Folder", value: selectedDocument.folderName || "Unfiled" },
-                    { label: "Category", value: selectedDocument.category || "General" },
-                    { label: "Scope", value: selectedDocument.visibilityLabel },
-                    { label: "Size", value: formatFileSize(selectedDocument.fileSizeBytes) },
-                    { label: "Pages", value: selectedDocument.pageCount ? String(selectedDocument.pageCount) : "Not indexed" },
-                    { label: "Uploaded by", value: selectedDocument.uploadedByName || "System" },
-                    { label: "Updated", value: formatDateTime(selectedDocument.updatedAt) }
-                  ]}
-                />
+              <details className="office-library-preview-details">
+                <summary>Document details</summary>
 
-                {selectedDocument.tags.length ? (
-                  <div className="office-library-tag-list">
-                    {selectedDocument.tags.map((tag) => (
-                      <span className="office-badge office-badge-neutral" key={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+                <div className={`office-library-preview-details-body${canManageLibrary ? " is-manageable" : ""}`}>
+                  <div className="office-library-preview-details-meta">
+                    <SecondaryMetaList
+                      className="office-library-meta-list"
+                      items={[
+                        { label: "File", value: selectedDocument.originalFileName },
+                        { label: "Folder", value: selectedDocument.folderName || "Unfiled" },
+                        { label: "Category", value: selectedDocument.category || "General" },
+                        { label: "Scope", value: selectedDocument.visibilityLabel },
+                        { label: "Size", value: formatFileSize(selectedDocument.fileSizeBytes) },
+                        { label: "Pages", value: selectedDocument.pageCount ? String(selectedDocument.pageCount) : "Not indexed" },
+                        { label: "Uploaded by", value: selectedDocument.uploadedByName || "System" },
+                        { label: "Updated", value: formatDateTime(selectedDocument.updatedAt) }
+                      ]}
+                    />
 
-                {canManageLibrary ? (
-                  <form className="office-library-side-form" key={selectedDocument.id} onSubmit={handleSaveDocument}>
-                    <div className="office-library-side-form-head">
-                      <strong>Document details</strong>
-                      <span>Rename, move, and update internal metadata.</span>
-                    </div>
-
-                    <label className="office-form-field">
-                      <span>Title</span>
-                      <TextInput defaultValue={selectedDocument.title} name="title" />
-                    </label>
-
-                    <label className="office-form-field">
-                      <span>Folder</span>
-                      <SelectInput defaultValue={selectedDocument.folderId ?? ""} name="folderId">
-                        <option value="">Unfiled</option>
-                        {snapshot.folderOptions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {buildFolderLabel(option)}
-                          </option>
+                    {selectedDocument.tags.length ? (
+                      <div className="office-library-tag-list">
+                        {selectedDocument.tags.map((tag) => (
+                          <span className="office-badge office-badge-neutral" key={tag}>
+                            {tag}
+                          </span>
                         ))}
-                      </SelectInput>
-                    </label>
+                      </div>
+                    ) : null}
+                  </div>
 
-                    <label className="office-form-field">
-                      <span>Category</span>
-                      <TextInput defaultValue={selectedDocument.category} name="category" placeholder="Category label" />
-                    </label>
+                  {canManageLibrary ? (
+                    <form className="office-library-side-form" key={selectedDocument.id} onSubmit={handleSaveDocument}>
+                      <div className="office-library-side-form-head">
+                        <strong>Document details</strong>
+                        <span>Rename, move, and update internal metadata.</span>
+                      </div>
 
-                    <label className="office-form-field">
-                      <span>Visibility</span>
-                      <SelectInput defaultValue={selectedDocument.visibilityKey} name="visibility">
-                        <option value="company_wide">Company-wide</option>
-                        <option value="office_only">Office only</option>
-                      </SelectInput>
-                    </label>
+                      <label className="office-form-field">
+                        <span>Title</span>
+                        <TextInput defaultValue={selectedDocument.title} name="title" />
+                      </label>
 
-                    <label className="office-form-field">
-                      <span>Tags</span>
-                      <TextInput defaultValue={selectedDocument.tags.join(", ")} name="tags" placeholder="Comma-separated tags" />
-                    </label>
+                      <label className="office-form-field">
+                        <span>Folder</span>
+                        <SelectInput defaultValue={selectedDocument.folderId ?? ""} name="folderId">
+                          <option value="">Unfiled</option>
+                          {snapshot.folderOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {buildFolderLabel(option)}
+                            </option>
+                          ))}
+                        </SelectInput>
+                      </label>
 
-                    <label className="office-form-field">
-                      <span>Summary</span>
-                      <TextareaInput defaultValue={selectedDocument.summary} name="summary" rows={5} />
-                    </label>
+                      <label className="office-form-field">
+                        <span>Category</span>
+                        <TextInput defaultValue={selectedDocument.category} name="category" placeholder="Category label" />
+                      </label>
 
-                    <div className="office-library-side-actions">
-                      <Button disabled={pendingAction === "save-document"} size="sm" type="submit">
-                        {pendingAction === "save-document" ? "Saving..." : "Save document"}
-                      </Button>
-                      <Button
-                        disabled={pendingAction === "delete-document"}
-                        onClick={handleDeleteDocument}
-                        size="sm"
-                        type="button"
-                        variant="danger"
-                      >
-                        {pendingAction === "delete-document" ? "Deleting..." : "Delete"}
-                      </Button>
-                    </div>
-                  </form>
-                ) : null}
-              </div>
+                      <label className="office-form-field">
+                        <span>Visibility</span>
+                        <SelectInput defaultValue={selectedDocument.visibilityKey} name="visibility">
+                          <option value="company_wide">Company-wide</option>
+                          <option value="office_only">Office only</option>
+                        </SelectInput>
+                      </label>
+
+                      <label className="office-form-field">
+                        <span>Tags</span>
+                        <TextInput defaultValue={selectedDocument.tags.join(", ")} name="tags" placeholder="Comma-separated tags" />
+                      </label>
+
+                      <label className="office-form-field">
+                        <span>Summary</span>
+                        <TextareaInput defaultValue={selectedDocument.summary} name="summary" rows={5} />
+                      </label>
+
+                      <div className="office-library-side-actions">
+                        <Button disabled={pendingAction === "save-document"} size="sm" type="submit">
+                          {pendingAction === "save-document" ? "Saving..." : "Save document"}
+                        </Button>
+                        <Button
+                          disabled={pendingAction === "delete-document"}
+                          onClick={handleDeleteDocument}
+                          size="sm"
+                          type="button"
+                          variant="danger"
+                        >
+                          {pendingAction === "delete-document" ? "Deleting..." : "Delete"}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : null}
+                </div>
+              </details>
             </div>
           </section>
         </div>
