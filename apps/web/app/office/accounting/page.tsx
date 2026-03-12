@@ -2,11 +2,15 @@ import {
   canAccessOfficeAccounting,
   canManageOfficeAccounting,
   canManageOfficeAgentBilling,
+  canManageOfficeCommissions,
   canManageOfficePayments,
+  canApproveOfficeCommissions,
+  canCalculateOfficeCommissions,
+  canViewOfficeCommissions,
   canViewOfficeAgentBilling
 } from "@acre/auth";
 import { Badge, PageHeader, PageShell } from "@acre/ui";
-import { getOfficeAccountingSnapshot, getOfficeAgentBillingSnapshot } from "@acre/db";
+import { getOfficeAccountingSnapshot, getOfficeAgentBillingSnapshot, getOfficeCommissionManagementSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
 import { OfficeAccountingClient } from "./accounting-client";
@@ -26,6 +30,12 @@ type OfficeAccountingPageProps = {
     billingEndDate?: string;
     billingTransactionId?: string;
     billingQ?: string;
+    commissionMembershipId?: string;
+    commissionPlanId?: string;
+    commissionStatus?: string;
+    commissionTransactionId?: string;
+    commissionStartDate?: string;
+    commissionEndDate?: string;
   }>;
 };
 
@@ -37,7 +47,7 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
   }
 
   const searchParams = (await props.searchParams) ?? {};
-  const [snapshot, agentBillingSnapshot] = await Promise.all([
+  const [snapshot, agentBillingSnapshot, commissionSnapshot] = await Promise.all([
     getOfficeAccountingSnapshot({
       organizationId: context.currentOrganization.id,
       officeId: context.currentOffice?.id ?? null,
@@ -59,6 +69,18 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
           endDate: searchParams.billingEndDate,
           transactionId: searchParams.billingTransactionId,
           q: searchParams.billingQ
+        })
+      : null,
+    canViewOfficeCommissions(context.currentMembership.role)
+      ? getOfficeCommissionManagementSnapshot({
+          organizationId: context.currentOrganization.id,
+          officeId: context.currentOffice?.id ?? null,
+          membershipId: searchParams.commissionMembershipId,
+          commissionPlanId: searchParams.commissionPlanId,
+          status: searchParams.commissionStatus,
+          transactionId: searchParams.commissionTransactionId,
+          startDate: searchParams.commissionStartDate,
+          endDate: searchParams.commissionEndDate
         })
       : null
   ]);
@@ -82,7 +104,12 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
         agentBillingSnapshot={agentBillingSnapshot}
         canManageAccounting={canManageOfficeAccounting(context.currentMembership.role)}
         canManageAgentBilling={canManageOfficeAgentBilling(context.currentMembership.role)}
+        canManageCommissions={canManageOfficeCommissions(context.currentMembership.role)}
         canManagePayments={canManageOfficePayments(context.currentMembership.role)}
+        canApproveCommissions={canApproveOfficeCommissions(context.currentMembership.role)}
+        canCalculateCommissions={canCalculateOfficeCommissions(context.currentMembership.role)}
+        canViewCommissions={canViewOfficeCommissions(context.currentMembership.role)}
+        commissionSnapshot={commissionSnapshot}
         canViewAgentBilling={canViewOfficeAgentBilling(context.currentMembership.role)}
         officeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
         snapshot={snapshot}

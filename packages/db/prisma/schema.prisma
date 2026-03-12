@@ -258,6 +258,39 @@ enum AgentGoalPeriodType {
   annual
 }
 
+enum CommissionCalculationMode {
+  split_and_fees
+  flat_net
+}
+
+enum CommissionPlanRuleType {
+  base_split
+  brokerage_fee
+  referral_fee
+  flat_fee_deduction
+  sliding_scale
+}
+
+enum CommissionRuleFeeType {
+  percentage
+  flat
+}
+
+enum CommissionRecipientType {
+  agent
+  brokerage
+  referral
+}
+
+enum CommissionCalculationStatus {
+  draft
+  calculated
+  reviewed
+  statement_ready
+  payable
+  paid
+}
+
 enum EarnestMoneyStatus {
   not_received
   overdue
@@ -307,6 +340,10 @@ model Organization {
   agentOnboardingTemplateItems AgentOnboardingTemplateItem[]
   agentOnboardingItems AgentOnboardingItem[]
   agentGoals      AgentGoal[]
+  commissionPlans CommissionPlan[]
+  commissionPlanAssignments CommissionPlanAssignment[]
+  commissionPlanRules CommissionPlanRule[]
+  commissionCalculations CommissionCalculation[]
 }
 
 model Office {
@@ -345,6 +382,9 @@ model Office {
   agentOnboardingTemplateItems AgentOnboardingTemplateItem[]
   agentOnboardingItems AgentOnboardingItem[]
   agentGoals      AgentGoal[]
+  commissionPlans CommissionPlan[]
+  commissionPlanAssignments CommissionPlanAssignment[]
+  commissionCalculations CommissionCalculation[]
 
   @@unique([organizationId, slug])
 }
@@ -406,6 +446,9 @@ model Membership {
   agentOnboardingItems AgentOnboardingItem[]
   completedAgentOnboardingItems AgentOnboardingItem[] @relation("AgentOnboardingCompletedBy")
   agentGoals           AgentGoal[]
+  commissionPlanAssignments CommissionPlanAssignment[]
+  commissionCalculations CommissionCalculation[] @relation("CommissionCalculationMembership")
+  calculatedCommissionCalculations CommissionCalculation[] @relation("CommissionCalculationCalculatedBy")
 
   @@unique([organizationId, userId])
 }
@@ -458,6 +501,7 @@ model Transaction {
   forms                       TransactionForm[]
   signatureRequests           SignatureRequest[]
   incomingUpdates             IncomingUpdate[]
+  commissionCalculations      CommissionCalculation[]
 
   @@index([organizationId, status])
   @@index([organizationId, officeId])
@@ -965,6 +1009,7 @@ model AccountingTransaction {
   relatedMembership     Membership?                 @relation("AccountingTransactionRelatedMembership", fields: [relatedMembershipId], references: [id], onDelete: SetNull)
   createdByMembership   Membership                  @relation("AccountingTransactionCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
   originRecurringChargeRule AgentRecurringChargeRule? @relation(fields: [originRecurringChargeRuleId], references: [id], onDelete: SetNull)
+  commissionCalculations CommissionCalculation[]
   lineItems             AccountingTransactionLineItem[]
   applicationsFrom      AccountingTransactionApplication[] @relation("AccountingTransactionApplicationSource")
   applicationsTo        AccountingTransactionApplication[] @relation("AccountingTransactionApplicationTarget")
@@ -1230,6 +1275,110 @@ model AgentGoal {
 
   @@index([organizationId, officeId, membershipId])
   @@index([organizationId, startsAt, endsAt])
+}
+
+model CommissionPlan {
+  id              String                    @id @default(cuid())
+  organizationId  String
+  officeId        String?
+  name            String
+  description     String?
+  isActive        Boolean                   @default(true)
+  calculationMode CommissionCalculationMode @default(split_and_fees)
+  defaultCurrency String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  organization    Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office          Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  assignments     CommissionPlanAssignment[]
+  rules           CommissionPlanRule[]
+  calculations    CommissionCalculation[]
+
+  @@unique([organizationId, officeId, name])
+  @@index([organizationId, officeId, isActive])
+}
+
+model CommissionPlanAssignment {
+  id               String         @id @default(cuid())
+  organizationId   String
+  officeId         String?
+  membershipId     String
+  commissionPlanId String
+  effectiveFrom    DateTime
+  effectiveTo      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office           Office?        @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership       Membership     @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  commissionPlan   CommissionPlan @relation(fields: [commissionPlanId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, officeId, membershipId])
+  @@index([organizationId, commissionPlanId])
+  @@index([organizationId, effectiveFrom, effectiveTo])
+}
+
+model CommissionPlanRule {
+  id               String                 @id @default(cuid())
+  organizationId   String
+  commissionPlanId String
+  ruleType         CommissionPlanRuleType
+  ruleName         String
+  sortOrder        Int                    @default(0)
+  splitPercent     Decimal?               @db.Decimal(7, 4)
+  flatAmount       Decimal?               @db.Decimal(12, 2)
+  feeType          CommissionRuleFeeType?
+  feeAmount        Decimal?               @db.Decimal(12, 2)
+  thresholdStart   Decimal?               @db.Decimal(12, 2)
+  thresholdEnd     Decimal?               @db.Decimal(12, 2)
+  appliesToRole    String?
+  recipientType    CommissionRecipientType?
+  isActive         Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  commissionPlan   CommissionPlan         @relation(fields: [commissionPlanId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, commissionPlanId, sortOrder])
+  @@index([organizationId, ruleType, isActive])
+}
+
+model CommissionCalculation {
+  id                       String                      @id @default(cuid())
+  organizationId           String
+  officeId                 String?
+  transactionId            String
+  membershipId             String?
+  commissionPlanId         String?
+  accountingTransactionId  String?
+  recipientType            CommissionRecipientType
+  recipientRole            String?
+  recipientName            String?
+  grossCommission          Decimal                     @default(0) @db.Decimal(12, 2)
+  referralFee              Decimal                     @default(0) @db.Decimal(12, 2)
+  fees                     Decimal                     @default(0) @db.Decimal(12, 2)
+  officeNet                Decimal                     @default(0) @db.Decimal(12, 2)
+  agentNet                 Decimal                     @default(0) @db.Decimal(12, 2)
+  statementAmount          Decimal                     @default(0) @db.Decimal(12, 2)
+  status                   CommissionCalculationStatus @default(draft)
+  notes                    String?
+  calculatedAt             DateTime                    @default(now())
+  calculatedByMembershipId String?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  organization             Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                   Office?                     @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction              Transaction                 @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  membership               Membership?                 @relation("CommissionCalculationMembership", fields: [membershipId], references: [id], onDelete: SetNull)
+  commissionPlan           CommissionPlan?             @relation(fields: [commissionPlanId], references: [id], onDelete: SetNull)
+  accountingTransaction    AccountingTransaction?      @relation(fields: [accountingTransactionId], references: [id], onDelete: SetNull)
+  calculatedByMembership   Membership?                 @relation("CommissionCalculationCalculatedBy", fields: [calculatedByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, officeId, status])
+  @@index([organizationId, transactionId])
+  @@index([organizationId, membershipId])
+  @@index([organizationId, commissionPlanId])
+  @@index([organizationId, calculatedAt])
 }
 
 model EarnestMoneyRecord {

@@ -3,17 +3,23 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot } from "@acre/db";
+import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot, OfficeCommissionManagementSnapshot } from "@acre/db";
 import { AgentBillingPanel } from "./agent-billing-panel";
+import { CommissionManagementPanel } from "./commission-management-panel";
 
 type OfficeAccountingClientProps = {
   snapshot: OfficeAccountingSnapshot;
   agentBillingSnapshot: OfficeAgentBillingSnapshot | null;
+  commissionSnapshot: OfficeCommissionManagementSnapshot | null;
   officeLabel: string;
   canManageAccounting: boolean;
   canViewAgentBilling: boolean;
   canManageAgentBilling: boolean;
   canManagePayments: boolean;
+  canViewCommissions: boolean;
+  canManageCommissions: boolean;
+  canCalculateCommissions: boolean;
+  canApproveCommissions: boolean;
 };
 
 type AccountingTypeOption = {
@@ -255,11 +261,16 @@ function buildEarnestMoneyState(record?: OfficeAccountingSnapshot["earnestMoneyR
 export function OfficeAccountingClient({
   snapshot,
   agentBillingSnapshot,
+  commissionSnapshot,
   officeLabel,
   canManageAccounting,
   canViewAgentBilling,
   canManageAgentBilling,
-  canManagePayments
+  canManagePayments,
+  canViewCommissions,
+  canManageCommissions,
+  canCalculateCommissions,
+  canApproveCommissions
 }: OfficeAccountingClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -510,6 +521,7 @@ export function OfficeAccountingClient({
       <nav className="office-section-nav" aria-label="Accounting sections">
         <a href="#accounting-overview">Overview</a>
         <a href="#accounting-ledger">Accounting transactions</a>
+        <a href="#commissions">Commissions</a>
         <a href="#agent-billing">Agent billing</a>
         <a href="#earnest-money">Earnest money</a>
         <a href="#chart-of-accounts">Chart of accounts</a>
@@ -835,6 +847,14 @@ export function OfficeAccountingClient({
           </section>
         </div>
       </section>
+
+      <CommissionManagementPanel
+        canApproveCommissions={canApproveCommissions}
+        canCalculateCommissions={canCalculateCommissions}
+        canManageCommissions={canManageCommissions}
+        canViewCommissions={canViewCommissions}
+        snapshot={commissionSnapshot}
+      />
 
       <AgentBillingPanel
         canManageAgentBilling={canManageAgentBilling}

@@ -2690,6 +2690,430 @@ async function main() {
     });
   }
 
+  const seededCommissionPlans = [
+    {
+      id: "seed-commission-plan-senior",
+      name: "Senior agent split",
+      description: "Senior split with referral deduction, flat brokerage fee, and a higher tier above $25k gross after referral.",
+      isActive: true,
+      calculationMode: "split_and_fees",
+      defaultCurrency: "USD",
+      rules: [
+        {
+          id: "seed-commission-rule-senior-base",
+          ruleType: "base_split",
+          ruleName: "Base split",
+          sortOrder: 1,
+          splitPercent: "70",
+          flatAmount: null,
+          feeType: null,
+          feeAmount: null,
+          thresholdStart: null,
+          thresholdEnd: null,
+          appliesToRole: "agent",
+          recipientType: "agent",
+          isActive: true
+        },
+        {
+          id: "seed-commission-rule-senior-referral",
+          ruleType: "referral_fee",
+          ruleName: "Referral fee",
+          sortOrder: 2,
+          splitPercent: null,
+          flatAmount: null,
+          feeType: "percentage",
+          feeAmount: "10",
+          thresholdStart: null,
+          thresholdEnd: null,
+          appliesToRole: "referral",
+          recipientType: "referral",
+          isActive: true
+        },
+        {
+          id: "seed-commission-rule-senior-brokerage-fee",
+          ruleType: "brokerage_fee",
+          ruleName: "Brokerage fee",
+          sortOrder: 3,
+          splitPercent: null,
+          flatAmount: null,
+          feeType: "flat",
+          feeAmount: "495",
+          thresholdStart: null,
+          thresholdEnd: null,
+          appliesToRole: "agent",
+          recipientType: "brokerage",
+          isActive: true
+        },
+        {
+          id: "seed-commission-rule-senior-sliding",
+          ruleType: "sliding_scale",
+          ruleName: "High-volume uplift",
+          sortOrder: 4,
+          splitPercent: "75",
+          flatAmount: null,
+          feeType: null,
+          feeAmount: null,
+          thresholdStart: "25000",
+          thresholdEnd: null,
+          appliesToRole: "agent",
+          recipientType: "agent",
+          isActive: true
+        }
+      ]
+    },
+    {
+      id: "seed-commission-plan-ops",
+      name: "Operations manager split",
+      description: "Operational split for manager-owned transactions with a lighter brokerage deduction.",
+      isActive: true,
+      calculationMode: "split_and_fees",
+      defaultCurrency: "USD",
+      rules: [
+        {
+          id: "seed-commission-rule-ops-base",
+          ruleType: "base_split",
+          ruleName: "Base split",
+          sortOrder: 1,
+          splitPercent: "65",
+          flatAmount: null,
+          feeType: null,
+          feeAmount: null,
+          thresholdStart: null,
+          thresholdEnd: null,
+          appliesToRole: "office_manager",
+          recipientType: "agent",
+          isActive: true
+        },
+        {
+          id: "seed-commission-rule-ops-flat",
+          ruleType: "flat_fee_deduction",
+          ruleName: "Operations flat fee",
+          sortOrder: 2,
+          splitPercent: null,
+          flatAmount: "350",
+          feeType: null,
+          feeAmount: null,
+          thresholdStart: null,
+          thresholdEnd: null,
+          appliesToRole: "office_manager",
+          recipientType: "brokerage",
+          isActive: true
+        }
+      ]
+    }
+  ];
+
+  for (const plan of seededCommissionPlans) {
+    await prisma.commissionPlan.upsert({
+      where: { id: plan.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        name: plan.name,
+        description: plan.description,
+        isActive: plan.isActive,
+        calculationMode: plan.calculationMode,
+        defaultCurrency: plan.defaultCurrency
+      },
+      create: {
+        id: plan.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        name: plan.name,
+        description: plan.description,
+        isActive: plan.isActive,
+        calculationMode: plan.calculationMode,
+        defaultCurrency: plan.defaultCurrency
+      }
+    });
+
+    await prisma.commissionPlanRule.deleteMany({
+      where: {
+        commissionPlanId: plan.id
+      }
+    });
+
+    await prisma.commissionPlanRule.createMany({
+      data: plan.rules.map((rule) => ({
+        id: rule.id,
+        organizationId: organization.id,
+        commissionPlanId: plan.id,
+        ruleType: rule.ruleType,
+        ruleName: rule.ruleName,
+        sortOrder: rule.sortOrder,
+        splitPercent: rule.splitPercent,
+        flatAmount: rule.flatAmount,
+        feeType: rule.feeType,
+        feeAmount: rule.feeAmount,
+        thresholdStart: rule.thresholdStart,
+        thresholdEnd: rule.thresholdEnd,
+        appliesToRole: rule.appliesToRole,
+        recipientType: rule.recipientType,
+        isActive: rule.isActive
+      }))
+    });
+  }
+
+  const seededCommissionAssignments = [
+    {
+      id: "seed-commission-assignment-jane",
+      membershipEmail: "jane@acre.com",
+      commissionPlanId: "seed-commission-plan-senior",
+      effectiveFrom: new Date("2025-09-01T00:00:00.000Z"),
+      effectiveTo: null
+    },
+    {
+      id: "seed-commission-assignment-simon",
+      membershipEmail: "simon@acre.com",
+      commissionPlanId: "seed-commission-plan-ops",
+      effectiveFrom: new Date("2025-01-01T00:00:00.000Z"),
+      effectiveTo: null
+    },
+    {
+      id: "seed-commission-assignment-naomi",
+      membershipEmail: "naomi@acre.com",
+      commissionPlanId: "seed-commission-plan-senior",
+      effectiveFrom: new Date("2025-01-01T00:00:00.000Z"),
+      effectiveTo: null
+    }
+  ];
+
+  for (const assignment of seededCommissionAssignments) {
+    const membership = membershipByEmail.get(assignment.membershipEmail) ?? null;
+
+    if (!membership) {
+      continue;
+    }
+
+    await prisma.commissionPlanAssignment.upsert({
+      where: { id: assignment.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        commissionPlanId: assignment.commissionPlanId,
+        effectiveFrom: assignment.effectiveFrom,
+        effectiveTo: assignment.effectiveTo
+      },
+      create: {
+        id: assignment.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        membershipId: membership.id,
+        commissionPlanId: assignment.commissionPlanId,
+        effectiveFrom: assignment.effectiveFrom,
+        effectiveTo: assignment.effectiveTo
+      }
+    });
+  }
+
+  const seededCommissionCalculations = [
+    {
+      id: "seed-commission-calc-70-agent",
+      transactionId: "seed-tx-70-christopher",
+      membershipEmail: "naomi@acre.com",
+      commissionPlanId: "seed-commission-plan-senior",
+      recipientType: "agent",
+      recipientRole: "office_admin",
+      recipientName: "Naomi Chen",
+      grossCommission: "3585",
+      referralFee: "0",
+      fees: "0",
+      officeNet: "0",
+      agentNet: "1085",
+      statementAmount: "1085",
+      status: "calculated",
+      notes: "Seeded commission snapshot for active rental-side transaction.",
+      calculatedAt: new Date("2026-03-08T18:00:00.000Z"),
+      calculatedByEmail: "naomi@acre.com"
+    },
+    {
+      id: "seed-commission-calc-70-brokerage",
+      transactionId: "seed-tx-70-christopher",
+      membershipEmail: null,
+      commissionPlanId: "seed-commission-plan-senior",
+      recipientType: "brokerage",
+      recipientRole: "brokerage",
+      recipientName: "Acre NY Realty Inc",
+      grossCommission: "3585",
+      referralFee: "0",
+      fees: "0",
+      officeNet: "2500",
+      agentNet: "0",
+      statementAmount: "2500",
+      status: "reviewed",
+      notes: "Brokerage side of seeded commission calculation.",
+      calculatedAt: new Date("2026-03-08T18:00:00.000Z"),
+      calculatedByEmail: "naomi@acre.com"
+    },
+    {
+      id: "seed-commission-calc-3820-agent",
+      transactionId: "seed-tx-3820-parson",
+      membershipEmail: "naomi@acre.com",
+      commissionPlanId: "seed-commission-plan-senior",
+      recipientType: "agent",
+      recipientRole: "office_admin",
+      recipientName: "Naomi Chen",
+      grossCommission: "18750",
+      referralFee: "2500",
+      fees: "0",
+      officeNet: "0",
+      agentNet: "6250",
+      statementAmount: "6250",
+      status: "payable",
+      notes: "Seeded listing-side payable commission row.",
+      calculatedAt: new Date("2026-03-09T15:00:00.000Z"),
+      calculatedByEmail: "naomi@acre.com"
+    },
+    {
+      id: "seed-commission-calc-3820-brokerage",
+      transactionId: "seed-tx-3820-parson",
+      membershipEmail: null,
+      commissionPlanId: "seed-commission-plan-senior",
+      recipientType: "brokerage",
+      recipientRole: "brokerage",
+      recipientName: "Acre NY Realty Inc",
+      grossCommission: "18750",
+      referralFee: "2500",
+      fees: "0",
+      officeNet: "10000",
+      agentNet: "0",
+      statementAmount: "10000",
+      status: "reviewed",
+      notes: "Brokerage side of listing commission.",
+      calculatedAt: new Date("2026-03-09T15:00:00.000Z"),
+      calculatedByEmail: "naomi@acre.com"
+    },
+    {
+      id: "seed-commission-calc-3820-referral",
+      transactionId: "seed-tx-3820-parson",
+      membershipEmail: null,
+      commissionPlanId: "seed-commission-plan-senior",
+      recipientType: "referral",
+      recipientRole: "referral",
+      recipientName: "External referral partner",
+      grossCommission: "18750",
+      referralFee: "2500",
+      fees: "0",
+      officeNet: "0",
+      agentNet: "0",
+      statementAmount: "2500",
+      status: "paid",
+      notes: "Referral side already cleared.",
+      calculatedAt: new Date("2026-03-09T15:00:00.000Z"),
+      calculatedByEmail: "naomi@acre.com"
+    },
+    {
+      id: "seed-commission-calc-45-agent",
+      transactionId: "seed-tx-45-10-court-square",
+      membershipEmail: "simon@acre.com",
+      commissionPlanId: "seed-commission-plan-ops",
+      recipientType: "agent",
+      recipientRole: "office_manager",
+      recipientName: "Simon Park",
+      grossCommission: "32000",
+      referralFee: "3200",
+      fees: "0",
+      officeNet: "0",
+      agentNet: "10800",
+      statementAmount: "10800",
+      status: "statement_ready",
+      notes: "Seeded company referral commission ready for statement.",
+      calculatedAt: new Date("2026-03-10T09:30:00.000Z"),
+      calculatedByEmail: "simon@acre.com"
+    },
+    {
+      id: "seed-commission-calc-45-brokerage",
+      transactionId: "seed-tx-45-10-court-square",
+      membershipEmail: null,
+      commissionPlanId: "seed-commission-plan-ops",
+      recipientType: "brokerage",
+      recipientRole: "brokerage",
+      recipientName: "Acre NY Realty Inc",
+      grossCommission: "32000",
+      referralFee: "3200",
+      fees: "0",
+      officeNet: "18000",
+      agentNet: "0",
+      statementAmount: "18000",
+      status: "reviewed",
+      notes: "Brokerage net retained after referral and agent share.",
+      calculatedAt: new Date("2026-03-10T09:30:00.000Z"),
+      calculatedByEmail: "simon@acre.com"
+    },
+    {
+      id: "seed-commission-calc-45-referral",
+      transactionId: "seed-tx-45-10-court-square",
+      membershipEmail: null,
+      commissionPlanId: "seed-commission-plan-ops",
+      recipientType: "referral",
+      recipientRole: "referral",
+      recipientName: "Acre小助手",
+      grossCommission: "32000",
+      referralFee: "3200",
+      fees: "0",
+      officeNet: "0",
+      agentNet: "0",
+      statementAmount: "3200",
+      status: "reviewed",
+      notes: "Seeded referral side for company referral scenario.",
+      calculatedAt: new Date("2026-03-10T09:30:00.000Z"),
+      calculatedByEmail: "simon@acre.com"
+    }
+  ];
+
+  for (const calculation of seededCommissionCalculations) {
+    const membership = calculation.membershipEmail ? membershipByEmail.get(calculation.membershipEmail) ?? null : null;
+    const calculatedByMembership = membershipByEmail.get(calculation.calculatedByEmail) ?? null;
+
+    await prisma.commissionCalculation.upsert({
+      where: { id: calculation.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: calculation.transactionId,
+        membershipId: membership?.id ?? null,
+        commissionPlanId: calculation.commissionPlanId,
+        accountingTransactionId: null,
+        recipientType: calculation.recipientType,
+        recipientRole: calculation.recipientRole,
+        recipientName: calculation.recipientName,
+        grossCommission: calculation.grossCommission,
+        referralFee: calculation.referralFee,
+        fees: calculation.fees,
+        officeNet: calculation.officeNet,
+        agentNet: calculation.agentNet,
+        statementAmount: calculation.statementAmount,
+        status: calculation.status,
+        notes: calculation.notes,
+        calculatedAt: calculation.calculatedAt,
+        calculatedByMembershipId: calculatedByMembership?.id ?? null
+      },
+      create: {
+        id: calculation.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        transactionId: calculation.transactionId,
+        membershipId: membership?.id ?? null,
+        commissionPlanId: calculation.commissionPlanId,
+        accountingTransactionId: null,
+        recipientType: calculation.recipientType,
+        recipientRole: calculation.recipientRole,
+        recipientName: calculation.recipientName,
+        grossCommission: calculation.grossCommission,
+        referralFee: calculation.referralFee,
+        fees: calculation.fees,
+        officeNet: calculation.officeNet,
+        agentNet: calculation.agentNet,
+        statementAmount: calculation.statementAmount,
+        status: calculation.status,
+        notes: calculation.notes,
+        calculatedAt: calculation.calculatedAt,
+        calculatedByMembershipId: calculatedByMembership?.id ?? null
+      }
+    });
+  }
+
   const seededEarnestMoneyRecords = [
     {
       id: "seed-emd-graham",
@@ -3072,6 +3496,60 @@ async function main() {
         contextHref: "/office/accounting#earnest-money",
         details: ["Received amount: $5,000", "Status: Fully deposited"]
       }
+    },
+    {
+      id: "seed-audit-commission-plan-created-senior",
+      membershipEmail: "naomi@acre.com",
+      entityType: "commission_plan",
+      entityId: "seed-commission-plan-senior",
+      action: "commission.plan_created",
+      payload: {
+        officeId: office.id,
+        objectLabel: "Senior agent split",
+        contextHref: "/office/accounting#commissions",
+        details: ["Mode: Split & fees", "Active rules: 4"]
+      }
+    },
+    {
+      id: "seed-audit-commission-plan-assigned-jane",
+      membershipEmail: "naomi@acre.com",
+      entityType: "commission_plan",
+      entityId: "seed-commission-assignment-jane",
+      action: "commission.plan_assigned",
+      payload: {
+        officeId: office.id,
+        objectLabel: "Senior agent split · Jane Wu",
+        contextHref: `/office/agents/${membershipByEmail.get("jane@acre.com")?.id ?? ""}`,
+        details: ["Plan: Senior agent split", "Agent: Jane Wu", "Effective from: 2025-09-01"]
+      }
+    },
+    {
+      id: "seed-audit-commission-calculated-court-square",
+      membershipEmail: "simon@acre.com",
+      entityType: "commission_calculation",
+      entityId: "seed-commission-calc-45-agent",
+      action: "commission.calculated",
+      payload: {
+        officeId: office.id,
+        transactionId: "seed-tx-45-10-court-square",
+        transactionLabel: "45-10 Court Square W · 45-10 Court Square W, Long Island City, NY",
+        objectLabel: "45-10 Court Square W · 45-10 Court Square W, Long Island City, NY",
+        contextHref: "/office/transactions/seed-tx-45-10-court-square#commission",
+        details: ["Plan: Operations manager split", "Agent net: $10,800", "Office net: $18,000"]
+      }
+    },
+    {
+      id: "seed-audit-commission-statement-naomi",
+      membershipEmail: "naomi@acre.com",
+      entityType: "commission_statement",
+      entityId: "seed-commission-statement-naomi",
+      action: "commission.statement_generated",
+      payload: {
+        officeId: office.id,
+        objectLabel: "Naomi Chen commission statement",
+        contextHref: "/office/accounting#commissions",
+        details: ["Agent: Naomi Chen", "Statement-ready: $0", "Payable: $6,250"]
+      }
     }
   ];
 
@@ -3101,7 +3579,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededCommissionPlans.length} commission plans, ${seededCommissionAssignments.length} commission assignments, ${seededCommissionCalculations.length} commission calculations, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

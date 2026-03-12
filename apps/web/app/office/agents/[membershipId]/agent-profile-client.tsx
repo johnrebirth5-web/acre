@@ -560,6 +560,34 @@ export function AgentProfileClient({
         </SectionCard>
       </div>
 
+      <SectionCard subtitle="Current commission plan, recent calculated rows, and payout-readiness visibility for this agent." title="Commission summary">
+        <div className="office-agents-profile-summary-grid">
+          <StatCard hint="active assigned plan when available" label="Active plan" value={snapshot.commissions.activePlanLabel || "Manual / unassigned"} />
+          <StatCard hint="rows already in statement-ready status" label="Statement ready" value={snapshot.commissions.statementReadyLabel} />
+          <StatCard hint="rows that can move into payout handling" label="Payable" value={snapshot.commissions.payableLabel} />
+          <StatCard hint="rows already marked paid in the commission workflow" label="Paid" value={snapshot.commissions.paidLabel} />
+        </div>
+
+        <div className="office-note-list">
+          {snapshot.commissions.recentCalculations.map((calculation) => (
+            <article className="office-note-item" key={calculation.id}>
+              <span>{calculation.status}</span>
+              <div>
+                <strong>
+                  <Link href={calculation.transactionHref}>{calculation.transactionLabel}</Link>
+                </strong>
+                <p>
+                  {calculation.recipientLabel} · {calculation.statementAmountLabel}
+                </p>
+              </div>
+            </article>
+          ))}
+          {snapshot.commissions.recentCalculations.length === 0 ? (
+            <p className="office-form-helper">No commission calculations have been recorded for this agent yet.</p>
+          ) : null}
+        </div>
+      </SectionCard>
+
       <section id="onboarding">
         <SectionCard
           actions={

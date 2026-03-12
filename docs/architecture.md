@@ -19,6 +19,7 @@
   - unsorted documents
   - forms / eSignature
   - incoming updates
+  - commission management
 - `Activity` 虽然已经是数据库驱动的真实 activity log，但当前覆盖范围仍只限于仓库里已经实现的真实写入路径；当前 documents / forms / signatures / incoming updates 已接入事件，但 approvals / settings 变更还没有真实事件源
 - `Activity` 当前还是一个受限访问的 account activity 模块，不把它当作所有 office 角色都能直接访问的普通页面；首版只允许 `office_admin` 和 `office_manager`
 
@@ -58,7 +59,7 @@
 - 当前 API 已包含最小读写路径：
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
-  - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update、documents / forms / signatures / incoming updates
+  - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update、documents / forms / signatures / incoming updates、commission calculation
   - `Activity`：server-side 同时读取真实 `AuditLog` 和实时派生 alerts，渲染 `Activity Log + Operational Alerts`
     - `AuditLog` 是唯一活动事件源
     - 页面支持 `actor / object type / date range` 过滤
@@ -71,6 +72,10 @@
   - query-param 驱动的 search / side / owner / metric mode 过滤
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
+- 当前 `Commission Management` 已通过 Prisma service 和 route handlers 落地到：
+  - `/office/accounting`
+  - transaction detail
+  - agent profile summary
 - 当前已有最小本地登录 / 登出 / cookie session
 - 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
 - 当前 dashboard 业务指标也已有最小查询 service
@@ -237,6 +242,10 @@
 - `AccountingTransactionLineItem`
 - `GeneralLedgerEntry`
 - `EarnestMoneyRecord`
+- `CommissionPlan`
+- `CommissionPlanAssignment`
+- `CommissionPlanRule`
+- `CommissionCalculation`
 - `TransactionDocument`
 - `FormTemplate`
 - `TransactionForm`
@@ -274,6 +283,14 @@
 - `saveTaskListView`
 - `getOfficeReportsSnapshot`
 - `getOfficeAccountingSnapshot`
+- `getOfficeCommissionManagementSnapshot`
+- `getTransactionCommissionSnapshot`
+- `getAgentCommissionSummary`
+- `saveCommissionPlan`
+- `assignCommissionPlanToMembership`
+- `calculateTransactionCommission`
+- `updateCommissionCalculationStatus`
+- `generateCommissionStatementSnapshot`
 - `createAccountingTransaction`
 - `updateAccountingTransaction`
 - `createEarnestMoneyRecord`
@@ -334,16 +351,18 @@
 11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link；`GET /api/office/contacts` 也接受 `q / stage / page / pageSize`
 12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
 13. `/office/accounting` 调 `@acre/db` 的 accounting service，返回 overview cards、accounting transaction list、general ledger、EMD records 和 chart of accounts
-14. `/api/office/accounting/transactions` 与 `/api/office/accounting/earnest-money` 负责最小 create / update 写入；posting 成功后同步生成 GL entries 和 `AuditLog`
-15. `/office/activity` 读取 `AuditLog`，并结合 transaction / task / contact / follow-up / accounting / EMD 的实时数据库状态派生 operational alerts
-16. transaction / contact / finance / task / accounting / EMD 的真实写入路径会同步写入 `AuditLog`
-17. auth login / logout 和 follow-up task create 也会写入 `AuditLog`
-18. `/office/activity` 顶部的内部评论也会写入 `AuditLog`，并出现在同一条 stream 里
-19. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
-20. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
-21. `/office/tasks` 读取 `TransactionTask + TaskListView`，按 built-in view、saved view 和 query-param filters 返回真实任务列表
-22. `/office/tasks` 的 create / edit / complete / reopen / request review / approve / reject 都直接写数据库，并同步写入 `AuditLog`
-23. document-linked tasks 会根据真实 workflow evidence 推导 task status，例如：
+14. `/office/accounting` 也会调 commission service，返回 plan list、assignment list、commission queue 和 statement snapshot
+15. `/api/office/accounting/transactions` 与 `/api/office/accounting/earnest-money` 负责最小 create / update 写入；posting 成功后同步生成 GL entries 和 `AuditLog`
+16. `/api/office/accounting/commissions/*` 与 `/api/office/transactions/:transactionId/commissions/calculate` 负责 commission plan、assignment、calculation、status、statement snapshot 的最小写入，并同步写入 `AuditLog`
+17. `/office/activity` 读取 `AuditLog`，并结合 transaction / task / contact / follow-up / accounting / EMD / commission 的实时数据库状态派生 operational alerts
+18. transaction / contact / finance / task / accounting / EMD / commission 的真实写入路径会同步写入 `AuditLog`
+19. auth login / logout 和 follow-up task create 也会写入 `AuditLog`
+20. `/office/activity` 顶部的内部评论也会写入 `AuditLog`，并出现在同一条 stream 里
+21. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
+22. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+23. `/office/tasks` 读取 `TransactionTask + TaskListView`，按 built-in view、saved view 和 query-param filters 返回真实任务列表
+24. `/office/tasks` 的 create / edit / complete / reopen / request review / approve / reject 都直接写数据库，并同步写入 `AuditLog`
+25. document-linked tasks 会根据真实 workflow evidence 推导 task status，例如：
    - pending upload
    - uploaded / not submitted
    - review requested
@@ -353,32 +372,34 @@
    - waiting for signatures
    - fully signed
    - complete
-24. secondary approval 当前已实现，并要求 second approver 与 first approver 必须是不同 membership
-25. 删除 required document、取消提交条件或让签名重新变成未完成时，会触发 task workflow 重新评估并必要时 reopen
-26. `/api/office/tasks/views` 以 membership 维度持久化 saved views
-27. transaction detail 的 documents / forms / signatures / incoming updates 统一通过 `packages/db/src/transaction-documents.ts` 读取和写入
-28. 文件本体当前通过 `apps/web/lib/document-storage.ts` 写入本地文件系统；document metadata 仍在 PostgreSQL
-29. document / form / signature / incoming update 的关键动作会写入 `AuditLog`
-30. `Activity Log + Operational Alerts` 现在也会显示：
+26. secondary approval 当前已实现，并要求 second approver 与 first approver 必须是不同 membership
+27. 删除 required document、取消提交条件或让签名重新变成未完成时，会触发 task workflow 重新评估并必要时 reopen
+28. `/api/office/tasks/views` 以 membership 维度持久化 saved views
+29. transaction detail 的 documents / forms / signatures / incoming updates 统一通过 `packages/db/src/transaction-documents.ts` 读取和写入
+30. 文件本体当前通过 `apps/web/lib/document-storage.ts` 写入本地文件系统；document metadata 仍在 PostgreSQL
+31. document / form / signature / incoming update 的关键动作会写入 `AuditLog`
+32. `/office/transactions/:transactionId` 还会通过 `getTransactionCommissionSnapshot` 读取 assigned plan、persisted calculations 和 transaction-level summary
+33. `/office/agents/:membershipId` 还会通过 `getAgentCommissionSummary` 聚合 active plan、recent calculations、statement-ready / payable / paid totals
+34. `Activity Log + Operational Alerts` 现在也会显示：
    - missing required document
    - signature pending
    - incoming update awaiting review
    - tasks awaiting your review
    - tasks awaiting second review
    - rejected tasks needing action
-31. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal / AgentOnboardingTemplateItem`，并聚合 transactions / tasks / billing / activity 数据形成更接近管理工作台的 roster snapshot
-32. roster snapshot 当前会额外提供：
+35. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal / AgentOnboardingTemplateItem`，并聚合 transactions / tasks / billing / activity 数据形成更接近管理工作台的 roster snapshot
+36. roster snapshot 当前会额外提供：
    - membership status
    - onboarding progress label
    - open / recent closed transaction rollups
    - goal progress summary
    - billing summary label
    - team-level open task / open transaction / onboarding in-progress counts
-33. `/office/agents/:membershipId` 读取 profile snapshot，展示 basics、teams、onboarding、goals、recent transactions、recent activity，并额外聚合 operational agenda、current goal summary、open/pending charges
-34. `/api/office/agents/*` 负责 profile、team、onboarding、goal 的最小 create / update 写入，并同步写入 `AuditLog`
-35. `/api/office/agents/:membershipId/onboarding-template` 会把 office 范围内的默认 onboarding 模板条目实例化到具体 agent
-36. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-37. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+37. `/office/agents/:membershipId` 读取 profile snapshot，展示 basics、teams、onboarding、goals、recent transactions、recent activity，并额外聚合 operational agenda、current goal summary、open/pending charges、commission summary
+38. `/api/office/agents/*` 负责 profile、team、onboarding、goal 的最小 create / update 写入，并同步写入 `AuditLog`
+39. `/api/office/agents/:membershipId/onboarding-template` 会把 office 范围内的默认 onboarding 模板条目实例化到具体 agent
+40. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+41. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
@@ -638,6 +659,78 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - due date / payment date / deposit date
 - held by office / held externally
 - optional ledger posting
+
+### 6.5 Commission Management 建在现有 Transaction Finance + Accounting + Agent Billing foundation 上
+
+`Commission Management` 当前不是独立 app，也不是脱离 accounting 的单独佣金工具，而是建立在：
+
+- transaction finance inputs
+- accounting transaction / ledger foundation
+- agent billing / statement foundation
+
+之上。
+
+这样做的原因是：
+
+- transaction 侧已经有 `grossCommission / referralFee / officeNet / agentNet`
+- accounting 已经能承载 invoice / payment / statement-ready visibility
+- 如果再单独做一套 detached commission store，后面一定会和 accounting / billing / activity log 分叉
+
+当前实现方式：
+
+- durable 模型：
+  - `CommissionPlan`
+  - `CommissionPlanAssignment`
+  - `CommissionPlanRule`
+  - `CommissionCalculation`
+- 基础 rule types：
+  - `base_split`
+  - `brokerage_fee`
+  - `referral_fee`
+  - `flat_fee_deduction`
+  - `sliding_scale`
+- transaction detail 提供 commission section：
+  - assigned plan
+  - calculation inputs
+  - persisted outputs
+  - recalculate
+- `/office/accounting` 提供 commission management area：
+  - plan list
+  - assignment list
+  - calculation queue
+  - statement snapshot
+- agent profile 提供 commission summary：
+  - active plan
+  - recent calculations
+  - statement-ready totals
+  - payable / paid totals
+
+当前 commission status：
+
+- `draft`
+- `calculated`
+- `reviewed`
+- `statement_ready`
+- `payable`
+- `paid`
+
+当前明确没做的部分：
+
+- ACH / bank payout execution
+- external payroll / tax workflow
+- giant enterprise commission engine
+- full automatic bridge into external transfer rails
+
+所以页面里如果看到：
+
+- `statement ready`
+- `payable`
+- `paid`
+
+应理解为：
+
+- 这是系统内部的 calculation / readiness / bookkeeping status
+- 不是自动代表外部银行转账已经完成
 
 ### 7. Agent Management 复用 Membership 作为身份主轴，只补必要的 profile / team / onboarding / goal 模型
 

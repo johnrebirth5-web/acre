@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { getTransactionById, listTransactionTaskAssigneeOptions, listTransactionTasks } from "@acre/db";
+import { getTransactionById, getTransactionCommissionSnapshot, listTransactionTaskAssigneeOptions, listTransactionTasks } from "@acre/db";
 import {
   canApproveOfficeDocuments,
+  canApproveOfficeCommissions,
   canManageOfficeDocuments,
+  canManageOfficeCommissions,
   canManageOfficeSignatures,
+  canCalculateOfficeCommissions,
   canReviewOfficeTasks,
   canReviewOfficeIncomingUpdates,
   canSecondaryReviewOfficeTasks,
   canUseOfficeForms,
+  canViewOfficeCommissions,
   canViewOfficeDocuments
 } from "@acre/auth";
 import { DetailSection, PageHeader, PageShell, SectionCard, SecondaryMetaList } from "@acre/ui";
@@ -18,6 +22,7 @@ import { TransactionDocumentsCard, TransactionUnsortedDocumentsCard } from "./do
 import { TransactionFinanceForm } from "./finance-form";
 import { TransactionFormsSignaturesCard } from "./forms-signatures-card";
 import { TransactionIncomingUpdatesCard } from "./incoming-updates-card";
+import { TransactionCommissionCard } from "./commission-card";
 import { TransactionStatusForm } from "./status-form";
 import { TransactionTasksCard } from "./tasks-card";
 
@@ -30,10 +35,11 @@ type TransactionDetailPageProps = {
 export default async function OfficeTransactionDetailPage({ params }: TransactionDetailPageProps) {
   const context = await requireOfficeSession();
   const { transactionId } = await params;
-  const [transaction, tasks, taskAssigneeOptions] = await Promise.all([
+  const [transaction, tasks, taskAssigneeOptions, commissionSnapshot] = await Promise.all([
     getTransactionById(context.currentOrganization.id, transactionId),
     listTransactionTasks(context.currentOrganization.id, transactionId),
-    listTransactionTaskAssigneeOptions(context.currentOrganization.id, transactionId)
+    listTransactionTaskAssigneeOptions(context.currentOrganization.id, transactionId),
+    getTransactionCommissionSnapshot(context.currentOrganization.id, transactionId, context.currentOffice?.id ?? null)
   ]);
 
   if (!transaction) {
@@ -52,6 +58,10 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
   const canReviewTasksForRole = canReviewOfficeTasks(context.currentMembership.role);
   const canSecondaryReviewTasksForRole = canSecondaryReviewOfficeTasks(context.currentMembership.role);
   const canApproveDocumentsForRole = canApproveOfficeDocuments(context.currentMembership.role);
+  const canViewCommissionsForRole = canViewOfficeCommissions(context.currentMembership.role);
+  const canManageCommissionsForRole = canManageOfficeCommissions(context.currentMembership.role);
+  const canCalculateCommissionsForRole = canCalculateOfficeCommissions(context.currentMembership.role);
+  const canApproveCommissionsForRole = canApproveOfficeCommissions(context.currentMembership.role);
 
   return (
     <PageShell className="bm-transaction-detail-page office-detail-page">
@@ -192,6 +202,16 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
           transactionId={transaction.id}
         />
       </SectionCard>
+
+      {canViewCommissionsForRole && commissionSnapshot ? (
+        <TransactionCommissionCard
+          canApproveCommissions={canApproveCommissionsForRole}
+          canCalculateCommissions={canCalculateCommissionsForRole}
+          canManageCommissions={canManageCommissionsForRole}
+          snapshot={commissionSnapshot}
+          transactionId={transaction.id}
+        />
+      ) : null}
 
       <SectionCard subtitle="Additional custom fields stored with this transaction." title="Additional fields">
         <div className="bm-detail-grid">

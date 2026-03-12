@@ -14,6 +14,7 @@ import {
   type ActivityLogChange
 } from "./activity-log";
 import { prisma } from "./client";
+import { getAgentCommissionSummary, type OfficeAgentCommissionSummary } from "./commissions";
 
 const roleLabelMap: Record<UserRole, string> = {
   agent: "Agent",
@@ -230,6 +231,7 @@ export type OfficeAgentProfileSnapshot = {
     operationalAgendaCount: number;
     pipelineCounts: Array<{ label: string; count: number }>;
   };
+  commissions: OfficeAgentCommissionSummary;
   teams: OfficeAgentProfileTeam[];
   availableTeams: Array<{ id: string; label: string }>;
   onboarding: {
@@ -1386,6 +1388,7 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
     recentTransactions,
     activeTaskCount,
     billingSummaryMap,
+    commissionSummary,
     recentActivity,
     availableTeams,
     templateDefaults,
@@ -1440,6 +1443,11 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
         }
       }),
       getBillingSummaryByMembership(input.organizationId, [input.membershipId], input.officeId),
+      getAgentCommissionSummary({
+        organizationId: input.organizationId,
+        officeId: input.officeId,
+        membershipId: input.membershipId
+      }),
       prisma.auditLog.findMany({
         where: {
           organizationId: input.organizationId,
@@ -1635,6 +1643,7 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
         { label: "Closed", count: pipelineTransactions.find((item) => item.status === "closed")?._count._all ?? 0 }
       ]
     },
+    commissions: commissionSummary,
     teams: membership.teamMemberships.map((teamMembership) => ({
       id: teamMembership.team.id,
       name: teamMembership.team.name,

@@ -400,7 +400,7 @@ Trade-off：
   - payroll
   - office rent / utilities accounting
   - ACH payout / payment gateways
-  - full commission-plan engine
+  - giant enterprise accounting / payout engine
 - 这样做的好处是后续还能继续长，而不用重推翻当前 schema foundation
 
 ## 关键决策 9：Agent Billing 不另建第二套系统，直接落在 Accounting foundation 上
@@ -435,6 +435,49 @@ Trade-off：
   - payroll
   - full brokerage billing suite
 - 好处是后续接真实 payment provider 时，不需要把 agent ledger / statement / invoice 模型推翻重做
+
+## 关键决策 9.5：Commission Management 直接建立在 Transaction Finance + Accounting + Agent Billing 之上
+
+原因：
+
+- 当前已经有 transaction finance 输入字段
+- accounting 已经能承载可审计的 financial rows 和 statement-like visibility
+- agent billing 已经能承载 payable / balance / statement foundation
+- 如果再另建一套 detached commission engine，后面会和 accounting、billing、activity log 分叉
+
+影响：
+
+- 新增 durable 模型：
+  - `CommissionPlan`
+  - `CommissionPlanAssignment`
+  - `CommissionPlanRule`
+  - `CommissionCalculation`
+- commission plan 不单独做成新 app，而是嵌在：
+  - `/office/accounting`
+  - transaction detail finance / commission context
+  - agent profile commission summary
+- 当前支持的基础规则：
+  - `base split`
+  - `brokerage fee`
+  - `referral fee`
+  - `flat fee deduction`
+  - `sliding scale`
+- calculation 结果会持久化，不是 UI 即时计算
+- `Activity Log` 会记录：
+  - commission plan created / updated
+  - commission plan assigned
+  - commission calculated / recalculated
+  - commission statement snapshot generated
+
+Trade-off：
+
+- 当前已经是 durable、可审计的 commission MVP
+- 但没有：
+  - ACH payout execution
+  - payroll / tax workflow
+  - giant enterprise commission rule engine
+  - 自动外部出款
+- 当前 `statement_ready / payable / paid` 只是内部状态与可见性，不自动代表外部银行资金已打出
 
 ## 关键决策 10：Agent Management 建在现有 Membership / Office 身份基础上，而不是另建第二套人员系统
 

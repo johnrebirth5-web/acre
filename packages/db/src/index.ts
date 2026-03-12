@@ -33,6 +33,10 @@ export const databaseModules = [
   "team_memberships",
   "agent_onboarding_items",
   "agent_goals",
+  "commission_plans",
+  "commission_plan_assignments",
+  "commission_plan_rules",
+  "commission_calculations",
   "transaction_documents",
   "form_templates",
   "transaction_forms",
@@ -79,6 +83,16 @@ export {
   updateAgentRecurringChargeRule
 } from "./agent-billing";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
+export {
+  assignCommissionPlanToMembership,
+  calculateTransactionCommission,
+  generateCommissionStatementSnapshot,
+  getAgentCommissionSummary,
+  getOfficeCommissionManagementSnapshot,
+  getTransactionCommissionSnapshot,
+  saveCommissionPlan,
+  updateCommissionCalculationStatus
+} from "./commissions";
 export {
   createContact,
   createFollowUpTask,
@@ -236,6 +250,28 @@ export type {
 } from "./activity-log";
 export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootstrap";
 export type { OfficeDashboardBusinessSnapshot, OfficeDashboardChartPoint, OfficeDashboardRecentTransaction, OfficeDashboardStatusMetric } from "./dashboard";
+export type {
+  CalculateTransactionCommissionInput,
+  GenerateCommissionStatementSnapshotInput,
+  GetOfficeCommissionManagementSnapshotInput,
+  OfficeAgentCommissionSummary,
+  OfficeCommissionAssignmentRecord,
+  OfficeCommissionCalculationRecipientLabel,
+  OfficeCommissionCalculationRow,
+  OfficeCommissionCalculationStatusLabel,
+  OfficeCommissionManagementOverview,
+  OfficeCommissionManagementSnapshot,
+  OfficeCommissionPlanOption,
+  OfficeCommissionPlanRecord,
+  OfficeCommissionPlanRuleRecord,
+  OfficeCommissionStatementLine,
+  OfficeCommissionStatementSnapshot,
+  OfficeTransactionCommissionSnapshot,
+  SaveCommissionPlanAssignmentInput,
+  SaveCommissionPlanInput,
+  SaveCommissionPlanRuleInput,
+  UpdateCommissionCalculationStatusInput
+} from "./commissions";
 export type {
   CreateFollowUpTaskInput,
   ListContactsInput,

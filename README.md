@@ -168,6 +168,11 @@
   - 路由：`/office/accounting`
   - 基于 `LedgerAccount / AccountingTransaction / AccountingTransactionLineItem / GeneralLedgerEntry / EarnestMoneyRecord`
   - 已有最小 chart of accounts foundation
+  - 现在也包含最小 `Commission Management / Commission Automation` foundation：
+    - `CommissionPlan`
+    - `CommissionPlanAssignment`
+    - `CommissionPlanRule`
+    - `CommissionCalculation`
   - 现在也包含最小 `Agent Billing` foundation：
     - `Agent ledger`
     - `One-time charges`
@@ -193,6 +198,36 @@
     - `received_payment`
     - `made_payment`
     - `refund`
+  - 当前 commission management 已支持：
+    - commission plan create / update
+    - membership / agent plan assignment
+    - transaction-level persisted commission calculations
+    - plan rule types:
+      - `base split`
+      - `brokerage fee`
+      - `referral fee`
+      - `flat fee deduction`
+      - `sliding scale`
+    - transaction detail commission section:
+      - assigned plan
+      - calculation inputs
+      - persisted outputs
+      - recalculate
+      - commission row status update
+    - accounting 内的 commission management 区块：
+      - plans
+      - assignments
+      - calculated rows / queue
+      - statement snapshot generation
+    - agent profile 的 commission summary
+  - 当前 commission workflow 状态包括：
+    - `draft`
+    - `calculated`
+    - `reviewed`
+    - `statement_ready`
+    - `payable`
+    - `paid`
+  - 当前 statement / payout-ready 是内部 snapshot 和可见性基础，不代表真实 ACH / bank payout 已执行
   - `credit_memo / journal_entry / transfer` 当前已有基础 list/view 和 line-item 录入能力
   - 已有最小 general ledger posting layer
   - `Agent Billing` 当前已支持：
@@ -347,6 +382,12 @@
   - `/api/office/accounting/transactions/:accountingTransactionId`
   - `/api/office/accounting/earnest-money`
   - `/api/office/accounting/earnest-money/:earnestMoneyRecordId`
+  - `/api/office/accounting/commissions/plans`
+  - `/api/office/accounting/commissions/plans/:commissionPlanId`
+  - `/api/office/accounting/commissions/assignments`
+  - `/api/office/accounting/commissions/calculations/:calculationId`
+  - `/api/office/accounting/commissions/statements`
+  - `/api/office/transactions/:transactionId/commissions/calculate`
   - `/api/listings`
   - `/api/clients`
   - `/api/events`
@@ -507,6 +548,7 @@ acre/
 - [packages/db/src/bootstrap.ts](./packages/db/src/bootstrap.ts) 是当前最小数据库读取 utility
 - [packages/db/src/transactions.ts](./packages/db/src/transactions.ts) 是当前 transaction 持久化 service 入口
 - [packages/db/src/contacts.ts](./packages/db/src/contacts.ts) 是当前 contact / follow-up task 持久化 service 入口
+- [packages/db/src/commissions.ts](./packages/db/src/commissions.ts) 是当前 commission plan / calculation / statement service 入口
 - [apps/web/lib/auth-session.ts](./apps/web/lib/auth-session.ts) 是当前本地 session 和 server-side auth context 入口
 - [apps/web/app/office/dashboard/page.tsx](./apps/web/app/office/dashboard/page.tsx)、[apps/web/app/office/pipeline/page.tsx](./apps/web/app/office/pipeline/page.tsx)、[apps/web/app/office/transactions/page.tsx](./apps/web/app/office/transactions/page.tsx) 是当前 `Back Office` UI 的主要入口
 - [apps/web/app/office/transactions/[transactionId]/page.tsx](./apps/web/app/office/transactions/[transactionId]/page.tsx) 是当前 transaction detail 入口

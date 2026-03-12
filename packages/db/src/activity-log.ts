@@ -76,6 +76,13 @@ export const activityLogActions = {
   accountingPaymentMethodUpdated: "accounting.payment_method_updated",
   accountingPaymentMethodRemoved: "accounting.payment_method_removed",
   accountingAgentCreditApplied: "accounting.agent_credit_applied",
+  commissionPlanCreated: "commission.plan_created",
+  commissionPlanUpdated: "commission.plan_updated",
+  commissionPlanAssigned: "commission.plan_assigned",
+  commissionCalculated: "commission.calculated",
+  commissionRecalculated: "commission.recalculated",
+  commissionStatusUpdated: "commission.status_updated",
+  commissionStatementGenerated: "commission.statement_generated",
   emdExpectedCreated: "emd.expected_created",
   emdReceived: "emd.received",
   emdRefunded: "emd.refunded",
@@ -101,6 +108,9 @@ export type ActivityLogEntityType =
   | "signature_request"
   | "incoming_update"
   | "accounting_transaction"
+  | "commission_plan"
+  | "commission_calculation"
+  | "commission_statement"
   | "agent_recurring_charge_rule"
   | "agent_payment_method"
   | "earnest_money";
@@ -356,6 +366,13 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "accounting.payment_method_updated": "Payment method updated",
   "accounting.payment_method_removed": "Payment method removed",
   "accounting.agent_credit_applied": "Credit applied",
+  "commission.plan_created": "Commission plan created",
+  "commission.plan_updated": "Commission plan updated",
+  "commission.plan_assigned": "Commission plan assigned",
+  "commission.calculated": "Commission calculated",
+  "commission.recalculated": "Commission recalculated",
+  "commission.status_updated": "Commission status updated",
+  "commission.statement_generated": "Commission statement generated",
   "emd.expected_created": "EMD expected",
   "emd.received": "EMD received",
   "emd.refunded": "EMD refunded / distributed",
@@ -458,6 +475,13 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.accountingPaymentMethodUpdated ||
       action === activityLogActions.accountingPaymentMethodRemoved ||
       action === activityLogActions.accountingAgentCreditApplied ||
+      action === activityLogActions.commissionPlanCreated ||
+      action === activityLogActions.commissionPlanUpdated ||
+      action === activityLogActions.commissionPlanAssigned ||
+      action === activityLogActions.commissionCalculated ||
+      action === activityLogActions.commissionRecalculated ||
+      action === activityLogActions.commissionStatusUpdated ||
+      action === activityLogActions.commissionStatementGenerated ||
       action === activityLogActions.emdExpectedCreated ||
       action === activityLogActions.emdReceived ||
       action === activityLogActions.emdRefunded
@@ -608,6 +632,9 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
     case "session":
       return "auth";
     case "accounting_transaction":
+    case "commission_plan":
+    case "commission_calculation":
+    case "commission_statement":
     case "agent_recurring_charge_rule":
     case "agent_payment_method":
     case "earnest_money":
@@ -655,6 +682,14 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "accounting_transaction") {
     return `/office/accounting?entryId=${record.entityId}`;
+  }
+
+  if (record.entityType === "commission_plan" || record.entityType === "commission_statement") {
+    return payload.contextHref ?? "/office/accounting#commissions";
+  }
+
+  if (record.entityType === "commission_calculation") {
+    return payload.contextHref ?? (payload.transactionId ? `/office/transactions/${payload.transactionId}#commission` : "/office/accounting#commissions");
   }
 
   if (record.entityType === "agent_profile") {
@@ -892,6 +927,20 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "removed a payment method";
     case activityLogActions.accountingAgentCreditApplied:
       return "applied a credit memo to an outstanding balance";
+    case activityLogActions.commissionPlanCreated:
+      return "created a commission plan";
+    case activityLogActions.commissionPlanUpdated:
+      return payload.changes.length === 1 ? `updated commission plan ${payload.changes[0].label.toLowerCase()}` : "updated a commission plan";
+    case activityLogActions.commissionPlanAssigned:
+      return "assigned a commission plan";
+    case activityLogActions.commissionCalculated:
+      return "calculated commissions";
+    case activityLogActions.commissionRecalculated:
+      return "recalculated commissions";
+    case activityLogActions.commissionStatusUpdated:
+      return payload.changes.length === 1 ? `updated commission status from ${formatSummaryChange(payload.changes[0])}` : "updated commission status";
+    case activityLogActions.commissionStatementGenerated:
+      return "generated a commission statement snapshot";
     case activityLogActions.emdExpectedCreated:
       return "created an earnest money expectation";
     case activityLogActions.emdReceived:

@@ -22,6 +22,10 @@ export type AppPermission =
   | "accounting:billing:view"
   | "accounting:billing:manage"
   | "accounting:payments:manage"
+  | "commissions:view"
+  | "commissions:manage"
+  | "commissions:calculate"
+  | "commissions:approve"
   | "tasks:view"
   | "tasks:manage"
   | "tasks:review"
@@ -89,6 +93,10 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "accounting:billing:view",
     "accounting:billing:manage",
     "accounting:payments:manage",
+    "commissions:view",
+    "commissions:manage",
+    "commissions:calculate",
+    "commissions:approve",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -125,6 +133,10 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "accounting:billing:view",
     "accounting:billing:manage",
     "accounting:payments:manage",
+    "commissions:view",
+    "commissions:manage",
+    "commissions:calculate",
+    "commissions:approve",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -240,6 +252,22 @@ export function canManageOfficeAgentBilling(role: UserRole): boolean {
 
 export function canManageOfficePayments(role: UserRole): boolean {
   return can(role, "accounting:payments:manage");
+}
+
+export function canViewOfficeCommissions(role: UserRole): boolean {
+  return can(role, "commissions:view");
+}
+
+export function canManageOfficeCommissions(role: UserRole): boolean {
+  return can(role, "commissions:manage");
+}
+
+export function canCalculateOfficeCommissions(role: UserRole): boolean {
+  return can(role, "commissions:calculate");
+}
+
+export function canApproveOfficeCommissions(role: UserRole): boolean {
+  return can(role, "commissions:approve");
 }
 
 export function canAccessOfficeTasks(role: UserRole): boolean {
