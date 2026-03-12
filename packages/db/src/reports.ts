@@ -1482,15 +1482,17 @@ export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotIn
   const overdueEmdCount = earnestMoneyRecords.filter((record) => record.status === "overdue").length;
 
   const limitations = [
-    "交易日期范围按 transaction created date 过滤；commission 使用 calculated date；accounting 使用 accounting date；EMD 使用 due date。",
-    "Team 维度基于当前 owner 的有效 team membership；一个 owner 同时属于多个 team 时，会在多个 team 行里出现。"
+    "Transaction date range filters by transaction created date; commissions use calculated date; accounting uses accounting date; EMD uses due date.",
+    "Team rollups use the owner's active team memberships; owners on multiple teams will appear in multiple team rows."
   ];
 
   if (input.commissionPlanId?.trim()) {
-    limitations.push("Commission plan 过滤依赖已持久化的 commission calculation；尚未计算 commission 的交易不会进入该切片。");
+    limitations.push(
+      "Commission plan filters depend on persisted commission calculations; transactions without calculations are excluded from that slice."
+    );
   }
 
-  limitations.push("Contacts needing follow-up 只按 office / owner / team 范围统计，不按 commission plan 切片。");
+  limitations.push("Contacts needing follow-up are scoped only by office / owner / team and are not sliced by commission plan.");
 
   return {
     filters: {

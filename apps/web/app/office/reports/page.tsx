@@ -317,7 +317,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
             <Badge tone="neutral">CSV export active</Badge>
           </>
         }
-        description="面向 Back Office 管理者的报表工作区，覆盖 transaction、agent/team、commission、accounting 与 EMD 的当前真实数据。"
+        description="Manager-facing reports workspace for live transaction, agent/team, commission, accounting, and earnest money data."
         eyebrow="Reports"
         title="Reports"
       />
@@ -426,42 +426,42 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
         <article className="office-kpi-card office-kpi-card-accent">
           <span>Matching transactions</span>
           <strong>{snapshot.totals.totalTransactions}</strong>
-          <p>当前 transaction 过滤窗口内的真实记录数。</p>
+          <p>Real transactions inside the current reporting window.</p>
         </article>
         <article className="office-kpi-card">
           <span>Total volume</span>
           <strong>{snapshot.totals.totalVolumeLabel}</strong>
-          <p>当前筛选结果里的 price 总额。</p>
+          <p>Total price across the current filtered transaction set.</p>
         </article>
         <article className="office-kpi-card">
           <span>Gross commission</span>
           <strong>{snapshot.totals.totalGrossCommissionLabel}</strong>
-          <p>来自交易 finance 字段，不补推导不存在的数据。</p>
+          <p>Pulled from persisted transaction finance values; no missing values are inferred.</p>
         </article>
         <article className="office-kpi-card">
           <span>Office net</span>
           <strong>{snapshot.totals.totalOfficeNetLabel}</strong>
-          <p>交易 finance 上已持久化的 office net 汇总。</p>
+          <p>Sum of persisted office net values from transaction finance.</p>
         </article>
         <article className="office-kpi-card">
           <span>Closed transactions</span>
           <strong>{snapshot.totals.closedTransactionCount}</strong>
-          <p>可直接 drill-down 到筛选后的 transaction list。</p>
+          <p>Can drill directly into the filtered transaction list.</p>
         </article>
         <article className="office-kpi-card">
           <span>Active owners</span>
           <strong>{snapshot.totals.activeOwnerCount}</strong>
-          <p>当前结果集里至少有一笔 deal 的 owner 数。</p>
+          <p>Owners with at least one matching deal in the current slice.</p>
         </article>
         <article className="office-kpi-card">
           <span>Statement ready / payable</span>
           <strong>{snapshot.totals.statementReadyCommissionLabel}</strong>
-          <p>{snapshot.totals.payableCommissionLabel} 已进入 payable。</p>
+          <p>{snapshot.totals.payableCommissionLabel} already in payable status.</p>
         </article>
         <article className="office-kpi-card">
           <span>Received payments / overdue EMD</span>
           <strong>{snapshot.totals.receivedPaymentsLabel}</strong>
-          <p>{snapshot.totals.overdueEmdCount} 条 EMD 当前 overdue。</p>
+          <p>{snapshot.totals.overdueEmdCount} overdue EMD records in the current slice.</p>
         </article>
       </section>
 
@@ -474,7 +474,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Open transactions
                 </Link>
               }
-              subtitle="筛选保持 query-param 驱动，适合分享给 office manager / admin。"
+              subtitle="Filters stay query-param driven so this view can be shared with office managers and admins."
               title="Reporting scope"
             >
               <SecondaryMetaList
@@ -523,7 +523,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   View filtered list
                 </Link>
               }
-              subtitle="按当前 transaction 过滤查看状态、类型与时间趋势。"
+              subtitle="Review status, type, and time trends inside the current transaction slice."
               title="Transaction performance"
             >
               <div className="office-dashboard-grid-wide office-reports-subgrid">
@@ -623,7 +623,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Open full transaction list
                 </Link>
               }
-              subtitle="最近匹配到的真实 transaction rows，可直接打开 detail。"
+              subtitle="Most recent matching transaction rows with direct links into detail."
               title="Recent transactions"
             >
               <div className="office-table">
@@ -653,7 +653,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   </Link>
                 ))}
                 {snapshot.recentTransactions.length === 0 ? (
-                  <EmptyState description="当前 transaction 过滤条件下没有可展示的记录。" title="No transactions" />
+                  <EmptyState description="No records matched the current transaction filters." title="No transactions" />
                 ) : null}
               </div>
             </SectionCard>
@@ -671,7 +671,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Clear people filters
                 </Link>
               }
-              subtitle="按 owner 聚合真实 transaction finance，并保留到 agent profile / transaction list 的 drill-down。"
+              subtitle="Owner-level transaction finance rollup with drill-down into profiles and transaction lists."
               title="Agent performance"
             >
               <div className="office-table">
@@ -730,7 +730,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   </div>
                 ))}
                 {snapshot.agentPerformance.length === 0 ? (
-                  <EmptyState description="当前范围内没有可归属到 owner 的交易表现。" title="No agent rows" />
+                  <EmptyState description="No owner-attributed production matched the current slice." title="No agent rows" />
                 ) : null}
               </div>
             </SectionCard>
@@ -740,7 +740,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
             <section id="reports-teams">
               <SectionCard
                 actions={<Badge tone="neutral">{snapshot.teamPerformance.rows.length} visible team rows</Badge>}
-                subtitle="按当前 owner 的有效 team membership 归类。"
+                subtitle="Grouped by each owner's current active team memberships."
                 title="Team performance"
               >
                 {snapshot.teamPerformance.limitation ? (
@@ -792,7 +792,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                     </div>
                   ))}
                   {snapshot.teamPerformance.rows.length === 0 ? (
-                    <EmptyState description="当前筛选条件下没有可展示的 team performance。" title="No team rows" />
+                    <EmptyState description="No team performance rows matched the current filters." title="No team rows" />
                   ) : null}
                 </div>
               </SectionCard>
@@ -822,7 +822,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Open commissions
                 </Link>
               }
-              subtitle="仅展示当前真实 commission calculation 数据，不伪造 statement 或 payout。"
+              subtitle="Shows only real commission calculations. No statement or payout data is fabricated."
               title="Commission summary"
             >
               <div className="office-report-stat-strip">
@@ -936,7 +936,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   </div>
                 ))}
                 {snapshot.commissionSummary.recentCalculations.length === 0 ? (
-                  <EmptyState description="当前筛选条件下还没有 commission calculations。" title="No commission rows" />
+                  <EmptyState description="No commission calculations matched the current filters." title="No commission rows" />
                 ) : null}
               </div>
             </SectionCard>
@@ -965,7 +965,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Open accounting
                 </Link>
               }
-              subtitle="Accounting / payment summary 复用现有 ledger-backed accounting foundations。"
+              subtitle="Accounting and payment summary built from the current ledger-backed foundations."
               title="Accounting and payment summary"
             >
               <div className="office-report-stat-strip">
@@ -1045,7 +1045,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                     </Link>
                   ))}
                   {snapshot.accountingSummary.recentTransactions.length === 0 ? (
-                    <EmptyState description="当前筛选条件下没有 accounting rows。" title="No accounting rows" />
+                    <EmptyState description="No accounting rows matched the current filters." title="No accounting rows" />
                   ) : null}
                 </div>
               </div>
@@ -1075,7 +1075,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Open EMD ledger
                 </Link>
               }
-              subtitle="EMD summary 只展示当前持久化的 earnest money records。"
+              subtitle="Only persisted earnest money records are included in this summary."
               title="Earnest money summary"
             >
               <div className="office-report-stat-strip">
@@ -1158,7 +1158,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                     </Link>
                   ))}
                   {snapshot.emdSummary.recentRecords.length === 0 ? (
-                    <EmptyState description="当前筛选条件下没有 earnest money records。" title="No EMD rows" />
+                    <EmptyState description="No earnest money records matched the current filters." title="No EMD rows" />
                   ) : null}
                 </div>
               </div>
