@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SiteReleaseBadge } from "../site-release-badge";
 
 type NavGroup = {
   title: string;
@@ -76,6 +77,8 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
             width={1175}
           />
         </div>
+
+        <SiteReleaseBadge className="site-release-badge-office" />
 
         <div className="office-company-switcher">
           <strong>{currentOfficeName.toUpperCase()}</strong>

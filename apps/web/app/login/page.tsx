@@ -2,6 +2,7 @@ import { getDefaultAppPath } from "@acre/auth";
 import { getSeededWorkspaceSnapshot } from "@acre/db";
 import { getCurrentSessionContext } from "../../lib/auth-session";
 import { redirect } from "next/navigation";
+import { SiteReleaseBadge } from "../site-release-badge";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -26,6 +27,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <span className="auth-eyebrow">Local Access</span>
           <h1>Acre local login</h1>
           <p>Use one of the seeded users to create a local session. This is the current development-only auth flow.</p>
+          <SiteReleaseBadge className="site-release-badge-auth" />
         </div>
 
         <form action="/api/auth/login" className="auth-form" method="post">

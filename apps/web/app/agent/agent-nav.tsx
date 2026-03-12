@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { agentSections } from "@acre/backoffice";
+import { SiteReleaseBadge } from "../site-release-badge";
 
 function AgentBadge({ children }: { children: ReactNode }) {
   return <span className="acre-badge acre-badge-accent">{children}</span>;
@@ -21,6 +22,8 @@ export function AgentNav() {
           <strong>Agent OS</strong>
           <p>Field-ready workspace for listings, CRM follow-up, events, and knowledge tools.</p>
         </div>
+
+        <SiteReleaseBadge className="site-release-badge-agent" />
 
         <div className="nav-group">
           <h2>{agentSections[0].title}</h2>
