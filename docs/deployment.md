@@ -1,5 +1,223 @@
 # Deployment
 
+## 当前 DigitalOcean 生产环境
+
+当前仓库已经有一个真实的 `DigitalOcean` 单机部署，不需要再从聊天里恢复这部分背景。
+
+生产服务器：
+
+- provider: `DigitalOcean`
+- droplet ip: `45.55.247.137`
+- region: `nyc3`
+- host OS: `Ubuntu 24.04`
+- deploy shape: `single droplet`
+  - `Next.js` app
+  - local `PostgreSQL`
+  - local document storage
+
+当前生产访问方式：
+
+- app URL: `http://45.55.247.137`
+- login URL: `http://45.55.247.137/login`
+
+当前已知限制：
+
+- 还没有自定义域名
+- 还没有 HTTPS
+- 还没有 `Managed PostgreSQL`
+- 还没有 `Spaces` / 对象存储
+- 生产 document 存储仍然是服务器本地文件系统
+
+## 当前生产服务器上的关键路径
+
+- app root: `/opt/acre/app`
+- app env file: `/etc/acre/acre.env`
+- app local env mirror: `/opt/acre/app/.env.local`
+- document storage dir: `/var/lib/acre/documents`
+- systemd service: `acre-web`
+- nginx site config: `/etc/nginx/sites-available/acre.conf`
+
+说明：
+
+- 当前服务器上的应用目录不是长期维护的 Git 工作副本
+- 当前部署方式是把本地仓库的**已提交代码**同步到服务器目录，再在服务器上构建
+- 所以“同步到 DO”时，不要假设服务器上可以直接 `git pull`
+
+## 当前生产同步方式
+
+这是后续 Codex 线程应优先遵循的同步方式。
+
+### 1. 本地先完成并提交代码
+
+```bash
+git add <files>
+git commit -m "your message"
+git push origin main
+```
+
+### 2. 把当前已提交版本同步到服务器
+
+当前推荐方式是从本地仓库把 `HEAD` 打包后通过 `ssh` 解到服务器：
+
+```bash
+git archive --format=tar HEAD | \
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'tar -xf - -C /opt/acre/app'
+```
+
+如果只同步部分文件，也可以指定路径：
+
+```bash
+git archive --format=tar HEAD path/to/file1 path/to/file2 | \
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'tar -xf - -C /opt/acre/app'
+```
+
+注意：
+
+- 这依赖当前机器上的 SSH key：`~/.ssh/acre_do_ed25519`
+- 如果未来线程发现这把 key 不存在，需要重新建立 SSH 访问，不要假设服务器公开接受密码登录
+
+### 3. 在服务器上构建并重启
+
+当前推荐方式：
+
+```bash
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
+  su - acre -c "
+    cd /opt/acre/app &&
+    set -a &&
+    . /etc/acre/acre.env &&
+    [ -f .env.local ] && . .env.local;
+    set +a;
+    npm run build
+  " &&
+  systemctl restart acre-web
+'
+```
+
+### 4. 基础验证
+
+至少验证：
+
+```bash
+curl -I http://45.55.247.137/login
+curl -I http://45.55.247.137/office/dashboard
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'systemctl status acre-web --no-pager | sed -n "1,20p"'
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'systemctl status nginx --no-pager | sed -n "1,20p"'
+```
+
+## 生产环境初始化状态
+
+当前服务器已经完成：
+
+- Node.js 22
+- npm
+- nginx
+- PostgreSQL 16
+- 2G swap
+- `acre` system user
+- app directories and env file layout
+- systemd service for the web app
+- nginx reverse proxy to `127.0.0.1:3000`
+
+因此未来线程一般不需要重做初始化，只需要：
+
+- 同步代码
+- 必要时跑 migration
+- 构建
+- 重启服务
+
+## 生产数据库操作
+
+当前数据库就在同一台机器上，应用通过本机 PostgreSQL 连接。
+
+如果 schema 变更了，生产同步时要显式执行：
+
+```bash
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
+  su - acre -c "
+    cd /opt/acre/app/packages/db &&
+    set -a &&
+    . /etc/acre/acre.env &&
+    [ -f ../../.env.local ] && . ../../.env.local;
+    set +a;
+    npx prisma migrate deploy --schema prisma/schema.prisma
+  "
+'
+```
+
+seed 只在需要时执行，不要每次部署都无条件跑：
+
+```bash
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
+  su - acre -c "
+    cd /opt/acre/app &&
+    set -a &&
+    . /etc/acre/acre.env &&
+    [ -f .env.local ] && . .env.local;
+    set +a;
+    npm run db:seed
+  "
+'
+```
+
+## 当前生产环境变量特殊点
+
+除了常规的：
+
+- `DATABASE_URL`
+- `ACRE_SESSION_SECRET`
+- `ACRE_DOCUMENTS_STORAGE_DIR`
+
+当前生产还临时设置了：
+
+- `ACRE_SECURE_COOKIES=false`
+
+原因：
+
+- 现在生产站点还是纯 `HTTP`
+- 如果 cookie 标成 `Secure`，浏览器不会保存登录 session
+
+后续一旦接入 HTTPS，应把这个变量移除或设回安全模式。
+
+## 当前 nginx / web 服务行为
+
+nginx 当前把所有流量反向代理到：
+
+- `127.0.0.1:3000`
+
+应用服务由 `systemd` 管理：
+
+- service name: `acre-web`
+
+常用命令：
+
+```bash
+systemctl restart acre-web
+systemctl status acre-web --no-pager
+journalctl -u acre-web -n 100 --no-pager
+
+systemctl restart nginx
+systemctl status nginx --no-pager
+nginx -t
+```
+
+## 当前部署已知问题和边界
+
+- 当前是单机生产，不是高可用架构
+- 本地文件存储不适合长期大规模 documents 生产方案
+- 没有自动备份策略文档
+- 没有 HTTPS
+- 没有域名
+- 没有对象存储
+
+所以后续推荐优先级是：
+
+1. 绑定域名
+2. 配 HTTPS
+3. 恢复 `Secure` cookie
+4. 把 documents 移到对象存储
+5. 评估是否把 PostgreSQL 移到 `Managed PostgreSQL`
+
 ## 当前部署状态
 
 当前真实状态：

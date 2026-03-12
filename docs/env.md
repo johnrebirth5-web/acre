@@ -139,6 +139,43 @@ ACRE_DOCUMENTS_STORAGE_DIR="/absolute/path/to/acre-documents"
 - 开发环境可直接使用默认目录或显式指定一个本地路径
 - 生产环境如果继续保留这个实现，需要保证文件系统持久化；更合理的方向仍是后续替换到对象存储
 
+### `ACRE_SECURE_COOKIES`
+
+用途：
+
+- 控制当前本地 auth/session cookie 是否强制使用 `Secure`
+- 当前主要用于没有 HTTPS 的部署环境
+
+是否必填：
+
+- 不是必填
+- 不配置时，当前代码会在 `production` 环境默认使用 `Secure` cookie
+
+示例格式：
+
+```env
+ACRE_SECURE_COOKIES=false
+```
+
+当前使用建议：
+
+- 本地开发：通常不需要显式设置
+- 纯 `HTTP` 的临时生产部署：设为 `false`
+- 正式 `HTTPS` 生产部署：不要设为 `false`
+
+缺失后的影响：
+
+- 在没有 HTTPS 的生产环境里，如果保持默认 `Secure` cookie，登录后浏览器不会保存 session
+- 表现为：
+  - 登录接口返回成功
+  - 但进入受保护页面后又被重定向回 `/login`
+
+开发和生产差异：
+
+- 开发环境通常不受这个问题影响
+- 纯 `HTTP` 生产环境需要显式处理
+- 一旦接入 HTTPS，应恢复 `Secure` cookie
+
 ## 当前代码中的来源
 
 参考文件：

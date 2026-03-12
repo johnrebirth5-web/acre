@@ -1,66 +1,155 @@
 # Acre Repository Guide
 
-This repository is the `Acre` monorepo. It currently uses `npm` workspaces and the root scripts defined in [package.json](/Users/openclaw_john/工作文件夹/Acre/package.json).
+## Project identity
 
-## Workspace shape
+This repository is the `Acre` monorepo. It currently powers the internal `Acre Agent OS` / `Back Office` product for brokerage operations, not the public customer-facing site.
 
-- `apps/web`: the current Next.js app
-- `packages/auth`: shared role and permission definitions
-- `packages/backoffice`: shared mock/domain data used by pages and API routes
-- `packages/db`: Prisma schema and database package
-- `packages/ui`: shared UI primitives
+Primary scope today:
 
-## Use the existing root scripts
+- `Office / Back Office` workflow modeled after `BoldTrail / Brokermint`
+- transaction management
+- contacts
+- tasks / approvals / compliance
+- activity log
+- accounting / agent billing / commissions
+- documents / forms / eSignature / incoming updates
+- offers
+- settings / admin
+- agent management / onboarding
 
-Run commands from the repo root:
+## Architecture summary
 
-- `npm run dev`
-- `npm run typecheck`
-- `npm run lint`
-- `npm run build`
-- `npm run db:validate`
+- `apps/web`: Next.js App Router application
+- `packages/auth`: roles and permissions
+- `packages/db`: Prisma schema, seed, and database services
+- `packages/ui`: shared Back Office UI primitives
+- `packages/backoffice`: remaining mock/domain snapshot layer where not yet fully replaced
 
-## Validation after meaningful code changes
+Current implementation reality:
 
-After meaningful code changes, run:
+- large parts of `Office` are now Prisma-backed
+- some legacy UI still reads transitional view models
+- do not assume all routes are fully production-complete
+- prefer extending existing foundations over introducing parallel systems
 
-- `npm run typecheck`
-- `npm run lint`
-- `npm run build`
-
-If the Prisma schema changes, also run:
-
-- `npm run db:validate`
-
-## Documentation must stay in sync
-
-Important feature changes or new environment variables must update:
+Start with these docs before large work:
 
 - [README.md](/Users/openclaw_john/工作文件夹/Acre/README.md)
 - [docs/architecture.md](/Users/openclaw_john/工作文件夹/Acre/docs/architecture.md)
+- [docs/decisions.md](/Users/openclaw_john/工作文件夹/Acre/docs/decisions.md)
+- [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
+- [docs/deployment.md](/Users/openclaw_john/工作文件夹/Acre/docs/deployment.md)
+- relevant files under [docs/specs](/Users/openclaw_john/工作文件夹/Acre/docs/specs)
+
+## Current product priority
+
+Current repo priority is the `Back Office` product line. Favor:
+
+- stronger operational workflows
+- explicit workflow state
+- auditable changes
+- admin-managed configuration
+- alignment with current `BoldTrail / Brokermint` workflows
+
+Do not spend effort on speculative public-site features unless the task explicitly asks for them.
+
+## Engineering rules
+
+- Reuse `@acre/ui` shared primitives before adding page-specific visual patterns.
+- Reuse `@acre/db` services before writing page-level data logic.
+- Keep organization and office scoping explicit in reads and writes.
+- Keep permissions explicit in `@acre/auth`.
+- Prefer explicit Prisma models over opaque JSON for workflow/stateful data.
+- Extend existing modules; do not create competing systems for tasks, accounting, offers, documents, commissions, or agent management.
+- Keep activity/audit behavior integrated with the existing `Activity Log` instead of inventing separate event stores.
+- Do not redesign unrelated modules during feature work.
+- Keep URL/query-param behavior stable when the page already uses it.
+
+## Scoping rules
+
+- Prefer incremental changes over module rewrites.
+- Do not fake external integrations that do not exist.
+- Do not claim “paid”, “signed”, “synced”, or “received” unless the system truly records that state.
+- For workflow-heavy features, keep statuses explicit and reviewable.
+- Preserve backward compatibility when a temporary bridge still exists, such as transitional transaction finance or primary contact fields.
+
+## Validation commands
+
+Run from repo root:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+
+If Prisma schema changed, also run:
+
+- `npm run db:validate`
+- `npm run db:generate`
+- `npm run db:migrate -- --name <change_name>` when needed
+- `npm run db:seed` when the task requires seed verification
+
+## Documentation rules
+
+When major features, routes, permissions, schema, environment variables, or Back Office UI behavior change, update the relevant docs in the same task:
+
+- [README.md](/Users/openclaw_john/工作文件夹/Acre/README.md)
+- [docs/architecture.md](/Users/openclaw_john/工作文件夹/Acre/docs/architecture.md)
+- [docs/decisions.md](/Users/openclaw_john/工作文件夹/Acre/docs/decisions.md)
 - [docs/deployment.md](/Users/openclaw_john/工作文件夹/Acre/docs/deployment.md)
 - [docs/env.md](/Users/openclaw_john/工作文件夹/Acre/docs/env.md)
-- [docs/decisions.md](/Users/openclaw_john/工作文件夹/Acre/docs/decisions.md)
-
-Back Office UI / design-system changes should also update:
-
 - [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
+- relevant module spec files under [docs/specs](/Users/openclaw_john/工作文件夹/Acre/docs/specs)
 
-## Working style
+## Planning rules
 
-- Work incrementally.
-- Prefer the smallest change that fits the current architecture.
-- Avoid speculative refactors or wide cleanup passes unless the task explicitly requires them.
-- Keep changes aligned with the repo's current real implementation, not planned future architecture.
-- For `Office / Back Office` UI work, prefer the shared tokens and primitives in:
+For large or multi-module tasks:
+
+1. Read the relevant `docs/specs/*.md` files first.
+2. Build a brief plan before coding.
+3. Keep the plan aligned to the current repo state, not an imagined future rewrite.
+4. If a prerequisite is missing, stop and report it instead of making partial hidden changes.
+
+For deployment or production-sync work:
+
+1. Read [docs/deployment.md](/Users/openclaw_john/工作文件夹/Acre/docs/deployment.md) first.
+2. Follow the documented server paths, service names, and sync flow exactly.
+3. Do not guess production hostnames, process managers, or environment file locations.
+4. Do not commit secrets, passwords, tokens, SSH private keys, or server-only env files.
+
+## Back Office UI rules
+
+- Follow the shared design system in [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md).
+- Keep the UI dense, operational, and desktop-first.
+- Use shared tokens and primitives from:
   - [apps/web/app/globals.css](/Users/openclaw_john/工作文件夹/Acre/apps/web/app/globals.css)
   - [packages/ui/src/index.tsx](/Users/openclaw_john/工作文件夹/Acre/packages/ui/src/index.tsx)
-  - [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
-- Avoid adding new page-specific visual patterns if an existing Back Office primitive or token can be reused.
-- For `Office / Back Office` responsive work, follow the shared laptop-width strategy in:
-  - [docs/office-design-system.md](/Users/openclaw_john/工作文件夹/Acre/docs/office-design-system.md)
+- For responsive behavior:
   - prefer horizontal table overflow over squeezed columns
-  - make filter/action bars wrap instead of compressing controls
-  - stack split-pane layouts at the documented breakpoints instead of forcing side-by-side layouts too long
-  - at narrower laptop widths, prefer collapsing the Office shell to the shared mobile rail rather than squeezing content beside the sidebar
-  - implement responsive fixes in shared `globals.css` / `@acre/ui` patterns first; avoid page-only media-query patches unless the issue is truly unique
+  - make filter/action bars wrap instead of compressing
+  - stack split-pane layouts at documented breakpoints
+  - avoid page-only hacks when a shared solution is possible
+
+## Output and hand-off rules
+
+At task completion, clearly report:
+
+1. what changed
+2. which files changed
+3. whether schema or env changed
+4. which commands were run and whether they passed
+5. remaining limitations or follow-up work
+
+Do not say a feature is complete unless:
+
+- implementation is done
+- required validation has passed
+- blockers are either resolved or explicitly called out
+
+## Stable long-context files
+
+Future Codex tasks should rely on these stable project files instead of chat history:
+
+- [docs/specs/backoffice-overview.md](/Users/openclaw_john/工作文件夹/Acre/docs/specs/backoffice-overview.md)
+- [docs/specs/implementation-log.md](/Users/openclaw_john/工作文件夹/Acre/docs/specs/implementation-log.md)
+- module specs in [docs/specs](/Users/openclaw_john/工作文件夹/Acre/docs/specs)
+- [docs/deployment.md](/Users/openclaw_john/工作文件夹/Acre/docs/deployment.md) for DigitalOcean production sync/runbook details
