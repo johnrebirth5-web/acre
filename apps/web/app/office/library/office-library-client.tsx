@@ -428,6 +428,15 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
             <span>{snapshot.summary.pdfDocuments} PDFs</span>
             <span>{snapshot.summary.unfiledDocuments} unfiled</span>
           </div>
+
+          {canManageLibrary ? (
+            <div className="office-library-toolbar-actions">
+              <Button onClick={() => setIsUploadOpen(true)} variant="secondary">
+                Upload file
+              </Button>
+              <Button onClick={() => setIsCreateFolderOpen(true)}>Add folder</Button>
+            </div>
+          ) : null}
         </div>
 
         <FilterBar as="form" className="office-library-filter-bar" method="get">
@@ -471,7 +480,7 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
             <Button type="submit" variant="secondary">
               Apply filters
             </Button>
-            <Link className="bm-view-toggle" href="/office/library">
+            <Link className="office-button office-button-secondary" href="/office/library">
               Reset
             </Link>
           </div>
@@ -483,18 +492,9 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
       <section className="bm-table-card office-library-browser-sheet">
         <div className="office-library-browser-head">
           <div>
-            <h3>Company library</h3>
-            <p>Select a folder to expand its files. PDF preview stays hidden until a document is opened.</p>
+            <h3>Folders and files</h3>
+            <p>Select a folder to reveal its files. PDF preview stays hidden until you open a document.</p>
           </div>
-
-          {canManageLibrary ? (
-            <div className="office-library-action-row">
-              <Button onClick={() => setIsUploadOpen(true)} variant="secondary">
-                Upload file
-              </Button>
-              <Button onClick={() => setIsCreateFolderOpen(true)}>Add folder</Button>
-            </div>
-          ) : null}
         </div>
 
         <div className="office-library-folder-tree">
