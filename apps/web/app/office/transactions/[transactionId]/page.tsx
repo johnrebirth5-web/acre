@@ -185,6 +185,7 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
       <TransactionTasksCard
         assigneeOptions={taskAssigneeOptions}
         canApproveDocuments={canApproveDocumentsForRole}
+        currentMembershipId={context.currentMembership.id}
         canReviewTasks={canReviewTasksForRole}
         canSecondaryReviewTasks={canSecondaryReviewTasksForRole}
         tasks={tasks}

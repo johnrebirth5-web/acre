@@ -27,9 +27,12 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   }
 
   const { transactionId, taskId } = await params;
-  const body = (await request.json().catch(() => null)) as { action?: string; rejectionReason?: string } | null;
+  const body = (await request.json().catch(() => null)) as
+    | { action?: string; rejectionReason?: string; source?: string }
+    | null;
   const action = body?.action?.trim();
   const rejectionReason = body?.rejectionReason?.trim();
+  const activitySource = body?.source === "approve_docs_queue" ? body.source : undefined;
 
   if (!action) {
     return NextResponse.json({ error: "Workflow action is required." }, { status: 400 });
@@ -42,21 +45,24 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
             organizationId: context.currentOrganization.id,
             transactionId,
             taskId,
-            actorMembershipId: context.currentMembership.id
+            actorMembershipId: context.currentMembership.id,
+            activitySource
           })
         : action === "reopen"
           ? await reopenTransactionTask({
               organizationId: context.currentOrganization.id,
               transactionId,
               taskId,
-              actorMembershipId: context.currentMembership.id
+              actorMembershipId: context.currentMembership.id,
+              activitySource
             })
           : action === "request_review"
             ? await requestTransactionTaskReview({
                 organizationId: context.currentOrganization.id,
                 transactionId,
                 taskId,
-                actorMembershipId: context.currentMembership.id
+                actorMembershipId: context.currentMembership.id,
+                activitySource
               })
             : action === "approve"
               ? canReviewOfficeTasks(context.currentMembership.role) &&
@@ -66,7 +72,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                     transactionId,
                     taskId,
                     actorMembershipId: context.currentMembership.id,
-                    allowSecondaryApproval: canSecondaryReviewOfficeTasks(context.currentMembership.role)
+                    allowSecondaryApproval: canSecondaryReviewOfficeTasks(context.currentMembership.role),
+                    activitySource
                   })
                 : null
               : action === "reject"
@@ -77,7 +84,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                       transactionId,
                       taskId,
                       actorMembershipId: context.currentMembership.id,
-                      rejectionReason
+                      rejectionReason,
+                      activitySource
                     })
                   : null
                 : null;

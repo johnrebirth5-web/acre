@@ -14,6 +14,8 @@ import type {
 
 type OfficeTasksClientProps = {
   snapshot: OfficeTaskListSnapshot;
+  currentMembershipId: string;
+  canApproveDocuments: boolean;
   canReviewTasks: boolean;
   canSecondaryReviewTasks: boolean;
 };
@@ -99,7 +101,13 @@ function formatDateTimeLabel(value: string) {
   });
 }
 
-export function OfficeTasksClient({ snapshot, canReviewTasks, canSecondaryReviewTasks }: OfficeTasksClientProps) {
+export function OfficeTasksClient({
+  snapshot,
+  currentMembershipId,
+  canApproveDocuments,
+  canReviewTasks,
+  canSecondaryReviewTasks
+}: OfficeTasksClientProps) {
   const router = useRouter();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [taskStates, setTaskStates] = useState<Record<string, TaskEditState>>(
@@ -544,6 +552,8 @@ export function OfficeTasksClient({ snapshot, canReviewTasks, canSecondaryReview
                 snapshot.tasks.map((task) => {
                   const formState = taskStates[task.id] ?? buildTaskEditState(task);
                   const isExpanded = expandedTaskId === task.id;
+                  const canCurrentUserSecondApprove =
+                    !task.awaitingSecondaryApproval || task.firstApprovedByMembershipId !== currentMembershipId;
 
                   return (
                     <Fragment key={task.id}>
@@ -594,7 +604,8 @@ export function OfficeTasksClient({ snapshot, canReviewTasks, canSecondaryReview
                               </button>
                             ) : null}
                             {task.canApprove &&
-                            ((task.awaitingSecondaryApproval && canSecondaryReviewTasks) ||
+                            canApproveDocuments &&
+                            ((task.awaitingSecondaryApproval && canSecondaryReviewTasks && canCurrentUserSecondApprove) ||
                               (!task.awaitingSecondaryApproval && canReviewTasks)) ? (
                               <button
                                 className="bm-view-toggle"
@@ -605,7 +616,7 @@ export function OfficeTasksClient({ snapshot, canReviewTasks, canSecondaryReview
                                 {task.awaitingSecondaryApproval ? "Second approve" : "Approve"}
                               </button>
                             ) : null}
-                            {task.canReject && canReviewTasks ? (
+                            {task.canReject && canReviewTasks && canApproveDocuments ? (
                               <button
                                 className="bm-view-toggle"
                                 disabled={pendingAction === `reject:${task.id}`}

@@ -288,6 +288,10 @@ export function canApproveOfficeDocuments(role: UserRole): boolean {
   return can(role, "documents:approve");
 }
 
+export function canAccessOfficeDocumentApprovals(role: UserRole): boolean {
+  return canApproveOfficeDocuments(role) && canReviewOfficeTasks(role);
+}
+
 export function canUseOfficeForms(role: UserRole): boolean {
   return can(role, "forms:use");
 }

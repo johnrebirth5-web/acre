@@ -9,6 +9,7 @@ type TransactionTasksCardProps = {
   transactionId: string;
   tasks: OfficeTransactionTask[];
   assigneeOptions: OfficeTransactionTaskAssigneeOption[];
+  currentMembershipId: string;
   canReviewTasks: boolean;
   canSecondaryReviewTasks: boolean;
   canApproveDocuments: boolean;
@@ -60,6 +61,7 @@ export function TransactionTasksCard({
   transactionId,
   tasks,
   assigneeOptions,
+  currentMembershipId,
   canReviewTasks,
   canSecondaryReviewTasks,
   canApproveDocuments
@@ -240,6 +242,8 @@ export function TransactionTasksCard({
               <div className="bm-transaction-task-list">
                 {groupTasks.map((task) => {
                   const formState = taskStates[task.id] ?? buildTaskState(task);
+                  const canCurrentUserSecondApprove =
+                    !task.awaitingSecondaryApproval || task.firstApprovedByMembershipId !== currentMembershipId;
 
                   return (
                     <article className="bm-transaction-task-row" id={`transaction-task-${task.id}`} key={task.id}>
@@ -277,7 +281,7 @@ export function TransactionTasksCard({
                           ) : null}
                           {task.canApprove &&
                           canApproveDocuments &&
-                          ((task.awaitingSecondaryApproval && canSecondaryReviewTasks) ||
+                          ((task.awaitingSecondaryApproval && canSecondaryReviewTasks && canCurrentUserSecondApprove) ||
                             (!task.awaitingSecondaryApproval && canReviewTasks)) ? (
                             <button
                               className="bm-view-toggle"

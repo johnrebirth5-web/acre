@@ -13,7 +13,7 @@
 - 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Approve Docs`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 - `Transaction detail` 现在已经进入真实 workflow 阶段，除 overview / status / contacts / finance / tasks 外，还包含：
   - offers
   - documents
@@ -62,12 +62,15 @@
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
   - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update、documents / forms / signatures / incoming updates、commission calculation
+  - `Approve Docs`：server-side document review queue snapshot；approve / reject / reopen / complete 继续复用 transaction task workflow route
   - `Activity`：server-side 同时读取真实 `AuditLog` 和实时派生 alerts，渲染 `Activity Log + Operational Alerts`
     - `AuditLog` 是唯一活动事件源
     - 页面支持 `actor / object type / date range` 过滤
     - 事件摘要通过集中 formatter 读取结构化 payload / changes，而不是把文案散在 UI 里
     - 顶部 `Add comment` 会通过 `/api/office/activity/comments` 写入 `AuditLog`，评论和普通事件共用同一条活动流
+    - `Approve Docs` 队列动作仍写入同一个 `AuditLog`，并用结构化 `actionSource=approve_docs_queue` 区分来源
 - 当前 `Pipeline` 页面已通过 server-side service 读取真实 transaction workspace 数据：
+  - 顶部 workspace summary，直接汇总当前 filter context、live funnel、recent history 和当前 working list
   - 左侧 funnel summary rail
   - 右侧 unified transaction list
   - `Closed / Cancelled` 月度 rollup
@@ -78,6 +81,7 @@
     - `Office gross`
   - `Office gross` 当前来自 transaction finance 上已存储的 `grossCommission`
   - stage / history 选择会直接驱动右侧 working list，并保存在 shareable URL 中
+  - 当前 stage / history 选择可清除回保留 top filters 的 `all filtered transactions`
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
 - 当前 `Commission Management` 已通过 Prisma service 和 route handlers 落地到：

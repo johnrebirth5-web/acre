@@ -42,8 +42,9 @@
   - `Recent Transactions`（真实数据库）
 - `Pipeline` 现在也已接入真实数据库：
   - 页面已经从简单 bucket board 改成 `pipeline workspace`
-  - 左侧是 `Opportunity / Active / Pending` 漏斗汇总和最近几个月的 `Closed / Cancelled` 月度 rollup
-  - 右侧是统一的真实 transaction list，而不是按列拆开的 card board
+  - 顶部现在是 `workspace summary`，把当前过滤上下文、当前 working list、live funnel、recent history 的真实 count 和 metric 放在同一层级
+  - 左侧是更密集的 `Opportunity / Active / Pending` live funnel rail，以及最近几个月的 `Closed / Cancelled` 月度 rollup
+  - 右侧是统一的真实 transaction working list，而不是按列拆开的 card board
   - 支持 query-param 驱动的顶层过滤：
     - `side / representing`
     - `metric mode`
@@ -53,10 +54,13 @@
     - `Transaction volume`
     - `Office net`
     - `Office gross`
+  - `Transaction volume` 当前使用 transaction `price`
+  - `Office net` 当前使用 transaction finance / commission workflow 已存储的 `officeNet`
   - `Office gross` 当前来自 transaction finance 上的 `grossCommission`；缺失 finance 数据时按 `0` 处理
-  - 左侧 funnel / history 选择会通过 URL 持久化，并驱动右侧 working list
+  - 左侧 funnel / history 选择会通过 URL 持久化，并直接驱动右侧 working list
+  - stage / history 选择可以清除回当前 top filter 下的 `all filtered transactions`
   - `Closed / Cancelled` 月度历史优先使用 `closingDate`，没有时回退到 `updatedAt`
-  - transaction row 可进入真实 transaction detail
+  - transaction row 会显示 title / address、city / state、status、side、owner、price、所选 metric、key date、updated，并可进入真实 transaction detail
 - `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
 - `Transactions` 现在是当前第一个接入真实数据库的 `Office` 模块：
   - 列表页使用 PostgreSQL / Prisma 读取真实 transaction 数据
@@ -167,6 +171,27 @@
   - 对需要文档/审核的任务，`approved` 与最终 `complete` 是分开的；缺少文档、未提交 review、签名未完成时不能直接 complete
   - 如果 required document 被删除或 workflow 条件失效，任务会按真实规则 reopen
   - 变更会回流到 transaction detail 的 tasks section，同一套数据不会分叉
+- `Approve Docs` 现在也已落成真实 Back Office 审批队列：
+  - 路由：`/office/approve-docs`
+  - 使用与 `Task list` / transaction detail 相同的 `TransactionTask` 审核工作流作为唯一状态来源
+  - 只展示文档审批相关任务，不混入普通非文档任务
+  - 当前支持的队列过滤包括：
+    - `All open review items`
+    - `Awaiting my review`
+    - `Awaiting second review`
+    - `Rejected`
+    - `Waiting for signatures`
+    - `Missing required document`
+  - 当前支持的队列动作包括：
+    - open transaction
+    - open linked document
+    - approve
+    - second approve
+    - reject
+    - reopen
+    - complete（仅在真实满足条件时可见）
+  - 队列动作会继续写入同一套 `AuditLog` 任务事件；从队列触发的动作会带上 `Approve Docs queue` source
+  - linked document 删除、unlink 或 signature 状态回退时，会重新评估任务并把不再满足条件的审批任务拉回 queue
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
   - 列表页现在使用 URL 驱动的服务端查询：

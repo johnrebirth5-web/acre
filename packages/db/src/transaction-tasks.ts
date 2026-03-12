@@ -2,6 +2,7 @@ import {
   Prisma,
   SignatureRequestStatus,
   TransactionDocumentStatus,
+  TransactionFormStatus,
   TransactionStatus,
   TransactionTaskComplianceStatus,
   TransactionTaskReviewStatus,
@@ -44,9 +45,22 @@ export type OfficeTransactionTaskLinkedDocument = {
   id: string;
   title: string;
   href: string;
+  fileHref: string;
   status: string;
   isSigned: boolean;
   hasPendingSignature: boolean;
+};
+
+export type OfficeTransactionTaskLinkedForm = {
+  id: string;
+  name: string;
+  href: string;
+  status: string;
+  documentId: string | null;
+  documentTitle: string;
+  documentFileHref: string;
+  hasPendingSignature: boolean;
+  signatureStatus: string;
 };
 
 export type OfficeTransactionTask = {
@@ -73,17 +87,24 @@ export type OfficeTransactionTask = {
   requiresSecondaryApproval: boolean;
   completedAt: string;
   completedByName: string;
+  completedByMembershipId: string | null;
   submittedForReviewAt: string;
   submittedForReviewByName: string;
+  submittedForReviewByMembershipId: string | null;
   firstApprovedAt: string;
   firstApprovedByName: string;
+  firstApprovedByMembershipId: string | null;
   secondApprovedAt: string;
   secondApprovedByName: string;
+  secondApprovedByMembershipId: string | null;
   rejectedAt: string;
   rejectedByName: string;
+  rejectedByMembershipId: string | null;
   rejectionReason: string;
   reopenedAt: string;
+  updatedAt: string;
   linkedDocuments: OfficeTransactionTaskLinkedDocument[];
+  linkedForms: OfficeTransactionTaskLinkedForm[];
   awaitingSecondaryApproval: boolean;
   canCompleteDirectly: boolean;
   canRequestReview: boolean;
@@ -153,6 +174,53 @@ export type OfficeTaskListSnapshot = {
   transactionOptions: OfficeTaskTransactionOption[];
 };
 
+export type OfficeDocumentApprovalQueueView =
+  | "all_open_review_items"
+  | "awaiting_my_review"
+  | "awaiting_second_review"
+  | "rejected"
+  | "waiting_for_signatures"
+  | "missing_required_document";
+
+export type OfficeDocumentApprovalQueueState =
+  | "awaiting_my_review"
+  | "awaiting_second_review"
+  | "rejected"
+  | "waiting_for_signatures"
+  | "missing_required_document";
+
+export type OfficeDocumentApprovalQueueFilters = {
+  queue: OfficeDocumentApprovalQueueView;
+  assigneeMembershipId: string;
+  dueWindow: OfficeTaskDueWindow;
+  q: string;
+};
+
+export type OfficeDocumentApprovalQueueSummary = Record<OfficeDocumentApprovalQueueView, number>;
+
+export type OfficeDocumentApprovalQueueItem = {
+  task: OfficeTransactionTask;
+  queueState: OfficeDocumentApprovalQueueState;
+  queueStateLabel: string;
+  primaryArtifactKind: "document" | "form" | "missing";
+  primaryArtifactTitle: string;
+  secondaryArtifactTitle: string;
+  openDocumentHref: string | null;
+  artifactCountLabel: string;
+  formStatusLabel: string;
+  signatureStatusLabel: string;
+};
+
+export type OfficeDocumentApprovalQueueSnapshot = {
+  filters: OfficeDocumentApprovalQueueFilters;
+  selectedQueueLabel: string;
+  summary: OfficeDocumentApprovalQueueSummary;
+  items: OfficeDocumentApprovalQueueItem[];
+  itemCount: number;
+  assigneeOptions: OfficeTransactionTaskAssigneeOption[];
+  maxWindowLabel: string;
+};
+
 export type ListOfficeTasksInput = {
   organizationId: string;
   officeId?: string | null;
@@ -171,6 +239,18 @@ export type ListOfficeTasksInput = {
   includeCompleted?: string;
   limit?: number;
 };
+
+export type ListOfficeDocumentApprovalQueueInput = {
+  organizationId: string;
+  officeId?: string | null;
+  queue?: string;
+  assigneeMembershipId?: string;
+  dueWindow?: string;
+  q?: string;
+  limit?: number;
+};
+
+export type TransactionTaskAuditSource = "approve_docs_queue";
 
 export type CreateTransactionTaskInput = {
   organizationId: string;
@@ -192,6 +272,7 @@ export type UpdateTransactionTaskInput = {
   transactionId: string;
   taskId: string;
   actorMembershipId?: string;
+  activitySource?: TransactionTaskAuditSource | null;
   checklistGroup?: string;
   title?: string;
   description?: string;
@@ -273,6 +354,25 @@ const transactionStatusLabelMap: Record<TransactionStatus, string> = {
   cancelled: "Cancelled"
 };
 
+const formStatusLabelMap: Record<TransactionFormStatus, string> = {
+  draft: "Draft",
+  prepared: "Prepared",
+  sent_for_signature: "Sent for signature",
+  partially_signed: "Partially signed",
+  fully_signed: "Fully signed",
+  rejected: "Rejected",
+  voided: "Voided"
+};
+
+const signatureStatusLabelMap: Record<SignatureRequestStatus, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  viewed: "Viewed",
+  signed: "Signed",
+  declined: "Declined",
+  canceled: "Canceled"
+};
+
 const defaultTaskSort: OfficeTaskListSort = {
   field: "dueAt",
   direction: "asc",
@@ -280,6 +380,28 @@ const defaultTaskSort: OfficeTaskListSort = {
 };
 
 const defaultTaskListLimit = 200;
+const defaultDocumentApprovalQueueLimit = 200;
+
+const documentApprovalQueueViewLabels: Record<OfficeDocumentApprovalQueueView, string> = {
+  all_open_review_items: "All open review items",
+  awaiting_my_review: "Awaiting my review",
+  awaiting_second_review: "Awaiting second review",
+  rejected: "Rejected",
+  waiting_for_signatures: "Waiting for signatures",
+  missing_required_document: "Missing required document"
+};
+
+const documentApprovalQueueStateLabels: Record<OfficeDocumentApprovalQueueState, string> = {
+  awaiting_my_review: "Awaiting first review",
+  awaiting_second_review: "Awaiting second review",
+  rejected: "Rejected",
+  waiting_for_signatures: "Waiting for signatures",
+  missing_required_document: "Missing required document"
+};
+
+const taskAuditSourceLabelMap: Record<TransactionTaskAuditSource, string> = {
+  approve_docs_queue: "Approve Docs queue"
+};
 
 const systemTaskViewDefinitions: Record<
   "requires-attention" | "all-transactions",
@@ -490,6 +612,20 @@ function normalizeTaskStatus(value: string | undefined) {
   return value in taskStatusDbMap ? (value as OfficeTransactionTaskStatus) : fallback;
 }
 
+function normalizeDocumentApprovalQueueView(value: string | undefined): OfficeDocumentApprovalQueueView {
+  if (
+    value === "awaiting_my_review" ||
+    value === "awaiting_second_review" ||
+    value === "rejected" ||
+    value === "waiting_for_signatures" ||
+    value === "missing_required_document"
+  ) {
+    return value;
+  }
+
+  return "all_open_review_items";
+}
+
 function formatMembershipName(
   membership:
     | {
@@ -499,9 +635,10 @@ function formatMembershipName(
         };
       }
     | null
-    | undefined
+    | undefined,
+  fallback = "Unassigned"
 ) {
-  return membership ? `${membership.user.firstName} ${membership.user.lastName}` : "Unassigned";
+  return membership ? `${membership.user.firstName} ${membership.user.lastName}` : fallback;
 }
 
 function buildTransactionObjectLabel(transaction: {
@@ -581,6 +718,14 @@ function buildLinkedTaskDocumentHref(transactionId: string, documentId: string) 
   return `/office/transactions/${transactionId}#transaction-document-${documentId}`;
 }
 
+function buildLinkedTaskDocumentFileHref(transactionId: string, documentId: string) {
+  return `/api/office/transactions/${transactionId}/documents/${documentId}/file`;
+}
+
+function buildLinkedTaskFormHref(transactionId: string) {
+  return `/office/transactions/${transactionId}#transaction-forms-signatures`;
+}
+
 function getDocumentStatusLabel(status: TransactionDocumentStatus) {
   switch (status) {
     case "uploaded":
@@ -609,6 +754,7 @@ function getTaskWorkflowEvidence(task: TaskWithRelations): TaskWorkflowEvidence 
       id: document.id,
       title: document.title,
       href: buildLinkedTaskDocumentHref(task.transactionId, document.id),
+      fileHref: buildLinkedTaskDocumentFileHref(task.transactionId, document.id),
       status: getDocumentStatusLabel(document.status),
       isSigned: document.isSigned,
       hasPendingSignature: document.signatureRequests.some((request) =>
@@ -626,6 +772,7 @@ function getTaskWorkflowEvidence(task: TaskWithRelations): TaskWorkflowEvidence 
         id: form.document.id,
         title: form.document.title,
         href: buildLinkedTaskDocumentHref(task.transactionId, form.document.id),
+        fileHref: buildLinkedTaskDocumentFileHref(task.transactionId, form.document.id),
         status: getDocumentStatusLabel(form.document.status),
         isSigned: form.document.isSigned,
         hasPendingSignature: form.document.signatureRequests.some((request) =>
@@ -652,6 +799,56 @@ function getTaskWorkflowEvidence(task: TaskWithRelations): TaskWorkflowEvidence 
     hasDeclinedSignature,
     allSignatureRequestsSigned
   };
+}
+
+function getTaskFormSignatureStatus(statuses: SignatureRequestStatus[]) {
+  if (!statuses.length) {
+    return "No signature request";
+  }
+
+  if (statuses.some((status) => status === "declined" || status === "canceled")) {
+    return "Declined / canceled";
+  }
+
+  if (statuses.every((status) => status === "signed")) {
+    return "Fully signed";
+  }
+
+  if (statuses.some((status) => status === "signed")) {
+    return "Partially signed";
+  }
+
+  if (statuses.some((status) => status === "viewed")) {
+    return "Viewed";
+  }
+
+  if (statuses.some((status) => status === "sent")) {
+    return "Sent";
+  }
+
+  if (statuses.every((status) => status === "draft")) {
+    return "Draft";
+  }
+
+  return "Signature activity";
+}
+
+function getTaskLinkedForms(task: TaskWithRelations): OfficeTransactionTaskLinkedForm[] {
+  return task.forms.map((form) => {
+    const signatureStatuses = form.signatureRequests.map((request) => request.status);
+
+    return {
+      id: form.id,
+      name: form.name,
+      href: buildLinkedTaskFormHref(task.transactionId),
+      status: formStatusLabelMap[form.status],
+      documentId: form.document?.id ?? null,
+      documentTitle: form.document?.title ?? "",
+      documentFileHref: form.document ? buildLinkedTaskDocumentFileHref(task.transactionId, form.document.id) : "",
+      hasPendingSignature: signatureStatuses.some((status) => status === "draft" || status === "sent" || status === "viewed"),
+      signatureStatus: getTaskFormSignatureStatus(signatureStatuses)
+    };
+  });
 }
 
 function deriveTaskStatusPresentation(task: {
@@ -984,6 +1181,7 @@ function mergeFilterOverrides(base: OfficeTaskListFilters, input: ListOfficeTask
 function mapTransactionTask(task: TaskWithRelations): OfficeTransactionTask {
   const transactionLabel = buildTransactionObjectLabel(task.transaction);
   const workflowEvidence = getTaskWorkflowEvidence(task);
+  const linkedForms = getTaskLinkedForms(task);
   const statusPresentation = deriveTaskStatusPresentation(task, workflowEvidence);
   const canRequestReview =
     taskNeedsReview(task) &&
@@ -1025,18 +1223,25 @@ function mapTransactionTask(task: TaskWithRelations): OfficeTransactionTask {
     requiresDocumentApproval: task.requiresDocumentApproval,
     requiresSecondaryApproval: task.requiresSecondaryApproval,
     completedAt: formatDateTimeValue(task.completedAt),
-    completedByName: formatMembershipName(task.completedByMembership),
+    completedByName: formatMembershipName(task.completedByMembership, ""),
+    completedByMembershipId: task.completedByMembershipId,
     submittedForReviewAt: formatDateTimeValue(task.submittedForReviewAt),
-    submittedForReviewByName: formatMembershipName(task.submittedForReviewByMembership),
+    submittedForReviewByName: formatMembershipName(task.submittedForReviewByMembership, ""),
+    submittedForReviewByMembershipId: task.submittedForReviewByMembershipId,
     firstApprovedAt: formatDateTimeValue(task.firstApprovedAt),
-    firstApprovedByName: formatMembershipName(task.firstApprovedByMembership),
+    firstApprovedByName: formatMembershipName(task.firstApprovedByMembership, ""),
+    firstApprovedByMembershipId: task.firstApprovedByMembershipId,
     secondApprovedAt: formatDateTimeValue(task.secondApprovedAt),
-    secondApprovedByName: formatMembershipName(task.secondApprovedByMembership),
+    secondApprovedByName: formatMembershipName(task.secondApprovedByMembership, ""),
+    secondApprovedByMembershipId: task.secondApprovedByMembershipId,
     rejectedAt: formatDateTimeValue(task.rejectedAt),
-    rejectedByName: formatMembershipName(task.rejectedByMembership),
+    rejectedByName: formatMembershipName(task.rejectedByMembership, ""),
+    rejectedByMembershipId: task.rejectedByMembershipId,
     rejectionReason: task.rejectionReason ?? "",
     reopenedAt: formatDateTimeValue(task.reopenedAt),
+    updatedAt: formatDateTimeValue(task.updatedAt),
     linkedDocuments: workflowEvidence.linkedDocuments,
+    linkedForms,
     awaitingSecondaryApproval: task.reviewStatus === "second_review",
     canCompleteDirectly: canComplete,
     canRequestReview,
@@ -1046,9 +1251,160 @@ function mapTransactionTask(task: TaskWithRelations): OfficeTransactionTask {
       task.status === "completed" ||
       task.status === "review_requested" ||
       task.reviewStatus === "rejected" ||
-      task.reviewStatus === "approved" ||
-      task.status === "reopened"
+      task.reviewStatus === "approved"
   };
+}
+
+function getDocumentApprovalQueueState(
+  task: TaskWithRelations,
+  evidence: TaskWorkflowEvidence
+): OfficeDocumentApprovalQueueState | null {
+  if (!taskRequiresDocumentWorkflow(task) || task.status === "completed") {
+    return null;
+  }
+
+  if (task.reviewStatus === "second_review") {
+    return "awaiting_second_review";
+  }
+
+  if (task.reviewStatus === "review_requested") {
+    return "awaiting_my_review";
+  }
+
+  if (task.reviewStatus === "rejected" || task.complianceStatus === "rejected") {
+    return "rejected";
+  }
+
+  if (evidence.hasPendingSignature || (evidence.hasAnySignatureRequest && !evidence.allSignatureRequestsSigned)) {
+    return "waiting_for_signatures";
+  }
+
+  if (!evidence.hasAnyLinkedDocument) {
+    return "missing_required_document";
+  }
+
+  return null;
+}
+
+function matchesDocumentApprovalQueueView(
+  queueState: OfficeDocumentApprovalQueueState,
+  view: OfficeDocumentApprovalQueueView
+) {
+  return view === "all_open_review_items" ? true : queueState === view;
+}
+
+function pluralizeQueueArtifact(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function buildDocumentApprovalArtifactCountLabel(task: OfficeTransactionTask) {
+  const parts: string[] = [];
+
+  if (task.linkedDocuments.length) {
+    parts.push(pluralizeQueueArtifact(task.linkedDocuments.length, "document", "documents"));
+  }
+
+  if (task.linkedForms.length) {
+    parts.push(pluralizeQueueArtifact(task.linkedForms.length, "form", "forms"));
+  }
+
+  return parts.join(" · ");
+}
+
+function buildDocumentApprovalFormStatusLabel(task: OfficeTransactionTask) {
+  const labels = Array.from(new Set(task.linkedForms.map((form) => form.status)));
+  return labels.slice(0, 2).join(", ");
+}
+
+function buildDocumentApprovalSignatureStatusLabel(task: TaskWithRelations, evidence: TaskWorkflowEvidence) {
+  if (!evidence.hasAnySignatureRequest) {
+    return "";
+  }
+
+  if (evidence.hasDeclinedSignature) {
+    return "Declined / canceled";
+  }
+
+  if (evidence.hasPendingSignature) {
+    return "Waiting for signatures";
+  }
+
+  if (evidence.allSignatureRequestsSigned) {
+    return "Fully signed";
+  }
+
+  const formStatuses = Array.from(new Set(getTaskLinkedForms(task).map((form) => form.signatureStatus)));
+  return formStatuses[0] ?? "Signature activity";
+}
+
+function getDocumentApprovalPrimaryArtifact(task: OfficeTransactionTask) {
+  const firstForm = task.linkedForms[0] ?? null;
+
+  if (firstForm) {
+    return {
+      primaryArtifactKind: "form" as const,
+      primaryArtifactTitle: firstForm.name,
+      secondaryArtifactTitle: firstForm.documentTitle ? `Document: ${firstForm.documentTitle}` : "",
+      openDocumentHref: firstForm.documentFileHref || task.linkedDocuments[0]?.fileHref || null
+    };
+  }
+
+  const firstDocument = task.linkedDocuments[0] ?? null;
+
+  if (firstDocument) {
+    return {
+      primaryArtifactKind: "document" as const,
+      primaryArtifactTitle: firstDocument.title,
+      secondaryArtifactTitle: `Document status: ${firstDocument.status}`,
+      openDocumentHref: firstDocument.fileHref
+    };
+  }
+
+  return {
+    primaryArtifactKind: "missing" as const,
+    primaryArtifactTitle: "No linked document yet",
+    secondaryArtifactTitle: "",
+    openDocumentHref: null
+  };
+}
+
+function getQueueReferenceTime(task: OfficeDocumentApprovalQueueItem) {
+  if (task.task.submittedForReviewAt) {
+    return new Date(task.task.submittedForReviewAt).getTime();
+  }
+
+  if (task.task.dueAt) {
+    return new Date(`${task.task.dueAt}T00:00:00.000Z`).getTime();
+  }
+
+  return new Date(task.task.updatedAt).getTime();
+}
+
+function sortDocumentApprovalQueue(items: OfficeDocumentApprovalQueueItem[]) {
+  const queuePriority: Record<OfficeDocumentApprovalQueueState, number> = {
+    awaiting_my_review: 0,
+    awaiting_second_review: 1,
+    rejected: 2,
+    waiting_for_signatures: 3,
+    missing_required_document: 4
+  };
+
+  return [...items].sort((left, right) => {
+    const priorityDelta = queuePriority[left.queueState] - queuePriority[right.queueState];
+
+    if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+
+    const leftReference = getQueueReferenceTime(left);
+    const rightReference = getQueueReferenceTime(right);
+
+    if (leftReference !== rightReference) {
+      return leftReference - rightReference;
+    }
+
+    return left.task.transactionLabel.localeCompare(right.task.transactionLabel);
+  });
 }
 
 async function getTransactionScope(organizationId: string, transactionId: string) {
@@ -1149,13 +1505,23 @@ function sortOfficeTasks(tasks: OfficeTransactionTask[]) {
   });
 }
 
-function buildTaskAuditPayload(task: TaskWithRelations, details: string[], changes: Array<{ label: string; previousValue?: string | null; nextValue?: string | null }>) {
+function buildTaskAuditPayload(
+  task: TaskWithRelations,
+  details: string[],
+  changes: Array<{ label: string; previousValue?: string | null; nextValue?: string | null }>,
+  options?: {
+    actionSource?: TransactionTaskAuditSource | null;
+    workflowReason?: string | null;
+  }
+) {
   return {
     officeId: task.transaction.officeId,
     transactionId: task.transactionId,
     taskId: task.id,
     taskTitle: task.title,
     objectLabel: buildTaskObjectLabel(task.title, buildTransactionObjectLabel(task.transaction)),
+    actionSource: options?.actionSource ?? undefined,
+    workflowReason: options?.workflowReason ?? undefined,
     details,
     changes
   };
@@ -1170,6 +1536,8 @@ async function createTaskAuditEvent(
     task: TaskWithRelations;
     details: string[];
     changes?: Array<{ label: string; previousValue?: string | null; nextValue?: string | null }>;
+    actionSource?: TransactionTaskAuditSource | null;
+    workflowReason?: string | null;
   }
 ) {
   await recordActivityLogEvent(tx, {
@@ -1178,7 +1546,10 @@ async function createTaskAuditEvent(
     entityType: "transaction_task",
     entityId: input.task.id,
     action: input.action,
-    payload: buildTaskAuditPayload(input.task, input.details, input.changes ?? [])
+    payload: buildTaskAuditPayload(input.task, input.details, input.changes ?? [], {
+      actionSource: input.actionSource ?? null,
+      workflowReason: input.workflowReason ?? null
+    })
   });
 }
 
@@ -1357,6 +1728,7 @@ export async function reconcileTransactionTaskDocumentWorkflow(
     actorMembershipId: input.actorMembershipId ?? null,
     action: activityLogActions.transactionTaskReopened,
     task: updated,
+    workflowReason: "document_workflow_invalidated",
     details: [input.reason, "Task reopened because required workflow conditions are no longer satisfied"],
     changes: [
       buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(updated.status)),
@@ -1644,6 +2016,172 @@ export async function listOfficeTasks(input: ListOfficeTasksInput): Promise<Offi
     viewOptions,
     assigneeOptions,
     transactionOptions
+  };
+}
+
+export async function listOfficeDocumentApprovalQueue(
+  input: ListOfficeDocumentApprovalQueueInput
+): Promise<OfficeDocumentApprovalQueueSnapshot> {
+  const limit = input.limit ?? defaultDocumentApprovalQueueLimit;
+  const filters: OfficeDocumentApprovalQueueFilters = {
+    queue: normalizeDocumentApprovalQueueView(input.queue),
+    assigneeMembershipId: typeof input.assigneeMembershipId === "string" ? input.assigneeMembershipId : "",
+    dueWindow:
+      input.dueWindow === "past_due" ||
+      input.dueWindow === "today" ||
+      input.dueWindow === "current_week" ||
+      input.dueWindow === "next_week" ||
+      input.dueWindow === "next_2_weeks"
+        ? input.dueWindow
+        : "",
+    q: typeof input.q === "string" ? input.q : ""
+  };
+  const transactionWhere: Prisma.TransactionWhereInput = {
+    ...(input.officeId ? { officeId: input.officeId } : {})
+  };
+  const whereClauses: Prisma.TransactionTaskWhereInput[] = [
+    {
+      OR: [{ requiresDocument: true }, { requiresDocumentApproval: true }, { requiresSecondaryApproval: true }]
+    }
+  ];
+  const where: Prisma.TransactionTaskWhereInput = {
+    organizationId: input.organizationId,
+    transaction: transactionWhere,
+    status: {
+      not: "completed"
+    },
+    AND: whereClauses
+  };
+
+  if (filters.assigneeMembershipId) {
+    where.assigneeMembershipId = filters.assigneeMembershipId;
+  }
+
+  if (filters.dueWindow === "past_due") {
+    where.dueAt = {
+      lt: getDueDateLowerBound(filters.dueWindow) ?? undefined
+    };
+  } else if (filters.dueWindow) {
+    where.dueAt = {
+      lte: getDueDateUpperBound(filters.dueWindow) ?? undefined
+    };
+  }
+
+  if (filters.q.trim()) {
+    const query = filters.q.trim();
+    whereClauses.push({
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+        { checklistGroup: { contains: query, mode: "insensitive" } },
+        {
+          transaction: {
+            OR: [
+              { title: { contains: query, mode: "insensitive" } },
+              { address: { contains: query, mode: "insensitive" } },
+              { city: { contains: query, mode: "insensitive" } },
+              { state: { contains: query, mode: "insensitive" } }
+            ]
+          }
+        },
+        {
+          assigneeMembership: {
+            user: {
+              OR: [
+                { firstName: { contains: query, mode: "insensitive" } },
+                { lastName: { contains: query, mode: "insensitive" } }
+              ]
+            }
+          }
+        },
+        {
+          documents: {
+            some: {
+              title: { contains: query, mode: "insensitive" }
+            }
+          }
+        },
+        {
+          forms: {
+            some: {
+              OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                {
+                  document: {
+                    is: {
+                      title: { contains: query, mode: "insensitive" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    });
+  }
+
+  const [tasks, assigneeOptions] = await Promise.all([
+    prisma.transactionTask.findMany({
+      where,
+      include: transactionTaskInclude
+    }),
+    listOfficeTaskAssigneeOptions(input.organizationId, input.officeId)
+  ]);
+
+  const queueItems = tasks.flatMap((task) => {
+    const evidence = getTaskWorkflowEvidence(task);
+    const queueState = getDocumentApprovalQueueState(task, evidence);
+
+    if (!queueState) {
+      return [];
+    }
+
+    const mappedTask = mapTransactionTask(task);
+    const primaryArtifact = getDocumentApprovalPrimaryArtifact(mappedTask);
+
+    return [
+      {
+        task: mappedTask,
+        queueState,
+        queueStateLabel: documentApprovalQueueStateLabels[queueState],
+        primaryArtifactKind: primaryArtifact.primaryArtifactKind,
+        primaryArtifactTitle: primaryArtifact.primaryArtifactTitle,
+        secondaryArtifactTitle: primaryArtifact.secondaryArtifactTitle,
+        openDocumentHref: primaryArtifact.openDocumentHref,
+        artifactCountLabel: buildDocumentApprovalArtifactCountLabel(mappedTask),
+        formStatusLabel: buildDocumentApprovalFormStatusLabel(mappedTask),
+        signatureStatusLabel: buildDocumentApprovalSignatureStatusLabel(task, evidence)
+      } satisfies OfficeDocumentApprovalQueueItem
+    ];
+  });
+  const summary = queueItems.reduce<OfficeDocumentApprovalQueueSummary>(
+    (accumulator, item) => {
+      accumulator.all_open_review_items += 1;
+      accumulator[item.queueState] += 1;
+      return accumulator;
+    },
+    {
+      all_open_review_items: 0,
+      awaiting_my_review: 0,
+      awaiting_second_review: 0,
+      rejected: 0,
+      waiting_for_signatures: 0,
+      missing_required_document: 0
+    }
+  );
+  const visibleItems = sortDocumentApprovalQueue(
+    queueItems.filter((item) => matchesDocumentApprovalQueueView(item.queueState, filters.queue))
+  ).slice(0, limit);
+
+  return {
+    filters,
+    selectedQueueLabel: documentApprovalQueueViewLabels[filters.queue],
+    summary,
+    items: visibleItems,
+    itemCount: visibleItems.length,
+    assigneeOptions,
+    maxWindowLabel: `Showing up to ${limit} queue items`
   };
 }
 
@@ -1992,6 +2530,7 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
         actorMembershipId: input.actorMembershipId ?? null,
         action: activityLogActions.transactionTaskCompleted,
         task: saved,
+        actionSource: input.activitySource ?? null,
         details,
         changes
       });
@@ -2001,6 +2540,7 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
         actorMembershipId: input.actorMembershipId ?? null,
         action: activityLogActions.transactionTaskReopened,
         task: saved,
+        actionSource: input.activitySource ?? null,
         details,
         changes
       });
@@ -2010,6 +2550,7 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
         actorMembershipId: input.actorMembershipId ?? null,
         action: activityLogActions.transactionTaskReviewRequested,
         task: saved,
+        actionSource: input.activitySource ?? null,
         details,
         changes
       });
@@ -2019,6 +2560,7 @@ export async function updateTransactionTask(input: UpdateTransactionTaskInput): 
         actorMembershipId: input.actorMembershipId ?? null,
         action: activityLogActions.transactionTaskUpdated,
         task: saved,
+        actionSource: input.activitySource ?? null,
         details,
         changes
       });
@@ -2035,6 +2577,7 @@ export async function completeTransactionTask(input: {
   transactionId: string;
   taskId: string;
   actorMembershipId?: string;
+  activitySource?: TransactionTaskAuditSource | null;
 }): Promise<OfficeTransactionTask | null> {
   const task = await getTaskRecord(input.organizationId, input.transactionId, input.taskId);
 
@@ -2054,6 +2597,7 @@ export async function completeTransactionTask(input: {
     transactionId: input.transactionId,
     taskId: input.taskId,
     actorMembershipId: input.actorMembershipId,
+    activitySource: input.activitySource ?? null,
     status: "Completed"
   });
 }
@@ -2063,12 +2607,14 @@ export async function reopenTransactionTask(input: {
   transactionId: string;
   taskId: string;
   actorMembershipId?: string;
+  activitySource?: TransactionTaskAuditSource | null;
 }): Promise<OfficeTransactionTask | null> {
   return updateTransactionTask({
     organizationId: input.organizationId,
     transactionId: input.transactionId,
     taskId: input.taskId,
     actorMembershipId: input.actorMembershipId,
+    activitySource: input.activitySource ?? null,
     status: "Reopened"
   });
 }
@@ -2078,6 +2624,7 @@ export async function requestTransactionTaskReview(input: {
   transactionId: string;
   taskId: string;
   actorMembershipId?: string;
+  activitySource?: TransactionTaskAuditSource | null;
 }): Promise<OfficeTransactionTask | null> {
   const task = await getTaskRecord(input.organizationId, input.transactionId, input.taskId);
 
@@ -2132,6 +2679,7 @@ export async function requestTransactionTaskReview(input: {
       actorMembershipId: input.actorMembershipId ?? null,
       action: activityLogActions.transactionTaskReviewRequested,
       task: updated,
+      actionSource: input.activitySource ?? null,
       details: [
         `Submitted by: ${formatMembershipName(updated.submittedForReviewByMembership)}`,
         `Linked documents: ${evidence.linkedDocuments.length}`
@@ -2155,6 +2703,7 @@ export async function approveTransactionTask(input: {
   taskId: string;
   actorMembershipId: string;
   allowSecondaryApproval?: boolean;
+  activitySource?: TransactionTaskAuditSource | null;
 }): Promise<OfficeTransactionTask | null> {
   const existingTask = await getTaskRecord(input.organizationId, input.transactionId, input.taskId);
 
@@ -2250,6 +2799,7 @@ export async function approveTransactionTask(input: {
             ? activityLogActions.transactionTaskSecondApproved
             : activityLogActions.transactionTaskApproved,
       task: updated,
+      actionSource: input.activitySource ?? null,
       details: isSecondApprovalRequired && isFirstApproval
         ? ["First approval recorded", "Task moved to second review"]
         : ["Approval completed", "Task is now eligible for final completion"],
@@ -2272,6 +2822,7 @@ export async function rejectTransactionTask(input: {
   taskId: string;
   actorMembershipId: string;
   rejectionReason?: string;
+  activitySource?: TransactionTaskAuditSource | null;
 }): Promise<OfficeTransactionTask | null> {
   const existingTask = await getTaskRecord(input.organizationId, input.transactionId, input.taskId);
 
@@ -2316,6 +2867,7 @@ export async function rejectTransactionTask(input: {
       actorMembershipId: input.actorMembershipId,
       action: activityLogActions.transactionTaskRejected,
       task: updated,
+      actionSource: input.activitySource ?? null,
       details: [
         "Review rejected",
         "Task reopened for changes",

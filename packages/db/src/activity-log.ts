@@ -159,6 +159,8 @@ export type ActivityLogPayload = {
   taskTitle?: string;
   commentBody?: string;
   contextHref?: string;
+  actionSource?: string;
+  workflowReason?: string;
   details?: string[];
   changes?: ActivityLogChange[];
 };
@@ -673,6 +675,8 @@ function getActivityPayload(payload: Prisma.JsonValue | null): ParsedActivityPay
     taskTitle: parsePayloadString(payload, "taskTitle"),
     commentBody: parsePayloadString(payload, "commentBody"),
     contextHref: parsePayloadString(payload, "contextHref"),
+    actionSource: parsePayloadString(payload, "actionSource"),
+    workflowReason: parsePayloadString(payload, "workflowReason"),
     details: parsePayloadDetails(payload),
     changes: parsePayloadChanges(payload)
   };
@@ -892,6 +896,15 @@ function formatSummaryChange(change: ActivityLogChange | null) {
   return `${normalizeChangeValue(change.previousValue)} to ${normalizeChangeValue(change.nextValue)}`;
 }
 
+function getActionSourceLabel(actionSource: string | undefined) {
+  return actionSource === "approve_docs_queue" ? "Approve Docs queue" : null;
+}
+
+function appendActionSourceSummary(baseSummary: string, payload: ParsedActivityPayload) {
+  const sourceLabel = getActionSourceLabel(payload.actionSource);
+  return sourceLabel ? `${baseSummary} from ${sourceLabel}` : baseSummary;
+}
+
 function getSummary(action: string, payload: ParsedActivityPayload) {
   switch (action) {
     case activityLogActions.agentProfileCreated:
@@ -1015,19 +1028,21 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return statusChange ? `updated task status from ${formatSummaryChange(statusChange)}` : "updated a transaction task";
     }
     case activityLogActions.transactionTaskReviewRequested:
-      return "requested review for a transaction task";
+      return appendActionSourceSummary("requested review for a transaction task", payload);
     case activityLogActions.transactionTaskFirstApproved:
-      return "recorded first approval for a transaction task";
+      return appendActionSourceSummary("recorded first approval for a transaction task", payload);
     case activityLogActions.transactionTaskSecondApproved:
-      return "recorded second approval for a transaction task";
+      return appendActionSourceSummary("recorded second approval for a transaction task", payload);
     case activityLogActions.transactionTaskApproved:
-      return "approved a transaction task";
+      return appendActionSourceSummary("approved a transaction task", payload);
     case activityLogActions.transactionTaskRejected:
-      return "rejected a transaction task";
+      return appendActionSourceSummary("rejected a transaction task", payload);
     case activityLogActions.transactionTaskCompleted:
-      return "completed a transaction task";
+      return appendActionSourceSummary("completed a transaction task", payload);
     case activityLogActions.transactionTaskReopened:
-      return "reopened a transaction task";
+      return payload.workflowReason === "document_workflow_invalidated"
+        ? "reopened a transaction task because document workflow became invalid"
+        : appendActionSourceSummary("reopened a transaction task", payload);
     case activityLogActions.followUpTaskCreated:
       return "created a follow-up task";
     case activityLogActions.contactCreated:
@@ -1110,16 +1125,18 @@ function getViewMode(view: string | undefined): ActivityLogViewMode {
 }
 
 function getDetailSummary(payload: ParsedActivityPayload) {
+  const actionSourceLabel = getActionSourceLabel(payload.actionSource);
   const detailItems = payload.details;
   const changeItems = payload.changes
     .map(formatActivityChange)
     .filter((detail): detail is string => Boolean(detail));
   const commentItems = payload.commentBody?.trim() ? [payload.commentBody.trim()] : [];
+  const sourceItems = actionSourceLabel ? [`Source: ${actionSourceLabel}`] : [];
 
   const seen = new Set<string>();
   const merged: string[] = [];
 
-  for (const detail of [...commentItems, ...changeItems, ...detailItems]) {
+  for (const detail of [...commentItems, ...sourceItems, ...changeItems, ...detailItems]) {
     if (seen.has(detail)) {
       continue;
     }

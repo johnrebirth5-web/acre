@@ -1,55 +1,39 @@
 import {
-  canAccessOfficeTasks,
+  canAccessOfficeDocumentApprovals,
   canApproveOfficeDocuments,
   canReviewOfficeTasks,
   canSecondaryReviewOfficeTasks
 } from "@acre/auth";
 import { Badge, PageHeader, PageShell } from "@acre/ui";
-import { listOfficeTasks } from "@acre/db";
+import { listOfficeDocumentApprovalQueue } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
-import { OfficeTasksClient } from "./tasks-client";
+import { OfficeApproveDocsClient } from "./approve-docs-client";
 
-type OfficeTasksPageProps = {
+type OfficeApproveDocsPageProps = {
   searchParams?: Promise<{
-    view?: string;
-    transactionStatus?: string;
+    queue?: string;
     assigneeMembershipId?: string;
     dueWindow?: string;
-    noDueDate?: string;
-    reviewStatus?: string;
-    requiresSecondaryApproval?: string;
-    complianceStatus?: string | string[];
-    transactionId?: string;
     q?: string;
-    includeCompleted?: string;
   }>;
 };
 
-export default async function OfficeTasksPage(props: OfficeTasksPageProps) {
+export default async function OfficeApproveDocsPage(props: OfficeApproveDocsPageProps) {
   const context = await requireOfficeSession();
 
-  if (!canAccessOfficeTasks(context.currentMembership.role)) {
+  if (!canAccessOfficeDocumentApprovals(context.currentMembership.role)) {
     redirect("/office/dashboard");
   }
 
   const searchParams = (await props.searchParams) ?? {};
-  const snapshot = await listOfficeTasks({
+  const snapshot = await listOfficeDocumentApprovalQueue({
     organizationId: context.currentOrganization.id,
     officeId: context.currentOffice?.id ?? null,
-    membershipId: context.currentMembership.id,
-    role: context.currentMembership.role,
-    view: searchParams.view,
-    transactionStatus: searchParams.transactionStatus,
+    queue: searchParams.queue,
     assigneeMembershipId: searchParams.assigneeMembershipId,
     dueWindow: searchParams.dueWindow,
-    noDueDate: searchParams.noDueDate,
-    reviewStatus: searchParams.reviewStatus,
-    requiresSecondaryApproval: searchParams.requiresSecondaryApproval,
-    complianceStatus: searchParams.complianceStatus,
-    transactionId: searchParams.transactionId,
-    q: searchParams.q,
-    includeCompleted: searchParams.includeCompleted
+    q: searchParams.q
   });
 
   return (
@@ -58,15 +42,16 @@ export default async function OfficeTasksPage(props: OfficeTasksPageProps) {
         actions={
           <>
             <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
+            <Badge tone="neutral">{snapshot.selectedQueueLabel}</Badge>
             <Badge tone="neutral">{snapshot.maxWindowLabel}</Badge>
           </>
         }
-        description="Back-office task management for transaction work, compliance review, and due-date prioritization."
-        eyebrow="Task list"
-        title="Task list"
+        description="Focused document review workbench for first approval, second approval, rejection follow-up, signature blockers, and missing required files."
+        eyebrow="Approve docs"
+        title="Approve docs"
       />
 
-      <OfficeTasksClient
+      <OfficeApproveDocsClient
         canApproveDocuments={canApproveOfficeDocuments(context.currentMembership.role)}
         canReviewTasks={canReviewOfficeTasks(context.currentMembership.role)}
         canSecondaryReviewTasks={canSecondaryReviewOfficeTasks(context.currentMembership.role)}

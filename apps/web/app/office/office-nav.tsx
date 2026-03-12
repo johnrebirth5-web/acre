@@ -29,7 +29,7 @@ const navGroups: NavGroup[] = [
   {
     title: "To Do",
     icon: "◔",
-    items: [{ label: "Approve docs" }, { label: "Task list", href: "/office/tasks" }]
+    items: [{ label: "Approve docs", href: "/office/approve-docs" }, { label: "Task list", href: "/office/tasks" }]
   },
   {
     title: "Settings",

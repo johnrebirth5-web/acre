@@ -157,6 +157,7 @@ export {
   approveTransactionTask,
   completeTransactionTask,
   createTransactionTask,
+  listOfficeDocumentApprovalQueue,
   listOfficeTaskAssigneeOptions,
   listOfficeTaskTransactionOptions,
   listOfficeTasks,
@@ -384,7 +385,14 @@ export type {
 export type { LinkTransactionContactInput, OfficeTransactionContact, OfficeTransactionContactOption } from "./transaction-contacts";
 export type {
   CreateTransactionTaskInput,
+  ListOfficeDocumentApprovalQueueInput,
   ListOfficeTasksInput,
+  OfficeDocumentApprovalQueueFilters,
+  OfficeDocumentApprovalQueueItem,
+  OfficeDocumentApprovalQueueSnapshot,
+  OfficeDocumentApprovalQueueState,
+  OfficeDocumentApprovalQueueSummary,
+  OfficeDocumentApprovalQueueView,
   OfficeTaskDueWindow,
   OfficeTaskListFilters,
   OfficeTaskListSnapshot,
@@ -399,9 +407,12 @@ export type {
   OfficeTransactionTask,
   OfficeTransactionTaskAssigneeOption,
   OfficeTransactionTaskComplianceStatus,
+  OfficeTransactionTaskLinkedDocument,
+  OfficeTransactionTaskLinkedForm,
   OfficeTransactionTaskReviewStatus,
   OfficeTransactionTaskStatus,
   SaveTaskListViewInput,
+  TransactionTaskAuditSource,
   UpdateTransactionTaskInput
 } from "./transaction-tasks";
 export type {
