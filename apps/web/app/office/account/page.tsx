@@ -23,7 +23,7 @@ export default async function OfficeAccountPage() {
       <PageHeader
         actions={
           <>
-            <Link className="office-button office-button-secondary" href="/office/notifications">
+            <Link className="office-button office-button-secondary office-button-sm" href="/office/notifications">
               Open notifications
             </Link>
             <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>

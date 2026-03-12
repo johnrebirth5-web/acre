@@ -5555,6 +5555,7 @@ a {
 .bm-transaction-next,
 .office-button-secondary {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   min-height: 40px;
@@ -5565,6 +5566,7 @@ a {
   color: #fff;
   font-size: 0.95rem;
   font-weight: 700;
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -7269,6 +7271,15 @@ a {
 .office-account-side-column {
   display: grid;
   gap: 18px;
+}
+
+.office-account-page .office-page-actions,
+.office-account-page .office-section-actions {
+  flex: 0 0 auto;
+}
+
+.office-account-page .office-section-head {
+  flex-wrap: wrap;
 }
 
 .office-account-profile-shell {

@@ -198,7 +198,7 @@ export function OfficeAccountClient({ snapshot }: OfficeAccountClientProps) {
           <form onSubmit={handleProfileSave}>
             <SectionCard
               actions={
-                <Button disabled={pendingAction === "profile"} type="submit" variant="secondary">
+                <Button disabled={pendingAction === "profile"} size="sm" type="submit" variant="secondary">
                   {pendingAction === "profile" ? "Saving..." : "Save profile"}
                 </Button>
               }
@@ -333,7 +333,7 @@ export function OfficeAccountClient({ snapshot }: OfficeAccountClientProps) {
           <form onSubmit={handleNotificationSave}>
             <SectionCard
               actions={
-                <Button disabled={pendingAction === "notifications"} type="submit" variant="secondary">
+                <Button disabled={pendingAction === "notifications"} size="sm" type="submit" variant="secondary">
                   {pendingAction === "notifications" ? "Saving..." : "Save preferences"}
                 </Button>
               }
@@ -435,7 +435,7 @@ export function OfficeAccountClient({ snapshot }: OfficeAccountClientProps) {
 
           <SectionCard
             actions={
-              <Link className="office-button office-button-secondary" href="/office/activity?objectType=auth">
+              <Link className="office-button office-button-secondary office-button-sm" href="/office/activity?objectType=auth">
                 Open auth activity
               </Link>
             }
@@ -478,7 +478,7 @@ export function OfficeAccountClient({ snapshot }: OfficeAccountClientProps) {
 
             <div className="office-account-security-actions">
               <form action="/api/auth/logout" method="post">
-                <button className="office-button office-button-secondary" type="submit">
+                <button className="office-button office-button-secondary office-button-sm" type="submit">
                   Sign out and switch user
                 </button>
               </form>
