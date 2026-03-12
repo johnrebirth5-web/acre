@@ -3,6 +3,23 @@ import { getOfficeDashboardBusinessSnapshot } from "@acre/db";
 import { Badge, PageHeader, PageShell, StatCard } from "@acre/ui";
 import { getSessionAccess, requireOfficeSession } from "../../../lib/auth-session";
 
+const chartTopInset = 8;
+const chartBottomInset = 8;
+
+function getChartY(value: number, height: number, maxValue: number) {
+  const drawableHeight = height - chartTopInset - chartBottomInset;
+
+  if (drawableHeight <= 0) {
+    return height / 2;
+  }
+
+  if (maxValue === 0) {
+    return height - chartBottomInset;
+  }
+
+  return chartTopInset + drawableHeight - (value / maxValue) * drawableHeight;
+}
+
 function buildChartPath(values: number[], width: number, height: number, maxValue: number) {
   if (values.length === 0) {
     return "";
@@ -13,7 +30,7 @@ function buildChartPath(values: number[], width: number, height: number, maxValu
   return values
     .map((value, index) => {
       const x = index * stepX;
-      const y = height - (maxValue === 0 ? 0 : (value / maxValue) * height);
+      const y = getChartY(value, height, maxValue);
 
       return `${index === 0 ? "M" : "L"} ${x} ${y}`;
     })
@@ -89,7 +106,7 @@ export default async function OfficeDashboardPage() {
                   <path d={chartPath} />
                   {snapshot.chart.points.map((point, index) => {
                     const x = snapshot.chart.points.length > 1 ? (index / (snapshot.chart.points.length - 1)) * chartWidth : chartWidth / 2;
-                    const y = chartHeight - (snapshot.chart.maxValue === 0 ? 0 : (point.value / snapshot.chart.maxValue) * chartHeight);
+                    const y = getChartY(point.value, chartHeight, snapshot.chart.maxValue);
 
                     return <circle cx={x} cy={y} key={point.label} r="5" />;
                   })}
