@@ -4764,6 +4764,13 @@ a {
   gap: var(--office-space-5);
 }
 
+.office-page-shell > *,
+.bm-page > *,
+.bm-transactions-page > *,
+.bm-transaction-detail-page > * {
+  min-width: 0;
+}
+
 .office-page-header {
   display: flex;
   align-items: flex-start;
@@ -7643,6 +7650,8 @@ a {
 
 .office-library-toolbar-card {
   gap: 18px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .office-library-toolbar-top {
@@ -7696,9 +7705,11 @@ a {
 
 .office-library-workspace {
   display: grid;
-  grid-template-columns: minmax(250px, 280px) minmax(540px, 1.2fr) minmax(390px, 430px);
+  grid-template-columns: minmax(240px, 270px) minmax(0, 1fr) minmax(320px, 360px);
   gap: 16px;
   align-items: start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .office-library-panel {
@@ -7706,6 +7717,7 @@ a {
   flex-direction: column;
   gap: 16px;
   min-height: 0;
+  min-width: 0;
 }
 
 .office-library-panel-nav,
@@ -7863,7 +7875,7 @@ a {
 .office-library-document-list-head,
 .office-library-document-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1.95fr) minmax(130px, 0.9fr) minmax(150px, 0.95fr) minmax(138px, 0.8fr);
+  grid-template-columns: minmax(240px, 1.9fr) minmax(120px, 0.85fr) minmax(120px, 0.85fr) minmax(128px, 0.75fr);
   align-items: center;
   gap: 12px;
 }
@@ -7905,6 +7917,9 @@ a {
 .office-library-document-row > span {
   min-width: 0;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .office-library-document-main strong {
@@ -7977,7 +7992,7 @@ a {
   }
 
   .office-library-workspace {
-    grid-template-columns: minmax(250px, 290px) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
   }
 
   .office-library-panel-preview {
