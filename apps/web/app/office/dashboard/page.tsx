@@ -102,20 +102,25 @@ export default async function OfficeDashboardPage() {
                 ))}
               </div>
               <div className="bm-chart-line-shell">
-                <svg aria-hidden="true" className="bm-chart-series" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} width={chartWidth}>
-                  <path d={chartPath} />
-                  {snapshot.chart.points.map((point, index) => {
-                    const x = snapshot.chart.points.length > 1 ? (index / (snapshot.chart.points.length - 1)) * chartWidth : chartWidth / 2;
-                    const y = getChartY(point.value, chartHeight, snapshot.chart.maxValue);
+                <div className="bm-chart-canvas">
+                  <svg aria-hidden="true" className="bm-chart-series" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
+                    <path d={chartPath} />
+                  </svg>
 
-                    return <circle cx={x} cy={y} key={point.label} r="5" />;
-                  })}
-                </svg>
+                  <div aria-hidden="true" className="bm-chart-points">
+                    {snapshot.chart.points.map((point, index) => {
+                      const xPercent = snapshot.chart.points.length > 1 ? (index / (snapshot.chart.points.length - 1)) * 100 : 50;
+                      const yPercent = (getChartY(point.value, chartHeight, snapshot.chart.maxValue) / chartHeight) * 100;
 
-                <div className="bm-chart-months">
-                  {snapshot.chart.points.map((point) => (
-                    <span key={point.label}>{point.label}</span>
-                  ))}
+                      return <span className="bm-chart-point" key={point.label} style={{ left: `${xPercent}%`, top: `${yPercent}%` }} />;
+                    })}
+                  </div>
+
+                  <div className="bm-chart-months">
+                    {snapshot.chart.points.map((point) => (
+                      <span key={point.label}>{point.label}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
