@@ -152,11 +152,11 @@ export function OfficeAgentsClient({
       </section>
 
       <SectionCard subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
-        <FilterBar as="form" method="get">
-          <FilterField label="Search">
+        <FilterBar as="form" className="office-agents-toolbar" method="get">
+          <FilterField className="office-agents-search-field" label="Search">
             <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Search name, email, title, or team" type="search" />
           </FilterField>
-          <FilterField label="Office">
+          <FilterField className="office-agents-filter-field" label="Office">
             <SelectInput defaultValue={snapshot.filters.officeId} name="officeId">
               <option value="">All offices</option>
               {snapshot.filters.officeOptions.map((option) => (
@@ -166,7 +166,7 @@ export function OfficeAgentsClient({
               ))}
             </SelectInput>
           </FilterField>
-          <FilterField label="Role">
+          <FilterField className="office-agents-filter-field" label="Role">
             <SelectInput defaultValue={snapshot.filters.role} name="role">
               <option value="">All roles</option>
               {snapshot.filters.roleOptions.map((option) => (
@@ -176,7 +176,7 @@ export function OfficeAgentsClient({
               ))}
             </SelectInput>
           </FilterField>
-          <FilterField label="Team">
+          <FilterField className="office-agents-filter-field" label="Team">
             <SelectInput defaultValue={snapshot.filters.teamId} name="teamId">
               <option value="">All teams</option>
               {snapshot.filters.teamOptions.map((option) => (
@@ -186,7 +186,7 @@ export function OfficeAgentsClient({
               ))}
             </SelectInput>
           </FilterField>
-          <FilterField label="Onboarding">
+          <FilterField className="office-agents-filter-field" label="Onboarding">
             <SelectInput defaultValue={snapshot.filters.onboardingStatus} name="onboardingStatus">
               {onboardingStatusOptions.map((option) => (
                 <option key={option.value || "all"} value={option.value}>
@@ -195,7 +195,7 @@ export function OfficeAgentsClient({
               ))}
             </SelectInput>
           </FilterField>
-          <FilterField label="Membership">
+          <FilterField className="office-agents-membership-field" label="Membership">
             <SelectInput defaultValue={snapshot.filters.membershipStatus} name="membershipStatus">
               {membershipStatusOptions.map((option) => (
                 <option key={option.value || "all"} value={option.value}>
@@ -204,7 +204,7 @@ export function OfficeAgentsClient({
               ))}
             </SelectInput>
           </FilterField>
-          <div className="office-filter-actions">
+          <div className="office-filter-actions office-agents-filter-actions">
             <Button type="submit">Apply filters</Button>
             <Link className="office-button office-button-secondary" href="/office/agents">
               Reset
@@ -213,7 +213,7 @@ export function OfficeAgentsClient({
         </FilterBar>
 
         {snapshot.rows.length ? (
-          <DataTable>
+          <DataTable className="office-agents-roster-table">
             <DataTableHeader className="office-agents-roster-head">
               <span>Agent</span>
               <span>Office</span>
@@ -228,8 +228,8 @@ export function OfficeAgentsClient({
             </DataTableHeader>
             <DataTableBody>
               {snapshot.rows.map((row) => (
-                <DataTableRow className="office-data-table-row-link office-agents-roster-row" key={row.membershipId}>
-                  <Link className="office-data-table-row-anchor" href={row.href}>
+                <DataTableRow className="office-agents-roster-row-shell" key={row.membershipId}>
+                  <Link className="office-agents-roster-link" href={row.href}>
                     <span className="office-data-table-row-main">
                       <strong>{row.name}</strong>
                       <small>{row.email}</small>

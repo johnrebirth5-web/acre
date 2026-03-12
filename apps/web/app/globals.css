@@ -6415,9 +6415,35 @@ a {
   gap: 18px;
 }
 
+.office-agents-toolbar > .office-agents-search-field {
+  flex: 1.35 1 300px;
+  min-width: min(300px, 100%);
+}
+
+.office-agents-toolbar > .office-agents-filter-field {
+  flex: 1 1 210px;
+  min-width: min(210px, 100%);
+}
+
+.office-agents-toolbar > .office-agents-membership-field {
+  flex: 1 1 240px;
+  min-width: min(240px, 100%);
+}
+
+.office-agents-toolbar > .office-agents-filter-actions {
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-left: auto;
+}
+
 .office-agents-roster-head,
-.office-agents-roster-row {
-  min-width: 1520px;
+.office-agents-roster-row-shell,
+.office-agents-roster-link {
+  min-width: 1480px;
+}
+
+.office-agents-roster-head,
+.office-agents-roster-link {
   grid-template-columns:
     minmax(240px, 2fr)
     minmax(128px, 0.95fr)
@@ -6431,14 +6457,44 @@ a {
     minmax(156px, 1.05fr);
 }
 
+.office-agents-roster-row-shell {
+  padding: 0;
+}
+
+.office-agents-roster-link {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 18px;
+  color: inherit;
+  text-decoration: none;
+  width: max-content;
+  box-sizing: border-box;
+}
+
+.office-agents-roster-link:hover {
+  background: var(--office-bg-muted);
+}
+
+.office-agents-roster-link > * {
+  min-width: 0;
+}
+
 .office-agents-roster-stack {
   display: grid;
   gap: 4px;
 }
 
+.office-agents-roster-stack strong,
+.office-agents-roster-link .office-data-table-row-main strong {
+  line-height: 1.25;
+}
+
 .office-agents-roster-stack small {
   color: var(--office-text-muted);
   font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .office-agents-team-grid {
