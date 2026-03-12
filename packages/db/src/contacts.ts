@@ -1,6 +1,15 @@
-import { Prisma, TaskStatus, TransactionContactRole } from "@prisma/client";
+import {
+  NotificationCategory,
+  NotificationEntityType,
+  NotificationSeverity,
+  NotificationType,
+  Prisma,
+  TaskStatus,
+  TransactionContactRole
+} from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
+import { createNotificationsForMemberships } from "./notifications";
 import { type LinkTransactionContactInput, linkContactToTransaction as linkTransactionContact } from "./transaction-contacts";
 
 export type OfficeContactRecord = {
@@ -667,6 +676,24 @@ export async function createFollowUpTask(input: CreateFollowUpTaskInput): Promis
           `Assignee: ${created.assigneeMembership ? `${created.assigneeMembership.user.firstName} ${created.assigneeMembership.user.lastName}` : "Unassigned"}`
         ]
       }
+    });
+
+    await createNotificationsForMemberships(tx, {
+      organizationId: input.organizationId,
+      officeId: input.actorOfficeId ?? null,
+      membershipIds: [input.assigneeMembershipId],
+      restrictToOfficeRoles: true,
+      type: NotificationType.follow_up_assigned,
+      category: NotificationCategory.follow_up,
+      severity: NotificationSeverity.info,
+      entityType: NotificationEntityType.follow_up_task,
+      entityId: created.id,
+      followUpTaskId: created.id,
+      title: `Follow-up assigned: ${client.fullName}`,
+      body: created.dueAt
+        ? `${created.title} is due on ${formatDateLabel(created.dueAt)}.`
+        : `${created.title} was assigned to your follow-up queue.`,
+      actionUrl: `/office/contacts/${client.id}`
     });
 
     return created;

@@ -9,6 +9,12 @@
 ## Recently completed major work
 
 - Real Office Dashboard, Pipeline, Transactions, Contacts, Tasks, Reports, Activity, Accounting foundations
+- Notifications Center MVP:
+  - real `/office/notifications`
+  - user-scoped inbox distinct from `Activity Log`
+  - read / unread state
+  - actionable deep links into task review, offers, signatures, incoming updates, follow-up, and onboarding
+  - notification write paths wired into existing workflow services
 - Company Library / Internal Document Library MVP:
   - real `/office/library`
   - `LibraryFolder` / `LibraryDocument`
@@ -46,6 +52,7 @@
 
 ## Next recommended work
 
+- deepen notification automation only where real scheduling or assignment models exist
 - deepen approval/document workflow parity
 - strengthen storage strategy beyond local filesystem MVP
 - expand Activity Log coverage for newer modules
@@ -73,6 +80,7 @@
   - email/SMS delivery
 - some modules are still `MVP`, not full product parity
 - some workflow automation remains manual or manager-driven
+- time-based notification reminders currently reconcile on inbox load, not via background jobs
 
 ## How to update this file
 

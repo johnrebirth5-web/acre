@@ -1,0 +1,858 @@
+import {
+  NotificationCategory,
+  NotificationEntityType,
+  NotificationSeverity,
+  NotificationType,
+  TaskStatus,
+  type OfferStatus,
+  type Prisma,
+  type UserRole
+} from "@prisma/client";
+import {
+  canReviewOfficeIncomingUpdates,
+  canReviewOfficeTasks,
+  canSecondaryReviewOfficeTasks,
+  isOfficeRole
+} from "@acre/auth";
+import { prisma } from "./client";
+
+type NotificationDbClient = Prisma.TransactionClient | typeof prisma;
+
+export type OfficeNotificationReadFilter = "all" | "unread" | "read";
+export type OfficeNotificationPermissionGroup = "task_reviewers" | "secondary_task_reviewers" | "incoming_update_reviewers";
+
+export type ListOfficeNotificationsInput = {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  type?: string;
+  category?: string;
+  readState?: string;
+};
+
+export type OfficeNotificationSummary = {
+  totalCount: number;
+  unreadCount: number;
+  reviewCount: number;
+  timeSensitiveCount: number;
+};
+
+export type OfficeNotificationFilterState = {
+  type: string;
+  category: string;
+  readState: OfficeNotificationReadFilter;
+};
+
+export type OfficeNotificationFilterOption = {
+  value: string;
+  label: string;
+  count: number;
+};
+
+export type OfficeNotificationItem = {
+  id: string;
+  type: NotificationType;
+  typeLabel: string;
+  category: NotificationCategory | null;
+  categoryLabel: string;
+  severity: NotificationSeverity;
+  severityLabel: string;
+  title: string;
+  body: string;
+  actionUrl: string;
+  openHref: string;
+  isUnread: boolean;
+  createdAtLabel: string;
+  readStateLabel: "Unread" | "Read";
+};
+
+export type OfficeNotificationGroup = {
+  key: string;
+  label: string;
+  notifications: OfficeNotificationItem[];
+};
+
+export type OfficeNotificationsSnapshot = {
+  filters: OfficeNotificationFilterState;
+  summary: OfficeNotificationSummary;
+  totalCount: number;
+  unreadCount: number;
+  groups: OfficeNotificationGroup[];
+  typeOptions: OfficeNotificationFilterOption[];
+  categoryOptions: OfficeNotificationFilterOption[];
+};
+
+export type CreateNotificationsForMembershipsInput = {
+  organizationId: string;
+  officeId?: string | null;
+  membershipIds: string[];
+  type: NotificationType;
+  category?: NotificationCategory | null;
+  severity?: NotificationSeverity | null;
+  entityType?: NotificationEntityType | null;
+  entityId?: string | null;
+  followUpTaskId?: string | null;
+  eventId?: string | null;
+  title: string;
+  body: string;
+  actionUrl?: string | null;
+  metadata?: Prisma.InputJsonValue;
+  excludeMembershipIds?: string[];
+  restrictToOfficeRoles?: boolean;
+};
+
+export type EnsureNotificationForMembershipsInput = Omit<CreateNotificationsForMembershipsInput, "metadata"> & {
+  metadata?: Prisma.InputJsonValue;
+};
+
+const officeNotificationInboxTypes: NotificationType[] = [
+  NotificationType.task_review_requested,
+  NotificationType.task_second_review_requested,
+  NotificationType.task_rejected,
+  NotificationType.offer_created,
+  NotificationType.offer_received,
+  NotificationType.offer_expiring_soon,
+  NotificationType.signature_pending,
+  NotificationType.signature_completed,
+  NotificationType.incoming_update_pending_review,
+  NotificationType.follow_up_assigned,
+  NotificationType.follow_up_overdue,
+  NotificationType.onboarding_assigned,
+  NotificationType.onboarding_due_soon
+];
+
+const notificationTypeLabelMap: Record<NotificationType, string> = {
+  system: "System",
+  listing: "Listing",
+  follow_up: "Follow-up",
+  event: "Event",
+  task_review_requested: "Awaiting my review",
+  task_second_review_requested: "Awaiting second review",
+  task_rejected: "Rejected task",
+  offer_created: "Offer created",
+  offer_received: "Offer received",
+  offer_expiring_soon: "Offer expiring soon",
+  signature_pending: "Signature pending",
+  signature_completed: "Signature completed",
+  incoming_update_pending_review: "Incoming update pending review",
+  follow_up_assigned: "Follow-up assigned",
+  follow_up_overdue: "Follow-up overdue",
+  onboarding_assigned: "Onboarding assigned",
+  onboarding_due_soon: "Onboarding due soon"
+};
+
+const notificationCategoryLabelMap: Record<NotificationCategory, string> = {
+  system: "System",
+  task: "Tasks",
+  offer: "Offers",
+  signature: "Signatures",
+  incoming_update: "Incoming updates",
+  follow_up: "Follow-up",
+  onboarding: "Onboarding",
+  event: "Events"
+};
+
+const notificationSeverityLabelMap: Record<NotificationSeverity, string> = {
+  info: "Info",
+  warning: "Needs attention",
+  critical: "Critical"
+};
+
+const typeFilterOrder: NotificationType[] = [
+  NotificationType.task_review_requested,
+  NotificationType.task_second_review_requested,
+  NotificationType.task_rejected,
+  NotificationType.incoming_update_pending_review,
+  NotificationType.offer_created,
+  NotificationType.offer_received,
+  NotificationType.offer_expiring_soon,
+  NotificationType.signature_pending,
+  NotificationType.signature_completed,
+  NotificationType.follow_up_assigned,
+  NotificationType.follow_up_overdue,
+  NotificationType.onboarding_assigned,
+  NotificationType.onboarding_due_soon
+];
+
+const categoryFilterOrder: NotificationCategory[] = [
+  NotificationCategory.task,
+  NotificationCategory.offer,
+  NotificationCategory.signature,
+  NotificationCategory.incoming_update,
+  NotificationCategory.follow_up,
+  NotificationCategory.onboarding
+];
+
+const readStateOptions: OfficeNotificationReadFilter[] = ["all", "unread", "read"];
+
+function normalizeNotificationType(value: string | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  return officeNotificationInboxTypes.includes(value as NotificationType) ? (value as NotificationType) : "";
+}
+
+function normalizeNotificationCategory(value: string | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  return categoryFilterOrder.includes(value as NotificationCategory) ? (value as NotificationCategory) : "";
+}
+
+function normalizeReadState(value: string | undefined): OfficeNotificationReadFilter {
+  if (readStateOptions.includes(value as OfficeNotificationReadFilter)) {
+    return value as OfficeNotificationReadFilter;
+  }
+
+  return "all";
+}
+
+function formatDateLabel(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function formatDateTimeLabel(date: Date) {
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function getRelativeUrl(value: string | null | undefined) {
+  if (!value?.trim()) {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  return trimmed.startsWith("/") ? trimmed : "";
+}
+
+function buildNotificationInboxWhere(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  type?: NotificationType | "";
+  category?: NotificationCategory | "";
+  readState?: OfficeNotificationReadFilter;
+}): Prisma.NotificationWhereInput {
+  const where: Prisma.NotificationWhereInput = {
+    organizationId: input.organizationId,
+    membershipId: input.membershipId,
+    type: input.type || {
+      in: officeNotificationInboxTypes
+    }
+  };
+
+  if (input.officeId) {
+    where.OR = [{ officeId: input.officeId }, { officeId: null }];
+  }
+
+  if (input.category) {
+    where.category = input.category;
+  }
+
+  if (input.readState === "unread") {
+    where.readAt = null;
+  } else if (input.readState === "read") {
+    where.readAt = {
+      not: null
+    };
+  }
+
+  return where;
+}
+
+function buildNotificationScopedWhere(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  notificationId: string;
+}): Prisma.NotificationWhereInput {
+  return {
+    id: input.notificationId,
+    ...buildNotificationInboxWhere({
+      organizationId: input.organizationId,
+      officeId: input.officeId,
+      membershipId: input.membershipId
+    })
+  };
+}
+
+async function listActiveMembershipsByIds(
+  db: NotificationDbClient,
+  organizationId: string,
+  membershipIds: string[]
+) {
+  if (membershipIds.length === 0) {
+    return [];
+  }
+
+  return db.membership.findMany({
+    where: {
+      organizationId,
+      id: {
+        in: membershipIds
+      },
+      status: "active",
+      user: {
+        isActive: true
+      }
+    },
+    select: {
+      id: true,
+      role: true
+    }
+  });
+}
+
+async function normalizeRecipientMembershipIds(db: NotificationDbClient, input: {
+  organizationId: string;
+  membershipIds: string[];
+  excludeMembershipIds?: string[];
+  restrictToOfficeRoles?: boolean;
+}) {
+  const requestedIds = Array.from(new Set(input.membershipIds.filter((value) => value.trim().length > 0)));
+  const excludedIds = new Set(input.excludeMembershipIds?.filter((value) => value.trim().length > 0) ?? []);
+
+  if (requestedIds.length === 0) {
+    return [];
+  }
+
+  const memberships = await listActiveMembershipsByIds(db, input.organizationId, requestedIds);
+
+  return memberships
+    .filter((membership) => !excludedIds.has(membership.id))
+    .filter((membership) => !input.restrictToOfficeRoles || isOfficeRole(membership.role as UserRole))
+    .map((membership) => membership.id);
+}
+
+function resolvePermissionGroupMatcher(group: OfficeNotificationPermissionGroup) {
+  if (group === "task_reviewers") {
+    return canReviewOfficeTasks;
+  }
+
+  if (group === "secondary_task_reviewers") {
+    return canSecondaryReviewOfficeTasks;
+  }
+
+  return canReviewOfficeIncomingUpdates;
+}
+
+export async function listOfficeNotificationRecipientIds(
+  db: NotificationDbClient,
+  input: {
+    organizationId: string;
+    officeId?: string | null;
+    group: OfficeNotificationPermissionGroup;
+    excludeMembershipIds?: string[];
+    fallbackToExcludedIds?: boolean;
+  }
+) {
+  const memberships = await db.membership.findMany({
+    where: {
+      organizationId: input.organizationId,
+      status: "active",
+      user: {
+        isActive: true
+      },
+      ...(input.officeId
+        ? {
+            OR: [{ officeId: input.officeId }, { officeId: null }]
+          }
+        : {})
+    },
+    select: {
+      id: true,
+      role: true
+    }
+  });
+
+  const matchesGroup = resolvePermissionGroupMatcher(input.group);
+  const matchedIds = memberships.filter((membership) => matchesGroup(membership.role as UserRole)).map((membership) => membership.id);
+  const excludedIds = new Set(input.excludeMembershipIds?.filter((value) => value.trim().length > 0) ?? []);
+  const filteredIds = matchedIds.filter((membershipId) => !excludedIds.has(membershipId));
+
+  if (filteredIds.length > 0 || !input.fallbackToExcludedIds) {
+    return filteredIds;
+  }
+
+  return matchedIds;
+}
+
+export async function createNotificationsForMemberships(db: NotificationDbClient, input: CreateNotificationsForMembershipsInput) {
+  const membershipIds = await normalizeRecipientMembershipIds(db, {
+    organizationId: input.organizationId,
+    membershipIds: input.membershipIds,
+    excludeMembershipIds: input.excludeMembershipIds,
+    restrictToOfficeRoles: input.restrictToOfficeRoles
+  });
+
+  if (membershipIds.length === 0) {
+    return 0;
+  }
+
+  await Promise.all(
+    membershipIds.map((membershipId) =>
+      db.notification.create({
+        data: {
+          organizationId: input.organizationId,
+          officeId: input.officeId ?? null,
+          membershipId,
+          followUpTaskId: input.followUpTaskId ?? null,
+          eventId: input.eventId ?? null,
+          type: input.type,
+          category: input.category ?? null,
+          severity: input.severity ?? null,
+          entityType: input.entityType ?? null,
+          entityId: input.entityId ?? null,
+          metadata: input.metadata,
+          title: input.title,
+          body: input.body,
+          actionUrl: getRelativeUrl(input.actionUrl) || null
+        }
+      })
+    )
+  );
+
+  return membershipIds.length;
+}
+
+export async function ensureNotificationForMemberships(db: NotificationDbClient, input: EnsureNotificationForMembershipsInput) {
+  const membershipIds = await normalizeRecipientMembershipIds(db, {
+    organizationId: input.organizationId,
+    membershipIds: input.membershipIds,
+    excludeMembershipIds: input.excludeMembershipIds,
+    restrictToOfficeRoles: input.restrictToOfficeRoles
+  });
+
+  if (membershipIds.length === 0) {
+    return 0;
+  }
+
+  let createdCount = 0;
+
+  for (const membershipId of membershipIds) {
+    const existing = await db.notification.findFirst({
+      where: {
+        organizationId: input.organizationId,
+        membershipId,
+        type: input.type,
+        entityType: input.entityType ?? null,
+        entityId: input.entityId ?? null
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    await db.notification.create({
+      data: {
+        organizationId: input.organizationId,
+        officeId: input.officeId ?? null,
+        membershipId,
+        followUpTaskId: input.followUpTaskId ?? null,
+        eventId: input.eventId ?? null,
+        type: input.type,
+        category: input.category ?? null,
+        severity: input.severity ?? null,
+        entityType: input.entityType ?? null,
+        entityId: input.entityId ?? null,
+        metadata: input.metadata,
+        title: input.title,
+        body: input.body,
+        actionUrl: getRelativeUrl(input.actionUrl) || null
+      }
+    });
+
+    createdCount += 1;
+  }
+
+  return createdCount;
+}
+
+async function reconcileOfficeNotificationReminders(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+}) {
+  const now = new Date();
+  const soon = new Date(now);
+  soon.setDate(soon.getDate() + 7);
+  const offerCutoff = new Date(now);
+  offerCutoff.setHours(offerCutoff.getHours() + 72);
+
+  await prisma.$transaction(async (tx) => {
+    const [expiringOffers, overdueFollowUpTasks, dueSoonOnboardingItems] = await Promise.all([
+      tx.offer.findMany({
+        where: {
+          organizationId: input.organizationId,
+          expirationAt: {
+            gte: now,
+            lte: offerCutoff
+          },
+          status: {
+            notIn: [("accepted" as OfferStatus), ("rejected" as OfferStatus), ("withdrawn" as OfferStatus), ("expired" as OfferStatus)]
+          },
+          transaction: {
+            ownerMembershipId: input.membershipId
+          }
+        },
+        include: {
+          transaction: {
+            select: {
+              id: true,
+              officeId: true,
+              title: true,
+              address: true,
+              city: true,
+              state: true
+            }
+          }
+        }
+      }),
+      tx.followUpTask.findMany({
+        where: {
+          organizationId: input.organizationId,
+          assigneeMemberId: input.membershipId,
+          status: {
+            in: [TaskStatus.queued, TaskStatus.in_progress]
+          },
+          dueAt: {
+            lt: now
+          }
+        },
+        include: {
+          client: {
+            select: {
+              id: true,
+              fullName: true
+            }
+          },
+          assigneeMembership: {
+            select: {
+              officeId: true
+            }
+          }
+        }
+      }),
+      tx.agentOnboardingItem.findMany({
+        where: {
+          organizationId: input.organizationId,
+          membershipId: input.membershipId,
+          status: {
+            not: "completed"
+          },
+          dueAt: {
+            gte: now,
+            lte: soon
+          }
+        },
+        include: {
+          membership: {
+            select: {
+              officeId: true
+            }
+          }
+        }
+      })
+    ]);
+
+    for (const offer of expiringOffers) {
+      await ensureNotificationForMemberships(tx, {
+        organizationId: input.organizationId,
+        officeId: offer.transaction.officeId ?? input.officeId ?? null,
+        membershipIds: [input.membershipId],
+        type: NotificationType.offer_expiring_soon,
+        category: NotificationCategory.offer,
+        severity: NotificationSeverity.warning,
+        entityType: NotificationEntityType.offer,
+        entityId: offer.id,
+        title: `Offer expiring soon: ${offer.transaction.title}`,
+        body: `${offer.title} expires on ${formatDateTimeLabel(offer.expirationAt!)}.`,
+        actionUrl: `/office/transactions/${offer.transactionId}#transaction-offers`,
+        restrictToOfficeRoles: true
+      });
+    }
+
+    for (const task of overdueFollowUpTasks) {
+      await ensureNotificationForMemberships(tx, {
+        organizationId: input.organizationId,
+        officeId: task.assigneeMembership?.officeId ?? input.officeId ?? null,
+        membershipIds: [input.membershipId],
+        type: NotificationType.follow_up_overdue,
+        category: NotificationCategory.follow_up,
+        severity: NotificationSeverity.warning,
+        entityType: NotificationEntityType.follow_up_task,
+        entityId: task.id,
+        followUpTaskId: task.id,
+        title: `Follow-up overdue: ${task.client?.fullName ?? "Contact follow-up"}`,
+        body: `${task.title} was due on ${formatDateLabel(task.dueAt!)} and is still open.`,
+        actionUrl: task.clientId ? `/office/contacts/${task.clientId}` : "/office/contacts",
+        restrictToOfficeRoles: true
+      });
+    }
+
+    for (const item of dueSoonOnboardingItems) {
+      await ensureNotificationForMemberships(tx, {
+        organizationId: input.organizationId,
+        officeId: item.membership.officeId ?? input.officeId ?? null,
+        membershipIds: [input.membershipId],
+        type: NotificationType.onboarding_due_soon,
+        category: NotificationCategory.onboarding,
+        severity: NotificationSeverity.warning,
+        entityType: NotificationEntityType.agent_onboarding_item,
+        entityId: item.id,
+        title: "Onboarding item due soon",
+        body: `${item.title} is due on ${formatDateLabel(item.dueAt!)}.`,
+        actionUrl: `/office/agents/${input.membershipId}#onboarding`,
+        restrictToOfficeRoles: true
+      });
+    }
+  });
+}
+
+export async function listOfficeNotifications(input: ListOfficeNotificationsInput): Promise<OfficeNotificationsSnapshot> {
+  await reconcileOfficeNotificationReminders({
+    organizationId: input.organizationId,
+    officeId: input.officeId ?? null,
+    membershipId: input.membershipId
+  });
+
+  const selectedType = normalizeNotificationType(input.type);
+  const selectedCategory = normalizeNotificationCategory(input.category);
+  const readState = normalizeReadState(input.readState);
+  const baseWhere = buildNotificationInboxWhere({
+    organizationId: input.organizationId,
+    officeId: input.officeId ?? null,
+    membershipId: input.membershipId
+  });
+  const filteredWhere = buildNotificationInboxWhere({
+    organizationId: input.organizationId,
+    officeId: input.officeId ?? null,
+    membershipId: input.membershipId,
+    type: selectedType,
+    category: selectedCategory,
+    readState
+  });
+
+  const [allNotifications, filteredNotifications] = await Promise.all([
+    prisma.notification.findMany({
+      where: baseWhere,
+      select: {
+        id: true,
+        type: true,
+        category: true,
+        severity: true,
+        readAt: true
+      }
+    }),
+    prisma.notification.findMany({
+      where: filteredWhere,
+      orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        type: true,
+        category: true,
+        severity: true,
+        title: true,
+        body: true,
+        actionUrl: true,
+        readAt: true,
+        createdAt: true
+      }
+    })
+  ]);
+
+  const unreadNotifications = allNotifications.filter((notification) => !notification.readAt);
+  const typeCounts = new Map<NotificationType, number>();
+  const categoryCounts = new Map<NotificationCategory, number>();
+
+  for (const notification of allNotifications) {
+    typeCounts.set(notification.type, (typeCounts.get(notification.type) ?? 0) + 1);
+
+    if (notification.category) {
+      categoryCounts.set(notification.category, (categoryCounts.get(notification.category) ?? 0) + 1);
+    }
+  }
+
+  const groupsByDate = new Map<string, OfficeNotificationGroup>();
+  for (const notification of filteredNotifications) {
+    const groupKey = notification.createdAt.toISOString().slice(0, 10);
+    const group = groupsByDate.get(groupKey) ?? {
+      key: groupKey,
+      label: formatDateLabel(notification.createdAt),
+      notifications: []
+    };
+
+    group.notifications.push({
+      id: notification.id,
+      type: notification.type,
+      typeLabel: notificationTypeLabelMap[notification.type],
+      category: notification.category,
+      categoryLabel: notification.category ? notificationCategoryLabelMap[notification.category] : "General",
+      severity: notification.severity ?? NotificationSeverity.info,
+      severityLabel: notificationSeverityLabelMap[notification.severity ?? NotificationSeverity.info],
+      title: notification.title,
+      body: notification.body,
+      actionUrl: getRelativeUrl(notification.actionUrl),
+      openHref: `/office/notifications/${notification.id}/open`,
+      isUnread: !notification.readAt,
+      createdAtLabel: formatDateTimeLabel(notification.createdAt),
+      readStateLabel: notification.readAt ? "Read" : "Unread"
+    });
+
+    groupsByDate.set(groupKey, group);
+  }
+
+  const typeOptions = typeFilterOrder
+    .map((type) => ({
+      value: type,
+      label: notificationTypeLabelMap[type],
+      count: typeCounts.get(type) ?? 0
+    }))
+    .filter((option) => option.count > 0 || option.value === selectedType);
+
+  const categoryOptions = categoryFilterOrder
+    .map((category) => ({
+      value: category,
+      label: notificationCategoryLabelMap[category],
+      count: categoryCounts.get(category) ?? 0
+    }))
+    .filter((option) => option.count > 0 || option.value === selectedCategory);
+
+  return {
+    filters: {
+      type: selectedType,
+      category: selectedCategory,
+      readState
+    },
+    summary: {
+      totalCount: allNotifications.length,
+      unreadCount: unreadNotifications.length,
+      reviewCount: unreadNotifications.filter((notification) =>
+        notification.type === NotificationType.task_review_requested ||
+        notification.type === NotificationType.task_second_review_requested ||
+        notification.type === NotificationType.incoming_update_pending_review
+      ).length,
+      timeSensitiveCount: unreadNotifications.filter((notification) =>
+        notification.type === NotificationType.offer_expiring_soon ||
+        notification.type === NotificationType.follow_up_overdue ||
+        notification.type === NotificationType.onboarding_due_soon
+      ).length
+    },
+    totalCount: filteredNotifications.length,
+    unreadCount: filteredNotifications.filter((notification) => !notification.readAt).length,
+    groups: Array.from(groupsByDate.values()),
+    typeOptions,
+    categoryOptions
+  };
+}
+
+export async function markOfficeNotificationRead(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  notificationId: string;
+}) {
+  const result = await prisma.notification.updateMany({
+    where: {
+      ...buildNotificationScopedWhere(input),
+      readAt: null
+    },
+    data: {
+      readAt: new Date()
+    }
+  });
+
+  return result.count > 0;
+}
+
+export async function markOfficeNotificationUnread(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  notificationId: string;
+}) {
+  const result = await prisma.notification.updateMany({
+    where: buildNotificationScopedWhere(input),
+    data: {
+      readAt: null
+    }
+  });
+
+  return result.count > 0;
+}
+
+export async function markAllOfficeNotificationsRead(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  type?: string;
+  category?: string;
+}) {
+  const where = buildNotificationInboxWhere({
+    organizationId: input.organizationId,
+    officeId: input.officeId ?? null,
+    membershipId: input.membershipId,
+    type: normalizeNotificationType(input.type),
+    category: normalizeNotificationCategory(input.category)
+  });
+
+  const result = await prisma.notification.updateMany({
+    where: {
+      ...where,
+      readAt: null
+    },
+    data: {
+      readAt: new Date()
+    }
+  });
+
+  return result.count;
+}
+
+export async function openOfficeNotification(input: {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  notificationId: string;
+}) {
+  const notification = await prisma.notification.findFirst({
+    where: buildNotificationScopedWhere(input),
+    select: {
+      id: true,
+      readAt: true,
+      actionUrl: true
+    }
+  });
+
+  if (!notification) {
+    return "";
+  }
+
+  if (!notification.readAt) {
+    await prisma.notification.update({
+      where: {
+        id: notification.id
+      },
+      data: {
+        readAt: new Date()
+      }
+    });
+  }
+
+  return getRelativeUrl(notification.actionUrl) || "/office/notifications";
+}

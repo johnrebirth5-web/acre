@@ -64,7 +64,20 @@ const notificationTypeLabelMap: Record<NotificationType, string> = {
   system: "System",
   listing: "Listing",
   follow_up: "Follow-up",
-  event: "Event"
+  event: "Event",
+  task_review_requested: "Awaiting my review",
+  task_second_review_requested: "Awaiting second review",
+  task_rejected: "Rejected task",
+  offer_created: "Offer created",
+  offer_received: "Offer received",
+  offer_expiring_soon: "Offer expiring soon",
+  signature_pending: "Signature pending",
+  signature_completed: "Signature completed",
+  incoming_update_pending_review: "Incoming update pending review",
+  follow_up_assigned: "Follow-up assigned",
+  follow_up_overdue: "Follow-up overdue",
+  onboarding_assigned: "Onboarding assigned",
+  onboarding_due_soon: "Onboarding due soon"
 };
 
 function formatDateTimeLabel(date: Date | null) {

@@ -40,6 +40,46 @@ enum NotificationType {
   listing
   follow_up
   event
+  task_review_requested
+  task_second_review_requested
+  task_rejected
+  offer_created
+  offer_received
+  offer_expiring_soon
+  signature_pending
+  signature_completed
+  incoming_update_pending_review
+  follow_up_assigned
+  follow_up_overdue
+  onboarding_assigned
+  onboarding_due_soon
+}
+
+enum NotificationCategory {
+  system
+  task
+  offer
+  signature
+  incoming_update
+  follow_up
+  onboarding
+  event
+}
+
+enum NotificationSeverity {
+  info
+  warning
+  critical
+}
+
+enum NotificationEntityType {
+  follow_up_task
+  transaction_task
+  offer
+  signature_request
+  incoming_update
+  agent_onboarding_item
+  event
 }
 
 enum EventVisibility {
@@ -392,6 +432,7 @@ model Office {
   updatedAt                         DateTime                           @updatedAt
   organization                      Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships                       Membership[]
+  notifications                     Notification[]
   listings                          Listing[]
   events                            Event[]
   resources                         Resource[]
@@ -757,21 +798,32 @@ model FollowUpTask {
 model Notification {
   id             String           @id @default(cuid())
   organizationId String
+  officeId       String?
   membershipId   String?
   followUpTaskId String?
   eventId        String?
   type           NotificationType
+  category       NotificationCategory?
+  severity       NotificationSeverity?
+  entityType     NotificationEntityType?
+  entityId       String?
+  metadata       Json?
   title          String
   body           String
   actionUrl      String?
   readAt         DateTime?
   createdAt      DateTime         @default(now())
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?          @relation(fields: [officeId], references: [id], onDelete: SetNull)
   membership     Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
   followUpTask   FollowUpTask?    @relation(fields: [followUpTaskId], references: [id], onDelete: SetNull)
   event          Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, type])
+  @@index([organizationId, membershipId, officeId, createdAt])
+  @@index([organizationId, membershipId, readAt, createdAt])
+  @@index([organizationId, membershipId, category])
+  @@index([organizationId, membershipId, entityType, entityId])
 }
 
 model Event {

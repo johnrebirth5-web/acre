@@ -1,6 +1,15 @@
-import { OfferStatus, Prisma, SignatureRequestStatus } from "@prisma/client";
+import {
+  NotificationCategory,
+  NotificationEntityType,
+  NotificationSeverity,
+  NotificationType,
+  OfferStatus,
+  Prisma,
+  SignatureRequestStatus
+} from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
+import { createNotificationsForMemberships } from "./notifications";
 
 export type OfficeOfferCommentRecord = {
   id: string;
@@ -637,6 +646,7 @@ export async function createOffer(input: CreateOfferInput): Promise<OfficeOfferR
       select: {
         id: true,
         officeId: true,
+        ownerMembershipId: true,
         title: true,
         address: true,
         city: true,
@@ -687,6 +697,22 @@ export async function createOffer(input: CreateOfferInput): Promise<OfficeOfferR
       }
     });
 
+    await createNotificationsForMemberships(tx, {
+      organizationId: input.organizationId,
+      officeId: transaction.officeId,
+      membershipIds: [transaction.ownerMembershipId ?? ""],
+      excludeMembershipIds: [input.actorMembershipId],
+      restrictToOfficeRoles: true,
+      type: NotificationType.offer_created,
+      category: NotificationCategory.offer,
+      severity: NotificationSeverity.info,
+      entityType: NotificationEntityType.offer,
+      entityId: created.id,
+      title: `Offer added: ${transaction.title}`,
+      body: `${created.title} was added for ${created.offeringPartyName}.`,
+      actionUrl: buildOfferHref(input.transactionId, created.id)
+    });
+
     return created.id;
   });
 
@@ -711,6 +737,7 @@ export async function updateOffer(input: UpdateOfferInput): Promise<OfficeOfferR
           select: {
             id: true,
             officeId: true,
+            ownerMembershipId: true,
             title: true,
             address: true,
             city: true,
@@ -816,6 +843,7 @@ export async function transitionOfferStatus(input: TransitionOfferStatusInput): 
           select: {
             id: true,
             officeId: true,
+            ownerMembershipId: true,
             title: true,
             address: true,
             city: true,
@@ -970,6 +998,23 @@ export async function transitionOfferStatus(input: TransitionOfferStatusInput): 
         contextHref: buildOfferHref(existing.transactionId, saved.id)
       }
     });
+
+    if (input.action === "receive") {
+      await createNotificationsForMemberships(tx, {
+        organizationId: input.organizationId,
+        officeId: existing.transaction.officeId,
+        membershipIds: [existing.transaction.ownerMembershipId ?? ""],
+        restrictToOfficeRoles: true,
+        type: NotificationType.offer_received,
+        category: NotificationCategory.offer,
+        severity: NotificationSeverity.warning,
+        entityType: NotificationEntityType.offer,
+        entityId: saved.id,
+        title: `Offer received: ${existing.transaction.title}`,
+        body: `${saved.title} from ${saved.offeringPartyName} is now marked received.`,
+        actionUrl: buildOfferHref(existing.transactionId, saved.id)
+      });
+    }
 
     return saved.id;
   });

@@ -1,0 +1,139 @@
+# Notifications Spec
+
+## Goal
+
+Provide a real Back Office notifications center for the signed-in user.
+
+This inbox is intentionally different from `Activity Log`:
+
+- `Activity Log`
+  - account / system level audited event stream
+  - source of truth for operational history
+  - includes comments and live alerts
+- `Notifications`
+  - personal inbox for actionable alerts and reminders
+  - scoped to the current membership / user
+  - supports read / unread state and direct action links
+
+## Route and access
+
+- route:
+  - `/office/notifications`
+- access model:
+  - requires a valid office session
+  - uses the current signed-in membership as the notification recipient scope
+  - preserves organization and office scoping on reads and writes
+
+## Current implemented foundation
+
+- `Notification` is now the persisted inbox record
+- `/office/notifications` is a real page in the existing Office shell
+- nav `User > Notifications` now points to the real route
+- inbox supports:
+  - unread-first sorting
+  - category filter
+  - type filter
+  - read / unread filter
+  - date grouping
+  - row-level deep links
+  - mark read
+  - mark unread
+  - mark all in view as read
+- opening a notification uses a scoped redirect route that marks it as read first
+
+## Notification model
+
+Current notification records support:
+
+- `organizationId`
+- `officeId`
+- `membershipId`
+- `type`
+- `category`
+- `severity`
+- `entityType`
+- `entityId`
+- `title`
+- `body`
+- `actionUrl`
+- `metadata`
+- `readAt`
+- `createdAt`
+
+The model remains explicit and reviewable; it does not reuse `AuditLog` rows as inbox items.
+
+## Current notification families
+
+Current user-facing inbox coverage is limited to real implemented workflow signals:
+
+- task review requested
+- task second review requested
+- rejected task needing action
+- offer created for an office-scoped responsible user
+- offer received
+- offer expiring soon
+- signature pending
+- signature completed
+- incoming update pending review
+- follow-up assigned
+- follow-up overdue
+- onboarding assigned
+- onboarding due soon
+
+## Current write paths
+
+Notifications are currently written from real workflow services:
+
+- `requestTransactionTaskReview`
+- first approval -> second review handoff
+- `rejectTransactionTask`
+- `createOffer`
+- offer `receive` transition
+- signature `send` / `signed` transitions
+- `createIncomingUpdate`
+- `createFollowUpTask`
+- `createAgentOnboardingItem`
+
+Time-based reminders without a scheduler are currently reconciled when the inbox is loaded:
+
+- offer expiring soon
+- follow-up overdue
+- onboarding due soon
+
+This keeps the system honest without inventing a fake delivery daemon.
+
+## Deep-link behavior
+
+Notifications currently link to the nearest real actionable page:
+
+- task review items:
+  - `/office/approve-docs`
+- rejected tasks:
+  - transaction task section
+- offers:
+  - transaction offers anchor
+- signatures:
+  - transaction forms/signatures anchor
+- incoming updates:
+  - transaction incoming updates anchor
+- follow-up:
+  - contact detail
+- onboarding:
+  - agent onboarding anchor
+
+If the product does not yet have a more precise queue or sub-route, the notification links to the closest practical page instead of faking a nonexistent destination.
+
+## Current limitations
+
+- no email / SMS / WeChat delivery
+- no dismiss / archive action yet
+- no background scheduler; time-based reminders are created during inbox reconciliation
+- reviewer targeting still follows current permission-based queues, not explicit reviewer assignment models
+- onboarding notifications are most useful for office-role recipients because the current inbox route is office-only
+
+## Future direction
+
+- add dismiss / archive semantics if the product needs inbox cleanup beyond read state
+- add scheduler-driven reminder generation when a real job runner exists
+- expand notification coverage only when new workflow modules become real
+- keep notifications distinct from `Activity Log` even when both are triggered by the same workflow action

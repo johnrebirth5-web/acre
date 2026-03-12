@@ -71,8 +71,30 @@ This file is the high-level product map for the current `Office / Back Office` s
   - `Approve Docs` uses the same `TransactionTask` review workflow as task list and transaction detail, including current-user actionable review filtering and explicit secondary-approval separation.
 - Follow-up work:
   - richer template application
-  - reminder/notification automation
+  - richer reminder tuning and delivery beyond the current in-product inbox
   - reviewer assignment / SLA handling beyond the current permission-based Approve Docs queue
+
+### Notifications
+
+- What it is for:
+  - signed-in user inbox for actionable Back Office alerts and reminders tied to real workflow state.
+- Current maturity:
+  - `MVP`
+- Current notable behavior:
+  - `/office/notifications` is now a real user-scoped inbox route.
+  - notification records are persisted separately from `AuditLog`.
+  - inbox supports read/unread state, mark-all-read, category/type filtering, and deep links into the nearest real workflow page.
+  - current coverage is intentionally limited to real signals:
+    - task review / second review / rejection
+    - offer created / received / expiring soon
+    - signature pending / completed
+    - incoming update pending review
+    - follow-up assigned / overdue
+    - onboarding assigned / due soon
+- Follow-up work:
+  - add scheduler-driven reminder delivery when a real job runner exists
+  - add archive/dismiss behavior if the inbox grows beyond read state
+  - keep extending coverage only where a real workflow already exists
 
 ### Activity Log
 
@@ -80,6 +102,8 @@ This file is the high-level product map for the current `Office / Back Office` s
   - account activity + operational alerts for auditable system actions and live workflow issues.
 - Current maturity:
   - `MVP`
+- Current notable behavior:
+  - remains intentionally separate from the personal notifications inbox.
 - Follow-up work:
   - broader event coverage for future modules
   - deeper filtering and export

@@ -218,6 +218,10 @@ export function canAccessAccountActivity(role: UserRole): boolean {
   return can(role, "activity:view");
 }
 
+export function canAccessOfficeNotifications(role: UserRole): boolean {
+  return can(role, "notifications:view");
+}
+
 export function canAccessOfficeSettings(role: UserRole): boolean {
   return can(role, "settings:view");
 }

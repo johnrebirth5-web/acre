@@ -1,4 +1,8 @@
 import {
+  NotificationCategory,
+  NotificationEntityType,
+  NotificationSeverity,
+  NotificationType,
   Prisma,
   type AgentGoalPeriodType,
   type AgentOnboardingItemStatus,
@@ -15,6 +19,7 @@ import {
 } from "./activity-log";
 import { prisma } from "./client";
 import { getAgentCommissionSummary, type OfficeAgentCommissionSummary } from "./commissions";
+import { createNotificationsForMemberships } from "./notifications";
 
 const roleLabelMap: Record<UserRole, string> = {
   agent: "Agent",
@@ -2049,6 +2054,23 @@ export async function createAgentOnboardingItem(input: CreateAgentOnboardingItem
         contextHref: `/office/agents/${input.membershipId}#onboarding`,
         details: [`Category: ${item.category}`]
       }
+    });
+
+    await createNotificationsForMemberships(tx, {
+      organizationId: input.organizationId,
+      officeId: membership.officeId,
+      membershipIds: [input.membershipId],
+      restrictToOfficeRoles: true,
+      type: NotificationType.onboarding_assigned,
+      category: NotificationCategory.onboarding,
+      severity: NotificationSeverity.info,
+      entityType: NotificationEntityType.agent_onboarding_item,
+      entityId: item.id,
+      title: "Onboarding item assigned",
+      body: item.dueAt
+        ? `${item.title} is due on ${formatDateLabel(item.dueAt)}.`
+        : `${item.title} was added to your onboarding checklist.`,
+      actionUrl: `/office/agents/${input.membershipId}#onboarding`
     });
 
     return item;

@@ -1,5 +1,9 @@
 import {
   IncomingUpdateStatus,
+  NotificationCategory,
+  NotificationEntityType,
+  NotificationSeverity,
+  NotificationType,
   Prisma,
   SignatureRequestStatus,
   TransactionDocumentSource,
@@ -11,6 +15,7 @@ import {
 } from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
+import { createNotificationsForMemberships, listOfficeNotificationRecipientIds } from "./notifications";
 import { reconcileTransactionTaskDocumentWorkflow } from "./transaction-tasks";
 
 export type OfficeTransactionDocumentFilter = "all" | "unsorted" | "signed" | "pending_signature" | "linked_to_tasks";
@@ -1123,6 +1128,7 @@ export async function updateTransactionDocument(input: UpdateTransactionDocument
           select: {
             id: true,
             officeId: true,
+            ownerMembershipId: true,
             title: true,
             address: true,
             city: true,
@@ -1267,6 +1273,7 @@ export async function deleteTransactionDocument(
           select: {
             id: true,
             officeId: true,
+            ownerMembershipId: true,
             title: true,
             address: true,
             city: true,
@@ -1575,6 +1582,7 @@ export async function updateTransactionForm(input: UpdateTransactionFormInput): 
           select: {
             id: true,
             officeId: true,
+            ownerMembershipId: true,
             title: true,
             address: true,
             city: true,
@@ -1775,6 +1783,7 @@ export async function updateSignatureRequest(input: UpdateSignatureRequestInput)
           select: {
             id: true,
             officeId: true,
+            ownerMembershipId: true,
             title: true,
             address: true,
             city: true,
@@ -1862,6 +1871,34 @@ export async function updateSignatureRequest(input: UpdateSignatureRequestInput)
       }
     });
 
+    if (input.action === "send" || input.action === "signed") {
+      const notificationType =
+        input.action === "send" ? NotificationType.signature_pending : NotificationType.signature_completed;
+      const notificationTitle =
+        input.action === "send"
+          ? `Signature pending: ${existing.document?.title ?? existing.form?.name ?? existing.transaction.title}`
+          : `Signature completed: ${existing.document?.title ?? existing.form?.name ?? existing.transaction.title}`;
+      const notificationBody =
+        input.action === "send"
+          ? `${saved.recipientName} still needs to complete this signature request.`
+          : `${saved.recipientName} completed this signature request.`;
+
+      await createNotificationsForMemberships(tx, {
+        organizationId: input.organizationId,
+        officeId: existing.transaction.officeId,
+        membershipIds: [existing.transaction.ownerMembershipId ?? "", existing.requestedByMembershipId],
+        restrictToOfficeRoles: true,
+        type: notificationType,
+        category: NotificationCategory.signature,
+        severity: input.action === "send" ? NotificationSeverity.warning : NotificationSeverity.info,
+        entityType: NotificationEntityType.signature_request,
+        entityId: saved.id,
+        title: notificationTitle,
+        body: notificationBody,
+        actionUrl: `/office/transactions/${input.transactionId}#transaction-forms-signatures`
+      });
+    }
+
     await reconcileLinkedWorkflowTasks(tx, {
       organizationId: input.organizationId,
       transactionId: input.transactionId,
@@ -1933,6 +1970,32 @@ export async function createIncomingUpdate(input: CreateIncomingUpdateInput): Pr
         details: [`Source reference: ${created.sourceReference}`],
         contextHref: created.transactionId ? `/office/transactions/${created.transactionId}#transaction-incoming-updates` : "/office/activity?view=alerts"
       }
+    });
+
+    const reviewerMembershipIds = await listOfficeNotificationRecipientIds(tx, {
+      organizationId: input.organizationId,
+      officeId: created.officeId,
+      group: "incoming_update_reviewers",
+      excludeMembershipIds: input.actorMembershipId ? [input.actorMembershipId] : [],
+      fallbackToExcludedIds: true
+    });
+
+    await createNotificationsForMemberships(tx, {
+      organizationId: input.organizationId,
+      officeId: created.officeId,
+      membershipIds: reviewerMembershipIds,
+      type: NotificationType.incoming_update_pending_review,
+      category: NotificationCategory.incoming_update,
+      severity: NotificationSeverity.warning,
+      entityType: NotificationEntityType.incoming_update,
+      entityId: created.id,
+      title: "Incoming update pending review",
+      body: transaction
+        ? `${created.summary} needs review for ${transaction.title}.`
+        : `${created.summary} needs review before it can be applied.`,
+      actionUrl: created.transactionId
+        ? `/office/transactions/${created.transactionId}#transaction-incoming-updates`
+        : "/office/activity?view=alerts&alertSection=incoming-updates-awaiting-review"
     });
 
     return created.id;

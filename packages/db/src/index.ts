@@ -59,6 +59,16 @@ export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnaps
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export {
+  createNotificationsForMemberships,
+  ensureNotificationForMemberships,
+  listOfficeNotificationRecipientIds,
+  listOfficeNotifications,
+  markAllOfficeNotificationsRead,
+  markOfficeNotificationRead,
+  markOfficeNotificationUnread,
+  openOfficeNotification
+} from "./notifications";
+export {
   createLibraryDocument,
   createLibraryFolder,
   deleteLibraryDocument,
@@ -267,6 +277,18 @@ export type {
   OfficeActivityOperationalItem,
   OfficeActivitySnapshot
 } from "./activity";
+export type {
+  CreateNotificationsForMembershipsInput,
+  EnsureNotificationForMembershipsInput,
+  ListOfficeNotificationsInput,
+  OfficeNotificationFilterOption,
+  OfficeNotificationFilterState,
+  OfficeNotificationGroup,
+  OfficeNotificationItem,
+  OfficeNotificationPermissionGroup,
+  OfficeNotificationsSnapshot,
+  OfficeNotificationSummary
+} from "./notifications";
 export type {
   ActivityLogChange,
   ActivityLogAction,

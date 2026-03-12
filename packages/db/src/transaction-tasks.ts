@@ -1,4 +1,8 @@
 import {
+  NotificationCategory,
+  NotificationEntityType,
+  NotificationSeverity,
+  NotificationType,
   Prisma,
   SignatureRequestStatus,
   TransactionDocumentStatus,
@@ -11,6 +15,7 @@ import {
 } from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
+import { createNotificationsForMemberships, listOfficeNotificationRecipientIds } from "./notifications";
 
 export type OfficeTransactionTaskStatus = "Todo" | "In progress" | "Review requested" | "Completed" | "Reopened";
 export type OfficeTransactionTaskReviewStatus =
@@ -654,6 +659,10 @@ function buildTransactionObjectLabel(transaction: {
 
 function buildTaskObjectLabel(taskTitle: string, transactionLabel: string) {
   return `${taskTitle} · ${transactionLabel}`;
+}
+
+function buildTaskNotificationHref(transactionId: string) {
+  return `/office/transactions/${transactionId}#transaction-tasks`;
 }
 
 function taskNeedsReview(task: {
@@ -2779,6 +2788,28 @@ export async function requestTransactionTaskReview(input: {
       ].filter((change): change is NonNullable<typeof change> => Boolean(change))
     });
 
+    const reviewerMembershipIds = await listOfficeNotificationRecipientIds(tx, {
+      organizationId: input.organizationId,
+      officeId: updated.transaction.officeId ?? null,
+      group: "task_reviewers",
+      excludeMembershipIds: input.actorMembershipId ? [input.actorMembershipId] : [],
+      fallbackToExcludedIds: true
+    });
+
+    await createNotificationsForMemberships(tx, {
+      organizationId: input.organizationId,
+      officeId: updated.transaction.officeId ?? null,
+      membershipIds: reviewerMembershipIds,
+      type: NotificationType.task_review_requested,
+      category: NotificationCategory.task,
+      severity: NotificationSeverity.info,
+      entityType: NotificationEntityType.transaction_task,
+      entityId: updated.id,
+      title: `Review requested: ${updated.title}`,
+      body: `${buildTransactionObjectLabel(updated.transaction)} was submitted for document review.`,
+      actionUrl: "/office/approve-docs?queue=awaiting_my_review"
+    });
+
     return updated;
   });
 
@@ -2898,6 +2929,29 @@ export async function approveTransactionTask(input: {
       ].filter((change): change is NonNullable<typeof change> => Boolean(change))
     });
 
+    if (isSecondApprovalRequired && isFirstApproval) {
+      const secondReviewerMembershipIds = await listOfficeNotificationRecipientIds(tx, {
+        organizationId: input.organizationId,
+        officeId: updated.transaction.officeId ?? null,
+        group: "secondary_task_reviewers",
+        excludeMembershipIds: [input.actorMembershipId]
+      });
+
+      await createNotificationsForMemberships(tx, {
+        organizationId: input.organizationId,
+        officeId: updated.transaction.officeId ?? null,
+        membershipIds: secondReviewerMembershipIds,
+        type: NotificationType.task_second_review_requested,
+        category: NotificationCategory.task,
+        severity: NotificationSeverity.info,
+        entityType: NotificationEntityType.transaction_task,
+        entityId: updated.id,
+        title: `Second review requested: ${updated.title}`,
+        body: `${buildTransactionObjectLabel(updated.transaction)} now requires a second reviewer.`,
+        actionUrl: "/office/approve-docs?queue=awaiting_second_review"
+      });
+    }
+
     return updated;
   });
 
@@ -2966,6 +3020,28 @@ export async function rejectTransactionTask(input: {
         buildTaskChange("Compliance status", complianceStatusLabelMap[existingTask.complianceStatus], complianceStatusLabelMap[updated.complianceStatus]),
         buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(updated.status))
       ].filter((change): change is NonNullable<typeof change> => Boolean(change))
+    });
+
+    await createNotificationsForMemberships(tx, {
+      organizationId: input.organizationId,
+      officeId: updated.transaction.officeId ?? null,
+      membershipIds: [
+        updated.assigneeMembershipId ?? "",
+        updated.submittedForReviewByMembershipId ?? "",
+        updated.transaction.ownerMembershipId ?? ""
+      ],
+      excludeMembershipIds: [input.actorMembershipId],
+      restrictToOfficeRoles: true,
+      type: NotificationType.task_rejected,
+      category: NotificationCategory.task,
+      severity: NotificationSeverity.warning,
+      entityType: NotificationEntityType.transaction_task,
+      entityId: updated.id,
+      title: `Task rejected: ${updated.title}`,
+      body: updated.rejectionReason
+        ? `${buildTransactionObjectLabel(updated.transaction)} was rejected and reopened. Reason: ${updated.rejectionReason}`
+        : `${buildTransactionObjectLabel(updated.transaction)} was rejected and reopened for changes.`,
+      actionUrl: buildTaskNotificationHref(input.transactionId)
     });
 
     return updated;

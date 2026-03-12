@@ -3,7 +3,7 @@
 `Acre` 是一个面向房地产经纪公司内部团队的 Web 工作台。当前仓库实现的是 `Acre Agent OS` 的第一版工程骨架，服务对象是：
 
 - `Agent`：一线经纪人，使用 listings、轻 CRM、活动通知、资源库、AI 工具
-- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Activity / Library / Accounting`
+- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Notifications / Activity / Library / Accounting`
 
 这不是客户前台网站。客户前台后续会是独立 surface，复用这里的 listings 和后台数据能力。
 
@@ -23,6 +23,7 @@
   - `Contacts`
   - `Tasks`
   - `Reports`
+  - `Notifications`
   - `Activity`
   - `Library`
   - `Accounting`
@@ -382,6 +383,31 @@
     - activate / deactivate template
     - grouped task rows with due offsets and document/compliance flags
   - 当前 office access 仍基于单个 `Membership.officeId` 或 org-wide `null`，不是完整多 office ACL matrix；UI 按这个真实边界实现，没有伪造更复杂 access 模型
+- `Notifications` 现在也已落成真实 Back Office 个人收件箱：
+  - 路由：`/office/notifications`
+  - 这是当前登录 membership 的个人 inbox，不是全局活动流
+  - 与 `Activity Log` 的边界现在明确：
+    - `Activity Log` = account/system 级审计事件与实时 operational alerts
+    - `Notifications` = 面向当前用户的 actionable alerts / reminders inbox
+  - 当前支持：
+    - unread-first 排序
+    - category / type / read-state filters
+    - date grouping
+    - mark read
+    - mark unread
+    - mark all in view as read
+    - open linked record（open 前会先把通知标为已读）
+  - 当前已接入的真实通知家族包括：
+    - task review requested
+    - task second review requested
+    - rejected task needing action
+    - offer created / received / expiring soon
+    - signature pending / completed
+    - incoming update pending review
+    - follow-up assigned / overdue
+    - onboarding assigned / due soon
+  - 当前不会伪造 email / SMS / WeChat delivery
+  - 当前也没有 dismiss / archive；MVP 先以 read/unread 为唯一用户状态
 - `Activity` 现在也已接入真实数据库：
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源
