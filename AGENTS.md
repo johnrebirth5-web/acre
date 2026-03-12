@@ -88,6 +88,13 @@ If Prisma schema changed, also run:
 - `npm run db:migrate -- --name <change_name>` when needed
 - `npm run db:seed` when the task requires seed verification
 
+## Git workflow rules
+
+- For Codex-authored repository changes, finish the task with a local `git commit`.
+- Unless the user explicitly asks not to sync to GitHub in the current task, push the completed commit(s) to `origin`.
+- Treat GitHub push and DigitalOcean deployment as separate steps.
+- Even when GitHub push is required, do not deploy or run production commands unless the user explicitly asks for deployment.
+
 ## Documentation rules
 
 When major features, routes, permissions, schema, environment variables, or Back Office UI behavior change, update the relevant docs in the same task:
@@ -111,6 +118,7 @@ For large or multi-module tasks:
 
 For deployment or production-sync work:
 
+0. Do not deploy, sync to DigitalOcean, or run production commands unless the user explicitly asks for deployment in the current task.
 1. Read [docs/deployment.md](/Users/openclaw_john/工作文件夹/Acre/docs/deployment.md) first.
 2. Follow the documented server paths, service names, and sync flow exactly.
 3. Do not guess production hostnames, process managers, or environment file locations.
