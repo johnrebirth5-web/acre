@@ -6,6 +6,11 @@ type OfficeTransactionsPageProps = {
   searchParams?: Promise<{
     q?: string;
     status?: string;
+    ownerMembershipId?: string;
+    teamId?: string;
+    type?: string;
+    startDate?: string;
+    endDate?: string;
     page?: string;
     pageSize?: string;
   }>;
@@ -37,6 +42,11 @@ export default async function OfficeTransactionsPage(props: OfficeTransactionsPa
   const searchParams = (await props.searchParams) ?? {};
   const q = searchParams.q?.trim() ?? "";
   const status = normalizeStatusFilter(searchParams.status);
+  const ownerMembershipId = searchParams.ownerMembershipId?.trim() ?? "";
+  const teamId = searchParams.teamId?.trim() ?? "";
+  const type = searchParams.type?.trim() ?? "";
+  const startDate = searchParams.startDate?.trim() ?? "";
+  const endDate = searchParams.endDate?.trim() ?? "";
   const page = parsePositiveInteger(searchParams.page, defaultTransactionsPage);
   const pageSize = parsePositiveInteger(
     searchParams.pageSize,
@@ -48,13 +58,19 @@ export default async function OfficeTransactionsPage(props: OfficeTransactionsPa
     officeId: context.currentOffice?.id,
     search: q,
     status,
+    ownerMembershipId,
+    teamId,
+    type,
+    startDate,
+    endDate,
     page,
     pageSize
   });
 
   return (
     <TransactionsClient
-      filters={{ q, status }}
+      filterOptions={result.filterOptions}
+      filters={{ q, status, ownerMembershipId, teamId, type, startDate, endDate }}
       page={result.page}
       pageSize={result.pageSize}
       summary={result.summary}

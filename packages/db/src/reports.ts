@@ -1,4 +1,13 @@
-import { Prisma, TransactionStatus, UserRole } from "@prisma/client";
+import {
+  AccountingTransactionStatus,
+  AccountingTransactionType,
+  CommissionCalculationStatus,
+  EarnestMoneyStatus,
+  Prisma,
+  TransactionStatus,
+  TransactionType,
+  UserRole
+} from "@prisma/client";
 import { prisma } from "./client";
 
 export type OfficeReportStatus = "Opportunity" | "Active" | "Pending" | "Closed" | "Cancelled";
@@ -13,6 +22,8 @@ export type OfficeReportOwnerMetric = {
 export type OfficeReportTimePoint = {
   label: string;
   transactionCount: number;
+  closedTransactionCount?: number;
+  totalVolumeLabel?: string;
 };
 
 export type OfficeReportOwnerOption = {
@@ -20,11 +31,135 @@ export type OfficeReportOwnerOption = {
   label: string;
 };
 
+export type OfficeReportSelectOption = {
+  id: string;
+  label: string;
+};
+
 export type OfficeReportsFilters = {
   startDate: string;
   endDate: string;
+  officeId: string;
   ownerMembershipId: string;
+  teamId: string;
+  transactionStatus: string;
+  transactionType: string;
+  commissionPlanId: string;
+  officeOptions: OfficeReportSelectOption[];
   ownerOptions: OfficeReportOwnerOption[];
+  teamOptions: OfficeReportSelectOption[];
+  commissionPlanOptions: OfficeReportSelectOption[];
+};
+
+export type OfficeReportTransactionTypeMetric = {
+  type: string;
+  count: number;
+  totalVolumeLabel: string;
+  officeNetLabel: string;
+};
+
+export type OfficeReportRecentTransaction = {
+  id: string;
+  title: string;
+  addressLine: string;
+  status: OfficeReportStatus;
+  type: string;
+  ownerName: string;
+  priceLabel: string;
+  grossCommissionLabel: string;
+  officeNetLabel: string;
+  createdAtLabel: string;
+  closingDateLabel: string;
+  href: string;
+};
+
+export type OfficeReportAgentPerformanceRow = {
+  ownerMembershipId: string | null;
+  ownerName: string;
+  teamLabel: string;
+  transactionCount: number;
+  closedTransactionCount: number;
+  pendingTransactionCount: number;
+  totalVolumeLabel: string;
+  averageVolumeLabel: string;
+  grossCommissionLabel: string;
+  officeNetLabel: string;
+  agentNetLabel: string;
+  profileHref: string | null;
+};
+
+export type OfficeReportTeamPerformanceRow = {
+  teamId: string;
+  teamName: string;
+  agentCount: number;
+  transactionCount: number;
+  closedTransactionCount: number;
+  totalVolumeLabel: string;
+  officeNetLabel: string;
+};
+
+export type OfficeReportCommissionStatusMetric = {
+  status: string;
+  count: number;
+  statementAmountLabel: string;
+};
+
+export type OfficeReportCommissionPlanMetric = {
+  commissionPlanId: string | null;
+  planName: string;
+  calculationCount: number;
+  statementAmountLabel: string;
+};
+
+export type OfficeReportRecentCommission = {
+  id: string;
+  transactionId: string;
+  transactionLabel: string;
+  transactionHref: string;
+  ownerName: string;
+  status: string;
+  statementAmountLabel: string;
+  grossCommissionLabel: string;
+  calculatedAtLabel: string;
+  accountingHref: string | null;
+};
+
+export type OfficeReportAccountingTypeMetric = {
+  type: string;
+  count: number;
+  totalAmountLabel: string;
+};
+
+export type OfficeReportRecentAccounting = {
+  id: string;
+  accountingDateLabel: string;
+  type: string;
+  status: string;
+  counterparty: string;
+  amountLabel: string;
+  ownerName: string;
+  linkedTransactionLabel: string;
+  linkedTransactionHref: string | null;
+  href: string;
+};
+
+export type OfficeReportEmdStatusMetric = {
+  status: string;
+  count: number;
+  expectedAmountLabel: string;
+  receivedAmountLabel: string;
+};
+
+export type OfficeReportRecentEmd = {
+  id: string;
+  transactionId: string;
+  transactionLabel: string;
+  transactionHref: string;
+  expectedAmount: string;
+  receivedAmount: string;
+  dueAtLabel: string;
+  status: string;
+  holdingLabel: string;
 };
 
 export type OfficeReportsSnapshot = {
@@ -34,13 +169,60 @@ export type OfficeReportsSnapshot = {
     contactsNeedingFollowUp: number;
     totalVolumeLabel: string;
     activeOwnerCount: number;
+    closedTransactionCount: number;
+    pendingTransactionCount: number;
+    totalGrossCommissionLabel: string;
+    totalOfficeNetLabel: string;
+    totalAgentNetLabel: string;
+    statementReadyCommissionLabel: string;
+    payableCommissionLabel: string;
+    receivedPaymentsLabel: string;
+    overdueEmdCount: number;
   };
   transactionsByStatus: Array<{
     status: OfficeReportStatus;
     count: number;
+    totalVolumeLabel: string;
+    officeNetLabel: string;
   }>;
   transactionsByOwner: OfficeReportOwnerMetric[];
   transactionsOverTime: OfficeReportTimePoint[];
+  transactionTypes: OfficeReportTransactionTypeMetric[];
+  recentTransactions: OfficeReportRecentTransaction[];
+  agentPerformance: OfficeReportAgentPerformanceRow[];
+  teamPerformance: {
+    hasTeams: boolean;
+    limitation: string | null;
+    rows: OfficeReportTeamPerformanceRow[];
+  };
+  commissionSummary: {
+    calculationCount: number;
+    statementReadyLabel: string;
+    payableLabel: string;
+    paidLabel: string;
+    byStatus: OfficeReportCommissionStatusMetric[];
+    byPlan: OfficeReportCommissionPlanMetric[];
+    recentCalculations: OfficeReportRecentCommission[];
+  };
+  accountingSummary: {
+    transactionCount: number;
+    totalInvoices: number;
+    openBills: number;
+    receivedPaymentsLabel: string;
+    madePaymentsLabel: string;
+    byType: OfficeReportAccountingTypeMetric[];
+    recentTransactions: OfficeReportRecentAccounting[];
+  };
+  emdSummary: {
+    recordCount: number;
+    outstandingCount: number;
+    overdueCount: number;
+    expectedAmountLabel: string;
+    receivedAmountLabel: string;
+    byStatus: OfficeReportEmdStatusMetric[];
+    recentRecords: OfficeReportRecentEmd[];
+  };
+  limitations: string[];
 };
 
 export type OfficeReportTransactionExportRow = {
@@ -69,12 +251,53 @@ export type OfficeReportTransactionExportRow = {
 export type GetOfficeReportsSnapshotInput = {
   organizationId: string;
   officeId?: string | null;
+  officeFilterId?: string;
   startDate?: string;
   endDate?: string;
   ownerMembershipId?: string;
+  teamId?: string;
+  transactionStatus?: string;
+  transactionType?: string;
+  commissionPlanId?: string;
 };
 
 const reportStatusOrder: OfficeReportStatus[] = ["Opportunity", "Active", "Pending", "Closed", "Cancelled"];
+const reportTypeOrder = [
+  "Sales",
+  "Sales (listing)",
+  "Rental/Leasing",
+  "Rental (listing)",
+  "Commercial Sales",
+  "Commercial Lease",
+  "Other"
+] as const;
+const accountingTypeOrder: AccountingTransactionType[] = [
+  "invoice",
+  "bill",
+  "credit_memo",
+  "deposit",
+  "received_payment",
+  "made_payment",
+  "journal_entry",
+  "transfer",
+  "refund"
+];
+const commissionStatusOrder: CommissionCalculationStatus[] = [
+  "draft",
+  "calculated",
+  "reviewed",
+  "statement_ready",
+  "payable",
+  "paid"
+];
+const earnestMoneyStatusOrder: EarnestMoneyStatus[] = [
+  "not_received",
+  "overdue",
+  "pending_bank_deposit",
+  "fully_deposited",
+  "distribute_balance",
+  "complete"
+];
 
 const statusFromDb: Record<TransactionStatus, OfficeReportStatus> = {
   opportunity: "Opportunity",
@@ -84,7 +307,7 @@ const statusFromDb: Record<TransactionStatus, OfficeReportStatus> = {
   cancelled: "Cancelled"
 };
 
-const typeFromDb = {
+const typeFromDb: Record<TransactionType, (typeof reportTypeOrder)[number]> = {
   sales: "Sales",
   sales_listing: "Sales (listing)",
   rental_leasing: "Rental/Leasing",
@@ -92,7 +315,7 @@ const typeFromDb = {
   commercial_sales: "Commercial Sales",
   commercial_lease: "Commercial Lease",
   other: "Other"
-} as const;
+};
 
 const representingFromDb = {
   buyer: "buyer",
@@ -102,19 +325,73 @@ const representingFromDb = {
   landlord: "landlord"
 } as const;
 
-function formatCurrency(value: number) {
+const accountingTypeLabelMap: Record<AccountingTransactionType, string> = {
+  invoice: "Invoice",
+  bill: "Bill",
+  credit_memo: "Credit memo",
+  deposit: "Deposit",
+  received_payment: "Received payment",
+  made_payment: "Made payment",
+  journal_entry: "Journal entry",
+  transfer: "Transfer",
+  refund: "Refund"
+};
+
+const accountingStatusLabelMap: Record<AccountingTransactionStatus, string> = {
+  draft: "Draft",
+  open: "Open",
+  posted: "Posted",
+  completed: "Completed",
+  void: "Void"
+};
+
+const commissionStatusLabelMap: Record<CommissionCalculationStatus, string> = {
+  draft: "Draft",
+  calculated: "Calculated",
+  reviewed: "Reviewed",
+  statement_ready: "Statement ready",
+  payable: "Payable",
+  paid: "Paid"
+};
+
+const earnestMoneyStatusLabelMap: Record<EarnestMoneyStatus, string> = {
+  not_received: "Not received",
+  overdue: "Overdue",
+  pending_bank_deposit: "Pending bank deposit",
+  fully_deposited: "Fully deposited",
+  distribute_balance: "Distribute balance",
+  complete: "Complete"
+};
+
+function formatCurrency(value: Prisma.Decimal | number | string | null | undefined) {
+  const numericValue = Number(value ?? 0);
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: value % 1 === 0 ? 0 : 2
-  }).format(value);
+    maximumFractionDigits: numericValue % 1 === 0 ? 0 : 2
+  }).format(numericValue);
 }
 
 function formatCurrencyFromDb(value: Prisma.Decimal | null) {
   return value ? formatCurrency(Number(value)) : "";
 }
 
-function startOfDay(input: string | undefined) {
+function formatDateOnly(value: Date | null) {
+  return value ? value.toISOString().slice(0, 10) : "";
+}
+
+function formatDateLabel(value: Date | null | undefined) {
+  return value
+    ? value.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      })
+    : "—";
+}
+
+function startOfDay(input: string | undefined | null) {
   if (!input?.trim()) {
     return null;
   }
@@ -129,7 +406,7 @@ function startOfDay(input: string | undefined) {
   return date;
 }
 
-function endOfDay(input: string | undefined) {
+function endOfDay(input: string | undefined | null) {
   if (!input?.trim()) {
     return null;
   }
@@ -144,63 +421,108 @@ function endOfDay(input: string | undefined) {
   return date;
 }
 
-function buildTransactionWhere(input: GetOfficeReportsSnapshotInput): Prisma.TransactionWhereInput {
-  const startDate = startOfDay(input.startDate);
-  const endDate = endOfDay(input.endDate);
-
-  return {
-    organizationId: input.organizationId,
-    ...(input.officeId ? { officeId: input.officeId } : {}),
-    ...(input.ownerMembershipId ? { ownerMembershipId: input.ownerMembershipId } : {}),
-    ...((startDate || endDate)
-      ? {
-          createdAt: {
-            ...(startDate ? { gte: startDate } : {}),
-            ...(endDate ? { lte: endDate } : {})
-          }
-        }
-      : {})
-  };
+function getScopedOfficeId(input: GetOfficeReportsSnapshotInput) {
+  return input.officeId?.trim() || input.officeFilterId?.trim() || null;
 }
 
-function buildClientWhere(input: GetOfficeReportsSnapshotInput): Prisma.ClientWhereInput {
-  return {
-    organizationId: input.organizationId,
-    ...(input.ownerMembershipId ? { ownerMembershipId: input.ownerMembershipId } : {}),
-    ...(input.officeId
-      ? {
-          ownerMembership: {
-            is: {
-              officeId: input.officeId
-            }
-          }
-        }
-      : {})
-  };
+function buildScopedOfficeCondition(officeId: string | null): Prisma.AccountingTransactionWhereInput {
+  return officeId
+    ? {
+        OR: [{ officeId }, { officeId: null }]
+      }
+    : {};
 }
 
-function buildTimeSeries(transactions: Array<{ createdAt: Date }>, startDate: Date | null, endDate: Date | null): OfficeReportTimePoint[] {
+function buildScopedOfficeFilterLabel(input: GetOfficeReportsSnapshotInput, scopedOfficeId: string | null) {
+  if (input.officeId?.trim()) {
+    return input.officeId.trim();
+  }
+
+  return scopedOfficeId ?? "";
+}
+
+function parseTransactionStatus(value: string | undefined | null): TransactionStatus | null {
+  if (value === "opportunity" || value === "active" || value === "pending" || value === "closed" || value === "cancelled") {
+    return value;
+  }
+
+  return null;
+}
+
+function parseTransactionType(value: string | undefined | null): TransactionType | null {
+  if (
+    value === "sales" ||
+    value === "sales_listing" ||
+    value === "rental_leasing" ||
+    value === "rental_listing" ||
+    value === "commercial_sales" ||
+    value === "commercial_lease" ||
+    value === "other"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+function getOwnerName(membership: { user: { firstName: string; lastName: string } } | null | undefined) {
+  return membership ? `${membership.user.firstName} ${membership.user.lastName}` : "Unassigned";
+}
+
+function getTransactionLabel(transaction: { title: string; address: string; city: string; state: string }) {
+  return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
+}
+
+function dedupeTeamMemberships(
+  teamMemberships: Array<{
+    teamId: string;
+    team: {
+      id: string;
+      name: string;
+      isActive: boolean;
+    };
+  }>
+) {
+  const seen = new Set<string>();
+
+  return teamMemberships.filter((teamMembership) => {
+    if (!teamMembership.team.isActive || seen.has(teamMembership.teamId)) {
+      return false;
+    }
+
+    seen.add(teamMembership.teamId);
+    return true;
+  });
+}
+
+function buildTimeSeries(
+  transactions: Array<{ createdAt: Date; status: TransactionStatus; price: Prisma.Decimal | null }>,
+  startDate: Date | null,
+  endDate: Date | null
+): OfficeReportTimePoint[] {
   const rangeStart = startDate ?? new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
   const rangeEnd = endDate ?? new Date();
   const bucketStart = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
   const bucketEnd = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
   const points: OfficeReportTimePoint[] = [];
-
   const cursor = new Date(bucketStart);
 
   while (cursor <= bucketEnd) {
-    const label = cursor.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric"
-    });
-    const count = transactions.filter(
+    const matchingTransactions = transactions.filter(
       (transaction) =>
         transaction.createdAt.getFullYear() === cursor.getFullYear() && transaction.createdAt.getMonth() === cursor.getMonth()
-    ).length;
+    );
 
     points.push({
-      label,
-      transactionCount: count
+      label: cursor.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric"
+      }),
+      transactionCount: matchingTransactions.length,
+      closedTransactionCount: matchingTransactions.filter((transaction) => transaction.status === "closed").length,
+      totalVolumeLabel: formatCurrency(
+        matchingTransactions.reduce((sum, transaction) => sum + Number(transaction.price ?? 0), 0)
+      )
     });
 
     cursor.setMonth(cursor.getMonth() + 1);
@@ -209,40 +531,466 @@ function buildTimeSeries(transactions: Array<{ createdAt: Date }>, startDate: Da
   return points;
 }
 
-function formatDateOnly(value: Date | null) {
-  return value ? value.toISOString().slice(0, 10) : "";
+function buildTransactionTeamFilter(input: GetOfficeReportsSnapshotInput, scopedOfficeId: string | null) {
+  if (!input.teamId?.trim()) {
+    return null;
+  }
+
+  return {
+    ownerMembership: {
+      is: {
+        teamMemberships: {
+          some: {
+            organizationId: input.organizationId,
+            teamId: input.teamId.trim(),
+            ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+            team: {
+              isActive: true
+            }
+          }
+        }
+      }
+    }
+  } satisfies Prisma.TransactionWhereInput;
+}
+
+function buildTransactionWhere(input: GetOfficeReportsSnapshotInput, scopedOfficeId: string | null): Prisma.TransactionWhereInput {
+  const startDate = startOfDay(input.startDate);
+  const endDate = endOfDay(input.endDate);
+  const status = parseTransactionStatus(input.transactionStatus);
+  const type = parseTransactionType(input.transactionType);
+  const conditions: Prisma.TransactionWhereInput[] = [
+    {
+      organizationId: input.organizationId
+    }
+  ];
+
+  if (scopedOfficeId) {
+    conditions.push({
+      officeId: scopedOfficeId
+    });
+  }
+
+  if (input.ownerMembershipId?.trim()) {
+    conditions.push({
+      ownerMembershipId: input.ownerMembershipId.trim()
+    });
+  }
+
+  const teamFilter = buildTransactionTeamFilter(input, scopedOfficeId);
+  if (teamFilter) {
+    conditions.push(teamFilter);
+  }
+
+  if (status) {
+    conditions.push({
+      status
+    });
+  }
+
+  if (type) {
+    conditions.push({
+      type
+    });
+  }
+
+  if (input.commissionPlanId?.trim()) {
+    conditions.push({
+      commissionCalculations: {
+        some: {
+          commissionPlanId: input.commissionPlanId.trim()
+        }
+      }
+    });
+  }
+
+  if (startDate || endDate) {
+    conditions.push({
+      createdAt: {
+        ...(startDate ? { gte: startDate } : {}),
+        ...(endDate ? { lte: endDate } : {})
+      }
+    });
+  }
+
+  return conditions.length === 1 ? conditions[0] : { AND: conditions };
+}
+
+function buildClientWhere(input: GetOfficeReportsSnapshotInput, scopedOfficeId: string | null): Prisma.ClientWhereInput {
+  const conditions: Prisma.ClientWhereInput[] = [
+    {
+      organizationId: input.organizationId
+    }
+  ];
+
+  if (input.ownerMembershipId?.trim()) {
+    conditions.push({
+      ownerMembershipId: input.ownerMembershipId.trim()
+    });
+  }
+
+  if (scopedOfficeId) {
+    conditions.push({
+      ownerMembership: {
+        is: {
+          officeId: scopedOfficeId
+        }
+      }
+    });
+  }
+
+  if (input.teamId?.trim()) {
+    conditions.push({
+      ownerMembership: {
+        is: {
+          teamMemberships: {
+            some: {
+              organizationId: input.organizationId,
+              teamId: input.teamId.trim(),
+              ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+              team: {
+                isActive: true
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  return conditions.length === 1 ? conditions[0] : { AND: conditions };
+}
+
+function buildAccountingWhere(
+  input: GetOfficeReportsSnapshotInput,
+  scopedOfficeId: string | null
+): Prisma.AccountingTransactionWhereInput {
+  const startDate = startOfDay(input.startDate);
+  const endDate = endOfDay(input.endDate);
+  const status = parseTransactionStatus(input.transactionStatus);
+  const type = parseTransactionType(input.transactionType);
+  const conditions: Prisma.AccountingTransactionWhereInput[] = [
+    {
+      organizationId: input.organizationId
+    },
+    buildScopedOfficeCondition(scopedOfficeId)
+  ];
+
+  if (startDate || endDate) {
+    conditions.push({
+      accountingDate: {
+        ...(startDate ? { gte: startDate } : {}),
+        ...(endDate ? { lte: endDate } : {})
+      }
+    });
+  }
+
+  if (input.ownerMembershipId?.trim()) {
+    conditions.push({
+      OR: [
+        { relatedMembershipId: input.ownerMembershipId.trim() },
+        { relatedTransaction: { ownerMembershipId: input.ownerMembershipId.trim() } }
+      ]
+    });
+  }
+
+  if (input.teamId?.trim()) {
+    conditions.push({
+      OR: [
+        {
+          relatedMembership: {
+            is: {
+              teamMemberships: {
+                some: {
+                  organizationId: input.organizationId,
+                  teamId: input.teamId.trim(),
+                  ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+                  team: { isActive: true }
+                }
+              }
+            }
+          }
+        },
+        {
+          relatedTransaction: {
+            ownerMembership: {
+              is: {
+                teamMemberships: {
+                  some: {
+                    organizationId: input.organizationId,
+                    teamId: input.teamId.trim(),
+                    ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+                    team: { isActive: true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    });
+  }
+
+  if (status || type) {
+    conditions.push({
+      relatedTransaction: {
+        ...(status ? { status } : {}),
+        ...(type ? { type } : {})
+      }
+    });
+  }
+
+  if (input.commissionPlanId?.trim()) {
+    conditions.push({
+      OR: [
+        {
+          commissionCalculations: {
+            some: {
+              commissionPlanId: input.commissionPlanId.trim()
+            }
+          }
+        },
+        {
+          relatedTransaction: {
+            commissionCalculations: {
+              some: {
+                commissionPlanId: input.commissionPlanId.trim()
+              }
+            }
+          }
+        }
+      ]
+    });
+  }
+
+  return {
+    AND: conditions
+  };
+}
+
+function buildCommissionWhere(
+  input: GetOfficeReportsSnapshotInput,
+  scopedOfficeId: string | null
+): Prisma.CommissionCalculationWhereInput {
+  const startDate = startOfDay(input.startDate);
+  const endDate = endOfDay(input.endDate);
+  const status = parseTransactionStatus(input.transactionStatus);
+  const type = parseTransactionType(input.transactionType);
+  const conditions: Prisma.CommissionCalculationWhereInput[] = [
+    {
+      organizationId: input.organizationId
+    }
+  ];
+
+  if (scopedOfficeId) {
+    conditions.push({
+      officeId: scopedOfficeId
+    });
+  }
+
+  if (input.ownerMembershipId?.trim()) {
+    conditions.push({
+      membershipId: input.ownerMembershipId.trim()
+    });
+  }
+
+  if (input.teamId?.trim()) {
+    conditions.push({
+      membership: {
+        is: {
+          teamMemberships: {
+            some: {
+              organizationId: input.organizationId,
+              teamId: input.teamId.trim(),
+              ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+              team: { isActive: true }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (input.commissionPlanId?.trim()) {
+    conditions.push({
+      commissionPlanId: input.commissionPlanId.trim()
+    });
+  }
+
+  if (status || type) {
+    conditions.push({
+      transaction: {
+        ...(status ? { status } : {}),
+        ...(type ? { type } : {})
+      }
+    });
+  }
+
+  if (startDate || endDate) {
+    conditions.push({
+      calculatedAt: {
+        ...(startDate ? { gte: startDate } : {}),
+        ...(endDate ? { lte: endDate } : {})
+      }
+    });
+  }
+
+  return conditions.length === 1 ? conditions[0] : { AND: conditions };
+}
+
+function buildEarnestMoneyWhere(
+  input: GetOfficeReportsSnapshotInput,
+  scopedOfficeId: string | null
+): Prisma.EarnestMoneyRecordWhereInput {
+  const startDate = startOfDay(input.startDate);
+  const endDate = endOfDay(input.endDate);
+  const status = parseTransactionStatus(input.transactionStatus);
+  const type = parseTransactionType(input.transactionType);
+  const conditions: Prisma.EarnestMoneyRecordWhereInput[] = [
+    {
+      organizationId: input.organizationId
+    },
+    scopedOfficeId
+      ? {
+          OR: [{ officeId: scopedOfficeId }, { officeId: null }]
+        }
+      : {}
+  ];
+
+  if (startDate || endDate) {
+    conditions.push({
+      dueAt: {
+        ...(startDate ? { gte: startDate } : {}),
+        ...(endDate ? { lte: endDate } : {})
+      }
+    });
+  }
+
+  if (input.ownerMembershipId?.trim()) {
+    conditions.push({
+      transaction: {
+        ownerMembershipId: input.ownerMembershipId.trim()
+      }
+    });
+  }
+
+  if (input.teamId?.trim()) {
+    conditions.push({
+      transaction: {
+        ownerMembership: {
+          is: {
+            teamMemberships: {
+              some: {
+                organizationId: input.organizationId,
+                teamId: input.teamId.trim(),
+                ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+                team: { isActive: true }
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (status || type) {
+    conditions.push({
+      transaction: {
+        ...(status ? { status } : {}),
+        ...(type ? { type } : {})
+      }
+    });
+  }
+
+  if (input.commissionPlanId?.trim()) {
+    conditions.push({
+      transaction: {
+        commissionCalculations: {
+          some: {
+            commissionPlanId: input.commissionPlanId.trim()
+          }
+        }
+      }
+    });
+  }
+
+  return {
+    AND: conditions
+  };
 }
 
 export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotInput): Promise<OfficeReportsSnapshot> {
-  const transactionWhere = buildTransactionWhere(input);
-  const clientWhere = buildClientWhere(input);
+  const scopedOfficeId = getScopedOfficeId(input);
+  const transactionWhere = buildTransactionWhere(input, scopedOfficeId);
+  const clientWhere = buildClientWhere(input, scopedOfficeId);
+  const accountingWhere = buildAccountingWhere(input, scopedOfficeId);
+  const commissionWhere = buildCommissionWhere(input, scopedOfficeId);
+  const earnestMoneyWhere = buildEarnestMoneyWhere(input, scopedOfficeId);
   const startDate = startOfDay(input.startDate);
   const endDate = endOfDay(input.endDate);
   const now = new Date();
 
-  const [transactions, groupedStatuses, contactsNeedingFollowUp, ownerOptions] = await Promise.all([
+  const [
+    transactions,
+    contactsNeedingFollowUp,
+    offices,
+    ownerMemberships,
+    teams,
+    commissionPlans,
+    commissionCalculations,
+    accountingTransactions,
+    earnestMoneyRecords
+  ] = await Promise.all([
     prisma.transaction.findMany({
       where: transactionWhere,
       select: {
         id: true,
+        title: true,
+        address: true,
+        city: true,
+        state: true,
         status: true,
+        type: true,
         price: true,
+        grossCommission: true,
+        officeNet: true,
+        agentNet: true,
         createdAt: true,
+        closingDate: true,
+        updatedAt: true,
         ownerMembershipId: true,
         ownerMembership: {
-          include: {
-            user: true
+          select: {
+            id: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            },
+            teamMemberships: {
+              where: {
+                organizationId: input.organizationId,
+                ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {}),
+                team: {
+                  isActive: true
+                }
+              },
+              select: {
+                teamId: true,
+                team: {
+                  select: {
+                    id: true,
+                    name: true,
+                    isActive: true
+                  }
+                }
+              }
+            }
           }
         }
       },
       orderBy: [{ createdAt: "desc" }]
-    }),
-    prisma.transaction.groupBy({
-      by: ["status"],
-      where: transactionWhere,
-      _count: {
-        _all: true
-      }
     }),
     prisma.client.count({
       where: {
@@ -252,11 +1000,22 @@ export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotIn
         }
       }
     }),
+    prisma.office.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...(input.officeId?.trim() ? { id: input.officeId.trim() } : {})
+      },
+      select: {
+        id: true,
+        name: true
+      },
+      orderBy: [{ name: "asc" }]
+    }),
     prisma.membership.findMany({
       where: {
         organizationId: input.organizationId,
         status: "active",
-        ...(input.officeId ? { officeId: input.officeId } : {}),
+        ...(scopedOfficeId ? { officeId: scopedOfficeId } : {}),
         role: {
           in: ["agent", "office_manager", "office_admin"] satisfies UserRole[]
         }
@@ -265,32 +1024,268 @@ export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotIn
         user: true
       },
       orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }]
+    }),
+    prisma.team.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {})
+      },
+      select: {
+        id: true,
+        name: true,
+        isActive: true
+      },
+      orderBy: [{ isActive: "desc" }, { name: "asc" }]
+    }),
+    prisma.commissionPlan.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...(scopedOfficeId ? { OR: [{ officeId: scopedOfficeId }, { officeId: null }] } : {})
+      },
+      select: {
+        id: true,
+        name: true
+      },
+      orderBy: [{ name: "asc" }]
+    }),
+    prisma.commissionCalculation.findMany({
+      where: commissionWhere,
+      select: {
+        id: true,
+        status: true,
+        statementAmount: true,
+        grossCommission: true,
+        calculatedAt: true,
+        membership: {
+          select: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        },
+        transaction: {
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            city: true,
+            state: true
+          }
+        },
+        accountingTransactionId: true,
+        commissionPlanId: true,
+        commissionPlan: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: [{ calculatedAt: "desc" }, { createdAt: "desc" }]
+    }),
+    prisma.accountingTransaction.findMany({
+      where: accountingWhere,
+      select: {
+        id: true,
+        accountingDate: true,
+        type: true,
+        status: true,
+        counterpartyName: true,
+        totalAmount: true,
+        relatedMembership: {
+          select: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        },
+        relatedTransaction: {
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            city: true,
+            state: true,
+            ownerMembership: {
+              select: {
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: [{ accountingDate: "desc" }, { createdAt: "desc" }]
+    }),
+    prisma.earnestMoneyRecord.findMany({
+      where: earnestMoneyWhere,
+      select: {
+        id: true,
+        expectedAmount: true,
+        receivedAmount: true,
+        refundedAmount: true,
+        dueAt: true,
+        paymentDate: true,
+        depositDate: true,
+        heldByOffice: true,
+        heldExternally: true,
+        status: true,
+        transaction: {
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            city: true,
+            state: true
+          }
+        }
+      },
+      orderBy: [{ dueAt: "asc" }, { updatedAt: "desc" }]
     })
   ]);
 
-  const transactionsByStatus = reportStatusOrder.map((status) => ({
-    status,
-    count: groupedStatuses.find((entry) => statusFromDb[entry.status] === status)?._count._all ?? 0
-  }));
+  const transactionsByStatus = reportStatusOrder.map((status) => {
+    const matchingTransactions = transactions.filter((transaction) => statusFromDb[transaction.status] === status);
 
-  const ownerMap = new Map<string, { ownerMembershipId: string | null; ownerName: string; transactionCount: number; totalVolume: number }>();
+    return {
+      status,
+      count: matchingTransactions.length,
+      totalVolumeLabel: formatCurrency(
+        matchingTransactions.reduce((sum, transaction) => sum + Number(transaction.price ?? 0), 0)
+      ),
+      officeNetLabel: formatCurrency(
+        matchingTransactions.reduce((sum, transaction) => sum + Number(transaction.officeNet ?? 0), 0)
+      )
+    };
+  });
+
+  const ownerMap = new Map<
+    string,
+    {
+      ownerMembershipId: string | null;
+      ownerName: string;
+      transactionCount: number;
+      totalVolume: number;
+    }
+  >();
+  const agentPerformanceMap = new Map<
+    string,
+    {
+      ownerMembershipId: string | null;
+      ownerName: string;
+      teamLabels: Set<string>;
+      transactionCount: number;
+      closedTransactionCount: number;
+      pendingTransactionCount: number;
+      totalVolume: number;
+      grossCommission: number;
+      officeNet: number;
+      agentNet: number;
+    }
+  >();
+  const teamPerformanceMap = new Map<
+    string,
+    {
+      teamId: string;
+      teamName: string;
+      ownerIds: Set<string>;
+      transactionIds: Set<string>;
+      transactionCount: number;
+      closedTransactionCount: number;
+      totalVolume: number;
+      officeNet: number;
+    }
+  >();
 
   for (const transaction of transactions) {
-    const key = transaction.ownerMembershipId ?? "unassigned";
-    const ownerName = transaction.ownerMembership
-      ? `${transaction.ownerMembership.user.firstName} ${transaction.ownerMembership.user.lastName}`
-      : "Unassigned";
-    const current = ownerMap.get(key) ?? {
+    const ownerName = getOwnerName(transaction.ownerMembership);
+    const ownerKey = transaction.ownerMembershipId ?? "unassigned";
+    const ownerMetric = ownerMap.get(ownerKey) ?? {
       ownerMembershipId: transaction.ownerMembershipId,
       ownerName,
       transactionCount: 0,
       totalVolume: 0
     };
 
-    current.transactionCount += 1;
-    current.totalVolume += Number(transaction.price ?? 0);
-    ownerMap.set(key, current);
+    ownerMetric.transactionCount += 1;
+    ownerMetric.totalVolume += Number(transaction.price ?? 0);
+    ownerMap.set(ownerKey, ownerMetric);
+
+    const agentMetric = agentPerformanceMap.get(ownerKey) ?? {
+      ownerMembershipId: transaction.ownerMembershipId,
+      ownerName,
+      teamLabels: new Set<string>(),
+      transactionCount: 0,
+      closedTransactionCount: 0,
+      pendingTransactionCount: 0,
+      totalVolume: 0,
+      grossCommission: 0,
+      officeNet: 0,
+      agentNet: 0
+    };
+
+    agentMetric.transactionCount += 1;
+    agentMetric.closedTransactionCount += transaction.status === "closed" ? 1 : 0;
+    agentMetric.pendingTransactionCount += transaction.status === "pending" ? 1 : 0;
+    agentMetric.totalVolume += Number(transaction.price ?? 0);
+    agentMetric.grossCommission += Number(transaction.grossCommission ?? 0);
+    agentMetric.officeNet += Number(transaction.officeNet ?? 0);
+    agentMetric.agentNet += Number(transaction.agentNet ?? 0);
+
+    for (const teamMembership of dedupeTeamMemberships(transaction.ownerMembership?.teamMemberships ?? [])) {
+      agentMetric.teamLabels.add(teamMembership.team.name);
+      const teamMetric = teamPerformanceMap.get(teamMembership.teamId) ?? {
+        teamId: teamMembership.teamId,
+        teamName: teamMembership.team.name,
+        ownerIds: new Set<string>(),
+        transactionIds: new Set<string>(),
+        transactionCount: 0,
+        closedTransactionCount: 0,
+        totalVolume: 0,
+        officeNet: 0
+      };
+
+      if (transaction.ownerMembershipId) {
+        teamMetric.ownerIds.add(transaction.ownerMembershipId);
+      }
+
+      if (!teamMetric.transactionIds.has(transaction.id)) {
+        teamMetric.transactionIds.add(transaction.id);
+        teamMetric.transactionCount += 1;
+        teamMetric.closedTransactionCount += transaction.status === "closed" ? 1 : 0;
+        teamMetric.totalVolume += Number(transaction.price ?? 0);
+        teamMetric.officeNet += Number(transaction.officeNet ?? 0);
+      }
+
+      teamPerformanceMap.set(teamMembership.teamId, teamMetric);
+    }
+
+    agentPerformanceMap.set(ownerKey, agentMetric);
   }
+
+  const transactionTypes = reportTypeOrder.map((typeLabel) => {
+    const matchingTransactions = transactions.filter((transaction) => typeFromDb[transaction.type] === typeLabel);
+
+    return {
+      type: typeLabel,
+      count: matchingTransactions.length,
+      totalVolumeLabel: formatCurrency(
+        matchingTransactions.reduce((sum, transaction) => sum + Number(transaction.price ?? 0), 0)
+      ),
+      officeNetLabel: formatCurrency(
+        matchingTransactions.reduce((sum, transaction) => sum + Number(transaction.officeNet ?? 0), 0)
+      )
+    };
+  });
 
   const transactionsByOwner = [...ownerMap.values()]
     .sort((left, right) => right.transactionCount - left.transactionCount || right.totalVolume - left.totalVolume)
@@ -301,36 +1296,310 @@ export async function getOfficeReportsSnapshot(input: GetOfficeReportsSnapshotIn
       totalVolumeLabel: formatCurrency(entry.totalVolume)
     }));
 
+  const recentTransactions = transactions.slice(0, 8).map((transaction) => ({
+    id: transaction.id,
+    title: transaction.title,
+    addressLine: `${transaction.address}, ${transaction.city}, ${transaction.state}`,
+    status: statusFromDb[transaction.status],
+    type: typeFromDb[transaction.type],
+    ownerName: getOwnerName(transaction.ownerMembership),
+    priceLabel: formatCurrency(transaction.price),
+    grossCommissionLabel: formatCurrency(transaction.grossCommission),
+    officeNetLabel: formatCurrency(transaction.officeNet),
+    createdAtLabel: formatDateLabel(transaction.createdAt),
+    closingDateLabel: formatDateLabel(transaction.closingDate),
+    href: `/office/transactions/${transaction.id}`
+  }));
+
+  const agentPerformance = [...agentPerformanceMap.values()]
+    .sort((left, right) => right.transactionCount - left.transactionCount || right.totalVolume - left.totalVolume)
+    .map((entry) => ({
+      ownerMembershipId: entry.ownerMembershipId,
+      ownerName: entry.ownerName,
+      teamLabel: entry.teamLabels.size > 0 ? [...entry.teamLabels].sort().join(", ") : "No team",
+      transactionCount: entry.transactionCount,
+      closedTransactionCount: entry.closedTransactionCount,
+      pendingTransactionCount: entry.pendingTransactionCount,
+      totalVolumeLabel: formatCurrency(entry.totalVolume),
+      averageVolumeLabel: formatCurrency(entry.transactionCount > 0 ? entry.totalVolume / entry.transactionCount : 0),
+      grossCommissionLabel: formatCurrency(entry.grossCommission),
+      officeNetLabel: formatCurrency(entry.officeNet),
+      agentNetLabel: formatCurrency(entry.agentNet),
+      profileHref: entry.ownerMembershipId ? `/office/agents/${entry.ownerMembershipId}` : null
+    }));
+
+  const teamPerformanceRows = [...teamPerformanceMap.values()]
+    .sort((left, right) => right.transactionCount - left.transactionCount || right.totalVolume - left.totalVolume)
+    .map((entry) => ({
+      teamId: entry.teamId,
+      teamName: entry.teamName,
+      agentCount: entry.ownerIds.size,
+      transactionCount: entry.transactionCount,
+      closedTransactionCount: entry.closedTransactionCount,
+      totalVolumeLabel: formatCurrency(entry.totalVolume),
+      officeNetLabel: formatCurrency(entry.officeNet)
+    }));
+
+  const commissionSummaryByStatus = commissionStatusOrder.map((status) => {
+    const matchingRows = commissionCalculations.filter((calculation) => calculation.status === status);
+
+    return {
+      status: commissionStatusLabelMap[status],
+      count: matchingRows.length,
+      statementAmountLabel: formatCurrency(
+        matchingRows.reduce((sum, row) => sum + Number(row.statementAmount ?? 0), 0)
+      )
+    };
+  });
+
+  const commissionPlanMap = new Map<
+    string,
+    {
+      commissionPlanId: string | null;
+      planName: string;
+      calculationCount: number;
+      statementAmount: number;
+    }
+  >();
+
+  for (const calculation of commissionCalculations) {
+    const key = calculation.commissionPlanId ?? "__unassigned_plan__";
+    const current = commissionPlanMap.get(key) ?? {
+      commissionPlanId: calculation.commissionPlanId,
+      planName: calculation.commissionPlan?.name ?? "No persisted plan",
+      calculationCount: 0,
+      statementAmount: 0
+    };
+
+    current.calculationCount += 1;
+    current.statementAmount += Number(calculation.statementAmount ?? 0);
+    commissionPlanMap.set(key, current);
+  }
+
+  const recentCalculations = commissionCalculations.slice(0, 8).map((calculation) => ({
+    id: calculation.id,
+    transactionId: calculation.transaction.id,
+    transactionLabel: getTransactionLabel(calculation.transaction),
+    transactionHref: `/office/transactions/${calculation.transaction.id}`,
+    ownerName: calculation.membership
+      ? `${calculation.membership.user.firstName} ${calculation.membership.user.lastName}`
+      : "Brokerage / referral",
+    status: commissionStatusLabelMap[calculation.status],
+    statementAmountLabel: formatCurrency(calculation.statementAmount),
+    grossCommissionLabel: formatCurrency(calculation.grossCommission),
+    calculatedAtLabel: formatDateLabel(calculation.calculatedAt),
+    accountingHref: calculation.accountingTransactionId ? `/office/accounting?entryId=${calculation.accountingTransactionId}` : null
+  }));
+
+  const accountingTypeMetrics = accountingTypeOrder.map((type) => {
+    const matchingTransactions = accountingTransactions.filter((transaction) => transaction.type === type);
+
+    return {
+      type: accountingTypeLabelMap[type],
+      count: matchingTransactions.length,
+      totalAmountLabel: formatCurrency(
+        matchingTransactions.reduce((sum, transaction) => sum + Number(transaction.totalAmount ?? 0), 0)
+      )
+    };
+  });
+
+  const recentAccountingTransactions = accountingTransactions.slice(0, 8).map((transaction) => {
+    const ownerName = transaction.relatedMembership
+      ? `${transaction.relatedMembership.user.firstName} ${transaction.relatedMembership.user.lastName}`
+      : getOwnerName(transaction.relatedTransaction?.ownerMembership);
+
+    return {
+      id: transaction.id,
+      accountingDateLabel: formatDateLabel(transaction.accountingDate),
+      type: accountingTypeLabelMap[transaction.type],
+      status: accountingStatusLabelMap[transaction.status],
+      counterparty: transaction.counterpartyName?.trim() || "—",
+      amountLabel: formatCurrency(transaction.totalAmount),
+      ownerName,
+      linkedTransactionLabel: transaction.relatedTransaction ? getTransactionLabel(transaction.relatedTransaction) : "—",
+      linkedTransactionHref: transaction.relatedTransaction ? `/office/transactions/${transaction.relatedTransaction.id}` : null,
+      href: `/office/accounting?entryId=${transaction.id}`
+    };
+  });
+
+  const earnestMoneyByStatus = earnestMoneyStatusOrder.map((status) => {
+    const matchingRecords = earnestMoneyRecords.filter((record) => record.status === status);
+
+    return {
+      status: earnestMoneyStatusLabelMap[status],
+      count: matchingRecords.length,
+      expectedAmountLabel: formatCurrency(
+        matchingRecords.reduce((sum, record) => sum + Number(record.expectedAmount ?? 0), 0)
+      ),
+      receivedAmountLabel: formatCurrency(
+        matchingRecords.reduce((sum, record) => sum + Number(record.receivedAmount ?? 0), 0)
+      )
+    };
+  });
+
+  const recentEarnestMoneyRecords = earnestMoneyRecords.slice(0, 8).map((record) => ({
+    id: record.id,
+    transactionId: record.transaction.id,
+    transactionLabel: getTransactionLabel(record.transaction),
+    transactionHref: `/office/transactions/${record.transaction.id}`,
+    expectedAmount: formatCurrency(record.expectedAmount),
+    receivedAmount: formatCurrency(record.receivedAmount),
+    dueAtLabel: formatDateLabel(record.dueAt),
+    status: earnestMoneyStatusLabelMap[record.status],
+    holdingLabel: record.heldExternally ? "Held externally" : record.heldByOffice ? "Held by office" : "Holding mode unset"
+  }));
+
+  const totalTransactions = transactions.length;
+  const totalVolume = transactions.reduce((sum, transaction) => sum + Number(transaction.price ?? 0), 0);
+  const totalGrossCommission = transactions.reduce((sum, transaction) => sum + Number(transaction.grossCommission ?? 0), 0);
+  const totalOfficeNet = transactions.reduce((sum, transaction) => sum + Number(transaction.officeNet ?? 0), 0);
+  const totalAgentNet = transactions.reduce((sum, transaction) => sum + Number(transaction.agentNet ?? 0), 0);
+  const activeOwnerCount = new Set(
+    transactions
+      .map((transaction) => transaction.ownerMembershipId)
+      .filter((ownerMembershipId): ownerMembershipId is string => Boolean(ownerMembershipId))
+  ).size;
+  const closedTransactionCount = transactions.filter((transaction) => transaction.status === "closed").length;
+  const pendingTransactionCount = transactions.filter((transaction) => transaction.status === "pending").length;
+  const statementReadyCommissionAmount = commissionCalculations
+    .filter((calculation) => calculation.status === "statement_ready")
+    .reduce((sum, calculation) => sum + Number(calculation.statementAmount ?? 0), 0);
+  const payableCommissionAmount = commissionCalculations
+    .filter((calculation) => calculation.status === "payable")
+    .reduce((sum, calculation) => sum + Number(calculation.statementAmount ?? 0), 0);
+  const paidCommissionAmount = commissionCalculations
+    .filter((calculation) => calculation.status === "paid")
+    .reduce((sum, calculation) => sum + Number(calculation.statementAmount ?? 0), 0);
+  const totalInvoices = accountingTransactions.filter((transaction) => transaction.type === "invoice").length;
+  const openBills = accountingTransactions.filter((transaction) => transaction.type === "bill" && transaction.status === "open").length;
+  const receivedPaymentsAmount = accountingTransactions
+    .filter((transaction) => transaction.type === "received_payment")
+    .reduce((sum, transaction) => sum + Number(transaction.totalAmount ?? 0), 0);
+  const madePaymentsAmount = accountingTransactions
+    .filter((transaction) => transaction.type === "made_payment")
+    .reduce((sum, transaction) => sum + Number(transaction.totalAmount ?? 0), 0);
+  const outstandingEmdCount = earnestMoneyRecords.filter((record) => record.status !== "complete").length;
+  const overdueEmdCount = earnestMoneyRecords.filter((record) => record.status === "overdue").length;
+
+  const limitations = [
+    "交易日期范围按 transaction created date 过滤；commission 使用 calculated date；accounting 使用 accounting date；EMD 使用 due date。",
+    "Team 维度基于当前 owner 的有效 team membership；一个 owner 同时属于多个 team 时，会在多个 team 行里出现。"
+  ];
+
+  if (input.commissionPlanId?.trim()) {
+    limitations.push("Commission plan 过滤依赖已持久化的 commission calculation；尚未计算 commission 的交易不会进入该切片。");
+  }
+
+  limitations.push("Contacts needing follow-up 只按 office / owner / team 范围统计，不按 commission plan 切片。");
+
   return {
     filters: {
       startDate: startDate ? startDate.toISOString().slice(0, 10) : "",
       endDate: endDate ? endDate.toISOString().slice(0, 10) : "",
-      ownerMembershipId: input.ownerMembershipId ?? "",
-      ownerOptions: ownerOptions.map((membership) => ({
+      officeId: buildScopedOfficeFilterLabel(input, scopedOfficeId),
+      ownerMembershipId: input.ownerMembershipId?.trim() ?? "",
+      teamId: input.teamId?.trim() ?? "",
+      transactionStatus: parseTransactionStatus(input.transactionStatus) ?? "",
+      transactionType: parseTransactionType(input.transactionType) ?? "",
+      commissionPlanId: input.commissionPlanId?.trim() ?? "",
+      officeOptions: offices.map((office) => ({
+        id: office.id,
+        label: office.name
+      })),
+      ownerOptions: ownerMemberships.map((membership) => ({
         id: membership.id,
         label: `${membership.user.firstName} ${membership.user.lastName}`
+      })),
+      teamOptions: teams.map((team) => ({
+        id: team.id,
+        label: team.name
+      })),
+      commissionPlanOptions: commissionPlans.map((plan) => ({
+        id: plan.id,
+        label: plan.name
       }))
     },
     totals: {
-      totalTransactions: transactions.length,
+      totalTransactions,
       contactsNeedingFollowUp,
-      totalVolumeLabel: formatCurrency(transactions.reduce((sum, transaction) => sum + Number(transaction.price ?? 0), 0)),
-      activeOwnerCount: transactionsByOwner.filter((entry) => entry.ownerMembershipId).length
+      totalVolumeLabel: formatCurrency(totalVolume),
+      activeOwnerCount,
+      closedTransactionCount,
+      pendingTransactionCount,
+      totalGrossCommissionLabel: formatCurrency(totalGrossCommission),
+      totalOfficeNetLabel: formatCurrency(totalOfficeNet),
+      totalAgentNetLabel: formatCurrency(totalAgentNet),
+      statementReadyCommissionLabel: formatCurrency(statementReadyCommissionAmount),
+      payableCommissionLabel: formatCurrency(payableCommissionAmount),
+      receivedPaymentsLabel: formatCurrency(receivedPaymentsAmount),
+      overdueEmdCount
     },
     transactionsByStatus,
     transactionsByOwner,
     transactionsOverTime: buildTimeSeries(
-      transactions.map((transaction) => ({ createdAt: transaction.createdAt })),
+      transactions.map((transaction) => ({
+        createdAt: transaction.createdAt,
+        status: transaction.status,
+        price: transaction.price
+      })),
       startDate,
       endDate
-    )
+    ),
+    transactionTypes,
+    recentTransactions,
+    agentPerformance,
+    teamPerformance: {
+      hasTeams: teams.length > 0,
+      limitation: teams.length > 0 ? limitations[1] : null,
+      rows: teamPerformanceRows
+    },
+    commissionSummary: {
+      calculationCount: commissionCalculations.length,
+      statementReadyLabel: formatCurrency(statementReadyCommissionAmount),
+      payableLabel: formatCurrency(payableCommissionAmount),
+      paidLabel: formatCurrency(paidCommissionAmount),
+      byStatus: commissionSummaryByStatus,
+      byPlan: [...commissionPlanMap.values()]
+        .sort((left, right) => right.calculationCount - left.calculationCount || right.statementAmount - left.statementAmount)
+        .map((entry) => ({
+          commissionPlanId: entry.commissionPlanId,
+          planName: entry.planName,
+          calculationCount: entry.calculationCount,
+          statementAmountLabel: formatCurrency(entry.statementAmount)
+        })),
+      recentCalculations
+    },
+    accountingSummary: {
+      transactionCount: accountingTransactions.length,
+      totalInvoices,
+      openBills,
+      receivedPaymentsLabel: formatCurrency(receivedPaymentsAmount),
+      madePaymentsLabel: formatCurrency(madePaymentsAmount),
+      byType: accountingTypeMetrics,
+      recentTransactions: recentAccountingTransactions
+    },
+    emdSummary: {
+      recordCount: earnestMoneyRecords.length,
+      outstandingCount: outstandingEmdCount,
+      overdueCount: overdueEmdCount,
+      expectedAmountLabel: formatCurrency(
+        earnestMoneyRecords.reduce((sum, record) => sum + Number(record.expectedAmount ?? 0), 0)
+      ),
+      receivedAmountLabel: formatCurrency(
+        earnestMoneyRecords.reduce((sum, record) => sum + Number(record.receivedAmount ?? 0), 0)
+      ),
+      byStatus: earnestMoneyByStatus,
+      recentRecords: recentEarnestMoneyRecords
+    },
+    limitations
   };
 }
 
 export async function listOfficeReportTransactionsForExport(
   input: GetOfficeReportsSnapshotInput
 ): Promise<OfficeReportTransactionExportRow[]> {
-  const transactionWhere = buildTransactionWhere(input);
+  const scopedOfficeId = getScopedOfficeId(input);
+  const transactionWhere = buildTransactionWhere(input, scopedOfficeId);
 
   const transactions = await prisma.transaction.findMany({
     where: transactionWhere,

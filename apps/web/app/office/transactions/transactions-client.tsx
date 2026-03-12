@@ -18,7 +18,12 @@ import {
   SelectInput,
   TextInput
 } from "@acre/ui";
-import type { OfficeTransactionRecord, OfficeTransactionStatus, OfficeTransactionSummary } from "@acre/db";
+import type {
+  OfficeTransactionFilterOptions,
+  OfficeTransactionRecord,
+  OfficeTransactionStatus,
+  OfficeTransactionSummary
+} from "@acre/db";
 
 type TransactionsClientProps = {
   transactions: OfficeTransactionRecord[];
@@ -27,9 +32,15 @@ type TransactionsClientProps = {
   totalPages: number;
   page: number;
   pageSize: number;
+  filterOptions: OfficeTransactionFilterOptions;
   filters: {
     q: string;
     status: OfficeTransactionStatus | "All";
+    ownerMembershipId: string;
+    teamId: string;
+    type: string;
+    startDate: string;
+    endDate: string;
   };
 };
 
@@ -60,6 +71,16 @@ const topTypeOptions = ["Sales", "Sales (listing)", "Rental/Leasing", "Rental (l
 const topStatusOptions = ["Opportunity", "Active", "Pending", "Closed", "Cancelled"];
 const topRepresentingOptions = ["Buyer", "Seller", "Both"];
 const listStatusOptions = ["All", "Opportunity", "Active", "Pending", "Closed", "Cancelled"] as const;
+const transactionTypeFilterOptions = [
+  { value: "", label: "All types" },
+  { value: "sales", label: "Sales" },
+  { value: "sales_listing", label: "Sales (listing)" },
+  { value: "rental_leasing", label: "Rental/Leasing" },
+  { value: "rental_listing", label: "Rental (listing)" },
+  { value: "commercial_sales", label: "Commercial Sales" },
+  { value: "commercial_lease", label: "Commercial Lease" },
+  { value: "other", label: "Other" }
+] as const;
 const pageSizeOptions = [10, 20, 50, 100] as const;
 
 const primaryFields: ModalField[] = [
@@ -138,6 +159,11 @@ function buildTransactionsHref(
   params: {
     q: string;
     status: string;
+    ownerMembershipId: string;
+    teamId: string;
+    type: string;
+    startDate: string;
+    endDate: string;
     page: number;
     pageSize: number;
   }
@@ -152,6 +178,26 @@ function buildTransactionsHref(
     searchParams.set("status", params.status);
   }
 
+  if (params.ownerMembershipId.trim()) {
+    searchParams.set("ownerMembershipId", params.ownerMembershipId.trim());
+  }
+
+  if (params.teamId.trim()) {
+    searchParams.set("teamId", params.teamId.trim());
+  }
+
+  if (params.type.trim()) {
+    searchParams.set("type", params.type.trim());
+  }
+
+  if (params.startDate.trim()) {
+    searchParams.set("startDate", params.startDate.trim());
+  }
+
+  if (params.endDate.trim()) {
+    searchParams.set("endDate", params.endDate.trim());
+  }
+
   if (params.page > 1) {
     searchParams.set("page", String(params.page));
   }
@@ -164,7 +210,16 @@ function buildTransactionsHref(
   return query ? `${pathname}?${query}` : pathname;
 }
 
-export function TransactionsClient({ transactions, summary, totalCount, totalPages, page, pageSize, filters }: TransactionsClientProps) {
+export function TransactionsClient({
+  transactions,
+  summary,
+  totalCount,
+  totalPages,
+  page,
+  pageSize,
+  filterOptions,
+  filters
+}: TransactionsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -173,6 +228,11 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
   const [representing, setRepresenting] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof listStatusOptions)[number]>(normalizeStatusFilter(filters.status));
   const [searchQuery, setSearchQuery] = useState(filters.q);
+  const [ownerMembershipId, setOwnerMembershipId] = useState(filters.ownerMembershipId);
+  const [teamId, setTeamId] = useState(filters.teamId);
+  const [typeFilter, setTypeFilter] = useState(filters.type);
+  const [startDate, setStartDate] = useState(filters.startDate);
+  const [endDate, setEndDate] = useState(filters.endDate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [formVersion, setFormVersion] = useState(0);
@@ -198,48 +258,78 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
   }, [filters.status]);
 
   useEffect(() => {
-    if (searchQuery === filters.q) {
-      return;
-    }
+    setOwnerMembershipId(filters.ownerMembershipId);
+  }, [filters.ownerMembershipId]);
 
-    const timeoutId = window.setTimeout(() => {
-      router.push(
-        buildTransactionsHref(pathname, {
-          q: searchQuery,
-          status: statusFilter,
-          page: 1,
-          pageSize
-        })
-      );
-    }, 250);
+  useEffect(() => {
+    setTeamId(filters.teamId);
+  }, [filters.teamId]);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [filters.q, pageSize, pathname, router, searchQuery, statusFilter]);
+  useEffect(() => {
+    setTypeFilter(filters.type);
+  }, [filters.type]);
+
+  useEffect(() => {
+    setStartDate(filters.startDate);
+  }, [filters.startDate]);
+
+  useEffect(() => {
+    setEndDate(filters.endDate);
+  }, [filters.endDate]);
 
   const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = totalCount === 0 ? 0 : Math.min(page * pageSize, totalCount);
 
-  function handleStatusFilterChange(nextStatus: (typeof listStatusOptions)[number]) {
-    setStatusFilter(nextStatus);
+  function navigateWithAppliedFilters(overrides: Partial<TransactionsClientProps["filters"]> & { page?: number; pageSize?: number }) {
+    router.push(
+      buildTransactionsHref(pathname, {
+        q: overrides.q ?? filters.q,
+        status: overrides.status ?? filters.status,
+        ownerMembershipId: overrides.ownerMembershipId ?? filters.ownerMembershipId,
+        teamId: overrides.teamId ?? filters.teamId,
+        type: overrides.type ?? filters.type,
+        startDate: overrides.startDate ?? filters.startDate,
+        endDate: overrides.endDate ?? filters.endDate,
+        page: overrides.page ?? page,
+        pageSize: overrides.pageSize ?? pageSize
+      })
+    );
+  }
+
+  function handleApplyFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     router.push(
       buildTransactionsHref(pathname, {
         q: searchQuery,
-        status: nextStatus,
+        status: statusFilter,
+        ownerMembershipId,
+        teamId,
+        type: typeFilter,
+        startDate,
+        endDate,
         page: 1,
         pageSize
       })
     );
   }
 
+  function resetFilters() {
+    setSearchQuery("");
+    setStatusFilter("All");
+    setOwnerMembershipId("");
+    setTeamId("");
+    setTypeFilter("");
+    setStartDate("");
+    setEndDate("");
+    router.push(pathname);
+  }
+
   function handlePageSizeChange(nextPageSize: number) {
-    router.push(
-      buildTransactionsHref(pathname, {
-        q: searchQuery,
-        status: statusFilter,
-        page: 1,
-        pageSize: nextPageSize
-      })
-    );
+    navigateWithAppliedFilters({
+      page: 1,
+      pageSize: nextPageSize
+    });
   }
 
   async function handleCreateTransaction(event: FormEvent<HTMLFormElement>) {
@@ -273,6 +363,11 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
         buildTransactionsHref(pathname, {
           q: searchQuery,
           status: statusFilter,
+          ownerMembershipId,
+          teamId,
+          type: typeFilter,
+          startDate,
+          endDate,
           page: 1,
           pageSize
         })
@@ -304,13 +399,13 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
               </Button>
             </div>
           }
-          description="Operational transaction list with server-backed search, status filtering, and pagination."
+          description="Operational transaction list with query-param filters for status, owner, team, type, and date-window drill-down."
           eyebrow="Transactions"
           title="Transactions"
         />
 
         <SectionCard className="office-list-card" subtitle="Search, filter, and review the current office transaction set." title="Transaction list">
-          <FilterBar as="form" className="bm-transactions-toolbar" onSubmit={(event) => event.preventDefault()}>
+          <FilterBar as="form" className="bm-transactions-toolbar" onSubmit={handleApplyFilters}>
             <FilterField className="bm-transactions-search" label="Search">
               <TextInput
                 aria-label="Search transactions"
@@ -323,7 +418,7 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
             <FilterField label="Current view">
               <SelectInput
                 aria-label="Filter transactions by status"
-                onChange={(event) => handleStatusFilterChange(event.target.value as (typeof listStatusOptions)[number])}
+                onChange={(event) => setStatusFilter(event.target.value as (typeof listStatusOptions)[number])}
                 value={statusFilter}
               >
                 {listStatusOptions.map((option) => (
@@ -333,6 +428,53 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
                 ))}
               </SelectInput>
             </FilterField>
+
+            <FilterField label="Owner / agent">
+              <SelectInput onChange={(event) => setOwnerMembershipId(event.target.value)} value={ownerMembershipId}>
+                <option value="">All owners</option>
+                {filterOptions.ownerOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </FilterField>
+
+            <FilterField label="Team">
+              <SelectInput onChange={(event) => setTeamId(event.target.value)} value={teamId}>
+                <option value="">All teams</option>
+                {filterOptions.teamOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </FilterField>
+
+            <FilterField label="Type">
+              <SelectInput onChange={(event) => setTypeFilter(event.target.value)} value={typeFilter}>
+                {transactionTypeFilterOptions.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </FilterField>
+
+            <FilterField label="Start date">
+              <TextInput onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+            </FilterField>
+
+            <FilterField label="End date">
+              <TextInput onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
+            </FilterField>
+
+            <div className="office-filter-actions">
+              <Button type="submit">Apply filters</Button>
+              <Button onClick={resetFilters} type="button" variant="secondary">
+                Reset
+              </Button>
+            </div>
           </FilterBar>
 
           <DataTable className="bm-transactions-list-shell">
@@ -393,6 +535,11 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
                     href={buildTransactionsHref(pathname, {
                       q: filters.q,
                       status: filters.status,
+                      ownerMembershipId: filters.ownerMembershipId,
+                      teamId: filters.teamId,
+                      type: filters.type,
+                      startDate: filters.startDate,
+                      endDate: filters.endDate,
                       page: page - 1,
                       pageSize
                     })}
@@ -413,6 +560,11 @@ export function TransactionsClient({ transactions, summary, totalCount, totalPag
                     href={buildTransactionsHref(pathname, {
                       q: filters.q,
                       status: filters.status,
+                      ownerMembershipId: filters.ownerMembershipId,
+                      teamId: filters.teamId,
+                      type: filters.type,
+                      startDate: filters.startDate,
+                      endDate: filters.endDate,
                       page: page + 1,
                       pageSize
                     })}

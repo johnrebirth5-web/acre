@@ -1,51 +1,323 @@
-import { Badge, PageHeader, PageShell, Panel } from "@acre/ui";
-import { getOfficeReportsSnapshot } from "@acre/db";
+import Link from "next/link";
+import { Badge, EmptyState, PageHeader, PageShell, SectionCard, SecondaryMetaList, StatusBadge } from "@acre/ui";
+import { getOfficeReportsSnapshot, type OfficeReportStatus } from "@acre/db";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
-function getMaxOwnerCount(items: Array<{ transactionCount: number }>) {
-  return Math.max(...items.map((item) => item.transactionCount), 1);
-}
+type ReportsPageSearchParams = {
+  startDate?: string;
+  endDate?: string;
+  officeId?: string;
+  ownerMembershipId?: string;
+  teamId?: string;
+  transactionStatus?: string;
+  transactionType?: string;
+  commissionPlanId?: string;
+};
 
 type ReportsPageProps = {
-  searchParams?: Promise<{
-    startDate?: string;
-    endDate?: string;
-    ownerMembershipId?: string;
-  }>;
+  searchParams?: Promise<ReportsPageSearchParams>;
 };
+
+function buildReportsHref(
+  currentFilters: {
+    startDate: string;
+    endDate: string;
+    officeId: string;
+    ownerMembershipId: string;
+    teamId: string;
+    transactionStatus: string;
+    transactionType: string;
+    commissionPlanId: string;
+  },
+  overrides: Partial<Record<keyof ReportsPageSearchParams, string | null>>
+) {
+  const searchParams = new URLSearchParams();
+  const nextFilters = {
+    ...currentFilters,
+    ...overrides
+  };
+
+  Object.entries(nextFilters).forEach(([key, value]) => {
+    if (!value?.trim()) {
+      return;
+    }
+
+    searchParams.set(key, value.trim());
+  });
+
+  const query = searchParams.toString();
+  return query ? `/office/reports?${query}` : "/office/reports";
+}
+
+function buildTransactionsHref(
+  currentFilters: {
+    startDate: string;
+    endDate: string;
+    ownerMembershipId: string;
+    teamId: string;
+    transactionStatus: string;
+    transactionType: string;
+  },
+  overrides: {
+    ownerMembershipId?: string | null;
+    teamId?: string | null;
+    transactionStatus?: string | null;
+    transactionType?: string | null;
+  }
+) {
+  const searchParams = new URLSearchParams();
+  const nextFilters = {
+    ...currentFilters,
+    ...overrides
+  };
+  const transactionStatusLabelMap: Record<string, string> = {
+    opportunity: "Opportunity",
+    active: "Active",
+    pending: "Pending",
+    closed: "Closed",
+    cancelled: "Cancelled"
+  };
+
+  if (nextFilters.startDate.trim()) {
+    searchParams.set("startDate", nextFilters.startDate.trim());
+  }
+
+  if (nextFilters.endDate.trim()) {
+    searchParams.set("endDate", nextFilters.endDate.trim());
+  }
+
+  if (nextFilters.ownerMembershipId?.trim()) {
+    searchParams.set("ownerMembershipId", nextFilters.ownerMembershipId.trim());
+  }
+
+  if (nextFilters.teamId?.trim()) {
+    searchParams.set("teamId", nextFilters.teamId.trim());
+  }
+
+  if (nextFilters.transactionType?.trim()) {
+    searchParams.set("type", nextFilters.transactionType.trim());
+  }
+
+  if (nextFilters.transactionStatus?.trim()) {
+    searchParams.set("status", transactionStatusLabelMap[nextFilters.transactionStatus.trim()] ?? "All");
+  }
+
+  const query = searchParams.toString();
+  return query ? `/office/transactions?${query}` : "/office/transactions";
+}
+
+function getTransactionTypeQueryValue(label: string) {
+  const labelMap: Record<string, string> = {
+    Sales: "sales",
+    "Sales (listing)": "sales_listing",
+    "Rental/Leasing": "rental_leasing",
+    "Rental (listing)": "rental_listing",
+    "Commercial Sales": "commercial_sales",
+    "Commercial Lease": "commercial_lease",
+    Other: "other"
+  };
+
+  return labelMap[label] ?? label;
+}
+
+function getFilterStatusLabel(value: string) {
+  const labelMap: Record<string, string> = {
+    opportunity: "Opportunity",
+    active: "Active",
+    pending: "Pending",
+    closed: "Closed",
+    cancelled: "Cancelled"
+  };
+
+  return labelMap[value] ?? value;
+}
+
+function getFilterTypeLabel(value: string) {
+  const labelMap: Record<string, string> = {
+    sales: "Sales",
+    sales_listing: "Sales (listing)",
+    rental_leasing: "Rental/Leasing",
+    rental_listing: "Rental (listing)",
+    commercial_sales: "Commercial Sales",
+    commercial_lease: "Commercial Lease",
+    other: "Other"
+  };
+
+  return labelMap[value] ?? value;
+}
+
+function buildAccountingHref(
+  currentFilters: {
+    startDate: string;
+    endDate: string;
+    ownerMembershipId: string;
+    teamId: string;
+    transactionStatus: string;
+    transactionType: string;
+    commissionPlanId: string;
+  },
+  overrides: {
+    type?: string | null;
+    status?: string | null;
+    commissionMembershipId?: string | null;
+    commissionTeamId?: string | null;
+    commissionStatus?: string | null;
+    commissionPlanId?: string | null;
+    anchor?: string | null;
+  }
+) {
+  const searchParams = new URLSearchParams();
+
+  if (currentFilters.startDate.trim()) {
+    searchParams.set("startDate", currentFilters.startDate.trim());
+  }
+
+  if (currentFilters.endDate.trim()) {
+    searchParams.set("endDate", currentFilters.endDate.trim());
+  }
+
+  if (currentFilters.ownerMembershipId.trim()) {
+    searchParams.set("ownerMembershipId", currentFilters.ownerMembershipId.trim());
+  }
+
+  if (overrides.type?.trim()) {
+    searchParams.set("type", overrides.type.trim());
+  }
+
+  if (overrides.status?.trim()) {
+    searchParams.set("status", overrides.status.trim());
+  }
+
+  if (overrides.commissionMembershipId?.trim()) {
+    searchParams.set("commissionMembershipId", overrides.commissionMembershipId.trim());
+  }
+
+  if (overrides.commissionTeamId?.trim()) {
+    searchParams.set("commissionTeamId", overrides.commissionTeamId.trim());
+  }
+
+  if (overrides.commissionStatus?.trim()) {
+    searchParams.set("commissionStatus", overrides.commissionStatus.trim());
+  }
+
+  const commissionPlanId = overrides.commissionPlanId ?? currentFilters.commissionPlanId;
+  if (commissionPlanId?.trim()) {
+    searchParams.set("commissionPlanId", commissionPlanId.trim());
+  }
+
+  if (currentFilters.startDate.trim()) {
+    searchParams.set("commissionStartDate", currentFilters.startDate.trim());
+  }
+
+  if (currentFilters.endDate.trim()) {
+    searchParams.set("commissionEndDate", currentFilters.endDate.trim());
+  }
+
+  if (currentFilters.ownerMembershipId.trim()) {
+    searchParams.set("commissionMembershipId", overrides.commissionMembershipId ?? currentFilters.ownerMembershipId.trim());
+  }
+
+  if (currentFilters.teamId.trim()) {
+    searchParams.set("commissionTeamId", overrides.commissionTeamId ?? currentFilters.teamId.trim());
+  }
+
+  const query = searchParams.toString();
+  const href = query ? `/office/accounting?${query}` : "/office/accounting";
+
+  return overrides.anchor ? `${href}${overrides.anchor}` : href;
+}
+
+function getTransactionStatusTone(status: OfficeReportStatus) {
+  if (status === "Closed") {
+    return "success" as const;
+  }
+
+  if (status === "Pending") {
+    return "warning" as const;
+  }
+
+  if (status === "Active") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
+
+function getWorkflowTone(value: string) {
+  if (value === "Payable" || value === "Paid" || value === "Complete" || value === "Fully deposited") {
+    return "success" as const;
+  }
+
+  if (value === "Statement ready" || value === "Calculated" || value === "Pending bank deposit") {
+    return "accent" as const;
+  }
+
+  if (value === "Overdue" || value === "Draft" || value === "Not received") {
+    return "warning" as const;
+  }
+
+  return "neutral" as const;
+}
 
 export default async function OfficeReportsPage(props: ReportsPageProps) {
   const context = await requireOfficeSession();
   const searchParams = (await props.searchParams) ?? {};
   const snapshot = await getOfficeReportsSnapshot({
     organizationId: context.currentOrganization.id,
-    officeId: context.currentOffice?.id,
+    officeId: context.currentOffice?.id ?? null,
+    officeFilterId: searchParams.officeId,
     startDate: searchParams.startDate,
     endDate: searchParams.endDate,
-    ownerMembershipId: searchParams.ownerMembershipId
+    ownerMembershipId: searchParams.ownerMembershipId,
+    teamId: searchParams.teamId,
+    transactionStatus: searchParams.transactionStatus,
+    transactionType: searchParams.transactionType,
+    commissionPlanId: searchParams.commissionPlanId
   });
-  const maxOwnerCount = getMaxOwnerCount(snapshot.transactionsByOwner);
+  const hrefBaseFilters = {
+    startDate: snapshot.filters.startDate,
+    endDate: snapshot.filters.endDate,
+    officeId: snapshot.filters.officeId,
+    ownerMembershipId: snapshot.filters.ownerMembershipId,
+    teamId: snapshot.filters.teamId,
+    transactionStatus: snapshot.filters.transactionStatus,
+    transactionType: snapshot.filters.transactionType,
+    commissionPlanId: snapshot.filters.commissionPlanId
+  };
   const exportSearchParams = new URLSearchParams();
 
-  if (snapshot.filters.startDate) {
-    exportSearchParams.set("startDate", snapshot.filters.startDate);
-  }
+  Object.entries(hrefBaseFilters).forEach(([key, value]) => {
+    if (!value?.trim()) {
+      return;
+    }
 
-  if (snapshot.filters.endDate) {
-    exportSearchParams.set("endDate", snapshot.filters.endDate);
-  }
-
-  if (snapshot.filters.ownerMembershipId) {
-    exportSearchParams.set("ownerMembershipId", snapshot.filters.ownerMembershipId);
-  }
+    exportSearchParams.set(key, value.trim());
+  });
 
   const exportHref = `/api/office/reports/export${exportSearchParams.size ? `?${exportSearchParams.toString()}` : ""}`;
+  const allTransactionsHref = buildTransactionsHref(
+    {
+      startDate: snapshot.filters.startDate,
+      endDate: snapshot.filters.endDate,
+      ownerMembershipId: snapshot.filters.ownerMembershipId,
+      teamId: snapshot.filters.teamId,
+      transactionStatus: snapshot.filters.transactionStatus,
+      transactionType: snapshot.filters.transactionType
+    },
+    {}
+  );
 
   return (
     <PageShell>
       <PageHeader
-        actions={<Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>}
-        description="Live office reporting for transactions, ownership distribution, and contacts that still need follow-up."
+        actions={
+          <>
+            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
+            <Badge tone="neutral">Database-backed</Badge>
+            <Badge tone="neutral">CSV export active</Badge>
+          </>
+        }
+        description="面向 Back Office 管理者的报表工作区，覆盖 transaction、agent/team、commission、accounting 与 EMD 的当前真实数据。"
         eyebrow="Reports"
         title="Reports"
       />
@@ -60,6 +332,17 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
           <input defaultValue={snapshot.filters.endDate} name="endDate" type="date" />
         </label>
         <label className="office-report-filter">
+          <span>Office</span>
+          <select defaultValue={snapshot.filters.officeId} name="officeId">
+            <option value="">All offices</option>
+            {snapshot.filters.officeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="office-report-filter">
           <span>Owner / agent</span>
           <select defaultValue={snapshot.filters.ownerMembershipId} name="ownerMembershipId">
             <option value="">All owners</option>
@@ -70,96 +353,819 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
             ))}
           </select>
         </label>
+        <label className="office-report-filter">
+          <span>Team</span>
+          <select defaultValue={snapshot.filters.teamId} name="teamId">
+            <option value="">All teams</option>
+            {snapshot.filters.teamOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="office-report-filter">
+          <span>Transaction status</span>
+          <select defaultValue={snapshot.filters.transactionStatus} name="transactionStatus">
+            <option value="">All statuses</option>
+            <option value="opportunity">Opportunity</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="closed">Closed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+        <label className="office-report-filter">
+          <span>Transaction type</span>
+          <select defaultValue={snapshot.filters.transactionType} name="transactionType">
+            <option value="">All types</option>
+            <option value="sales">Sales</option>
+            <option value="sales_listing">Sales (listing)</option>
+            <option value="rental_leasing">Rental/Leasing</option>
+            <option value="rental_listing">Rental (listing)</option>
+            <option value="commercial_sales">Commercial Sales</option>
+            <option value="commercial_lease">Commercial Lease</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label className="office-report-filter">
+          <span>Commission plan</span>
+          <select defaultValue={snapshot.filters.commissionPlanId} name="commissionPlanId">
+            <option value="">All calculated plans</option>
+            {snapshot.filters.commissionPlanOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="office-report-filter-actions">
           <button className="office-button" type="submit">
             Apply filters
           </button>
-          <a className="office-button office-button-secondary" href={exportHref}>
+          <Link className="office-button office-button-secondary" href={exportHref}>
             Export CSV
-          </a>
-          <a className="office-button office-button-secondary" href="/office/reports">
+          </Link>
+          <Link className="office-button office-button-secondary" href="/office/reports">
             Reset
-          </a>
+          </Link>
         </div>
       </form>
 
-      <section className="office-kpi-grid">
+      <nav aria-label="Reports sections" className="office-section-nav">
+        <a href="#reports-scope">Scope</a>
+        <a href="#reports-transactions">Transactions</a>
+        <a href="#reports-agents">Agents</a>
+        {snapshot.teamPerformance.hasTeams ? <a href="#reports-teams">Teams</a> : null}
+        <a href="#reports-commissions">Commissions</a>
+        <a href="#reports-accounting">Accounting</a>
+        <a href="#reports-emd">EMD</a>
+      </nav>
+
+      <section className="office-kpi-grid office-reports-kpi-grid">
         <article className="office-kpi-card office-kpi-card-accent">
-          <span>Total transactions</span>
+          <span>Matching transactions</span>
           <strong>{snapshot.totals.totalTransactions}</strong>
-          <p>Counted from real transaction rows inside the current organization scope.</p>
+          <p>当前 transaction 过滤窗口内的真实记录数。</p>
         </article>
         <article className="office-kpi-card">
           <span>Total volume</span>
           <strong>{snapshot.totals.totalVolumeLabel}</strong>
-          <p>Sum of current filtered transaction prices.</p>
+          <p>当前筛选结果里的 price 总额。</p>
         </article>
         <article className="office-kpi-card">
-          <span>Contacts needing follow-up</span>
-          <strong>{snapshot.totals.contactsNeedingFollowUp}</strong>
-          <p>Contacts whose next follow-up date is due or overdue.</p>
+          <span>Gross commission</span>
+          <strong>{snapshot.totals.totalGrossCommissionLabel}</strong>
+          <p>来自交易 finance 字段，不补推导不存在的数据。</p>
         </article>
         <article className="office-kpi-card">
-          <span>Owners with deals</span>
+          <span>Office net</span>
+          <strong>{snapshot.totals.totalOfficeNetLabel}</strong>
+          <p>交易 finance 上已持久化的 office net 汇总。</p>
+        </article>
+        <article className="office-kpi-card">
+          <span>Closed transactions</span>
+          <strong>{snapshot.totals.closedTransactionCount}</strong>
+          <p>可直接 drill-down 到筛选后的 transaction list。</p>
+        </article>
+        <article className="office-kpi-card">
+          <span>Active owners</span>
           <strong>{snapshot.totals.activeOwnerCount}</strong>
-          <p>Distinct owners in the current filtered result set.</p>
+          <p>当前结果集里至少有一笔 deal 的 owner 数。</p>
+        </article>
+        <article className="office-kpi-card">
+          <span>Statement ready / payable</span>
+          <strong>{snapshot.totals.statementReadyCommissionLabel}</strong>
+          <p>{snapshot.totals.payableCommissionLabel} 已进入 payable。</p>
+        </article>
+        <article className="office-kpi-card">
+          <span>Received payments / overdue EMD</span>
+          <strong>{snapshot.totals.receivedPaymentsLabel}</strong>
+          <p>{snapshot.totals.overdueEmdCount} 条 EMD 当前 overdue。</p>
         </article>
       </section>
 
-      <section className="office-dashboard-grid office-dashboard-grid-wide">
-        <Panel title="Transactions by status" subtitle="Current filtered transaction counts grouped by status.">
-          <div className="office-note-list">
-            {snapshot.transactionsByStatus.map((item, index) => (
-              <article className="office-note-item" key={item.status}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <strong>{item.status}</strong>
-                  <p>{item.count} transactions</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </Panel>
+      <section className="office-dashboard-grid-wide office-reports-workspace">
+        <div className="office-side-stack">
+          <section id="reports-scope">
+            <SectionCard
+              actions={
+                <Link className="office-button office-button-secondary" href={allTransactionsHref}>
+                  Open transactions
+                </Link>
+              }
+              subtitle="筛选保持 query-param 驱动，适合分享给 office manager / admin。"
+              title="Reporting scope"
+            >
+              <SecondaryMetaList
+                items={[
+                  {
+                    label: "Office scope",
+                    value: context.currentOffice?.name ?? context.currentOrganization.name
+                  },
+                  {
+                    label: "Transaction window",
+                    value:
+                      snapshot.filters.startDate || snapshot.filters.endDate
+                        ? `${snapshot.filters.startDate || "Any"} -> ${snapshot.filters.endDate || "Any"}`
+                        : "Open"
+                  },
+                  {
+                    label: "Current slice",
+                    value: [
+                      snapshot.filters.ownerMembershipId ? "Owner scoped" : "All owners",
+                      snapshot.filters.teamId ? "Team scoped" : "All teams",
+                      snapshot.filters.transactionStatus
+                        ? `Status ${getFilterStatusLabel(snapshot.filters.transactionStatus)}`
+                        : "All transaction states",
+                      snapshot.filters.transactionType ? `Type ${getFilterTypeLabel(snapshot.filters.transactionType)}` : "All transaction types",
+                      snapshot.filters.commissionPlanId ? "Calculated plan scoped" : "All calculated plans"
+                    ].join(" · ")
+                  }
+                ]}
+              />
 
-        <Panel title="Transactions over time" subtitle="Grouped by transaction created month in the current filter window.">
-          <div className="office-note-list">
-            {snapshot.transactionsOverTime.map((point, index) => (
-              <article className="office-note-item" key={point.label}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <strong>{point.label}</strong>
-                  <p>{point.transactionCount} transactions</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </Panel>
-      </section>
+              <div className="office-report-limitations">
+                <strong>Reporting rules</strong>
+                <ul>
+                  {snapshot.limitations.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </SectionCard>
+          </section>
 
-      <Panel title="Transactions by owner / agent" subtitle="Minimal ownership report built from real transaction ownership data.">
-        <div className="office-report-owner-list">
-          {snapshot.transactionsByOwner.length === 0 ? (
-            <p className="office-report-empty">No transactions matched the current filters.</p>
-          ) : (
-            snapshot.transactionsByOwner.map((owner) => (
-              <article className="office-report-owner-row" key={owner.ownerMembershipId ?? owner.ownerName}>
-                <div className="office-report-owner-copy">
-                  <strong>{owner.ownerName}</strong>
-                  <span>
-                    {owner.transactionCount} transactions · {owner.totalVolumeLabel}
-                  </span>
+          <section id="reports-transactions">
+            <SectionCard
+              actions={
+                <Link className="office-button office-button-secondary" href={allTransactionsHref}>
+                  View filtered list
+                </Link>
+              }
+              subtitle="按当前 transaction 过滤查看状态、类型与时间趋势。"
+              title="Transaction performance"
+            >
+              <div className="office-dashboard-grid-wide office-reports-subgrid">
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-status">
+                    <span>Status</span>
+                    <span>Count</span>
+                    <span>Volume</span>
+                    <span>Office net</span>
+                  </div>
+                  {snapshot.transactionsByStatus.map((item) => (
+                    <Link
+                      className="office-table-row office-table-row-report-status"
+                      href={buildTransactionsHref(
+                        {
+                          startDate: snapshot.filters.startDate,
+                          endDate: snapshot.filters.endDate,
+                          ownerMembershipId: snapshot.filters.ownerMembershipId,
+                          teamId: snapshot.filters.teamId,
+                          transactionStatus: snapshot.filters.transactionStatus,
+                          transactionType: snapshot.filters.transactionType
+                        },
+                        {
+                          transactionStatus:
+                            snapshot.filters.transactionStatus === item.status.toLowerCase() ? null : item.status.toLowerCase()
+                        }
+                      )}
+                      key={item.status}
+                    >
+                      <span>
+                        <StatusBadge tone={getTransactionStatusTone(item.status)}>{item.status}</StatusBadge>
+                      </span>
+                      <span>{item.count}</span>
+                      <span>{item.totalVolumeLabel}</span>
+                      <span>{item.officeNetLabel}</span>
+                    </Link>
+                  ))}
                 </div>
-                <div className="office-report-owner-bar">
-                  <div
-                    className="office-report-owner-bar-fill"
-                    style={{ width: `${Math.max((owner.transactionCount / maxOwnerCount) * 100, 8)}%` }}
-                  />
+
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-types">
+                    <span>Type</span>
+                    <span>Count</span>
+                    <span>Volume</span>
+                    <span>Office net</span>
+                  </div>
+                  {snapshot.transactionTypes.map((item) => (
+                    <Link
+                      className="office-table-row office-table-row-report-types"
+                      href={buildTransactionsHref(
+                        {
+                          startDate: snapshot.filters.startDate,
+                          endDate: snapshot.filters.endDate,
+                          ownerMembershipId: snapshot.filters.ownerMembershipId,
+                          teamId: snapshot.filters.teamId,
+                          transactionStatus: snapshot.filters.transactionStatus,
+                          transactionType: snapshot.filters.transactionType
+                        },
+                        {
+                          transactionType:
+                            snapshot.filters.transactionType === getTransactionTypeQueryValue(item.type)
+                              ? null
+                              : getTransactionTypeQueryValue(item.type)
+                        }
+                      )}
+                      key={item.type}
+                    >
+                      <span>{item.type}</span>
+                      <span>{item.count}</span>
+                      <span>{item.totalVolumeLabel}</span>
+                      <span>{item.officeNetLabel}</span>
+                    </Link>
+                  ))}
                 </div>
-              </article>
-            ))
-          )}
+              </div>
+
+              <div className="office-note-list office-report-time-list">
+                {snapshot.transactionsOverTime.map((point) => (
+                  <article className="office-note-item" key={point.label}>
+                    <span>{point.label.slice(0, 3)}</span>
+                    <div>
+                      <strong>{point.label}</strong>
+                      <p>
+                        {point.transactionCount} transactions · {point.closedTransactionCount ?? 0} closed · {point.totalVolumeLabel ?? "$0"}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </SectionCard>
+          </section>
+
+          <section>
+            <SectionCard
+              actions={
+                <Link className="office-button office-button-secondary" href={allTransactionsHref}>
+                  Open full transaction list
+                </Link>
+              }
+              subtitle="最近匹配到的真实 transaction rows，可直接打开 detail。"
+              title="Recent transactions"
+            >
+              <div className="office-table">
+                <div className="office-table-header office-table-row office-table-row-report-transactions">
+                  <span>Transaction</span>
+                  <span>Status</span>
+                  <span>Type</span>
+                  <span>Owner</span>
+                  <span>Price</span>
+                  <span>Office net</span>
+                </div>
+                {snapshot.recentTransactions.map((transaction) => (
+                  <Link className="office-table-row office-table-row-report-transactions" href={transaction.href} key={transaction.id}>
+                    <div className="office-table-primary">
+                      <strong>{transaction.title}</strong>
+                      <p>
+                        {transaction.addressLine} · Created {transaction.createdAtLabel} · Closing {transaction.closingDateLabel}
+                      </p>
+                    </div>
+                    <span>
+                      <StatusBadge tone={getTransactionStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
+                    </span>
+                    <span>{transaction.type}</span>
+                    <span>{transaction.ownerName}</span>
+                    <span>{transaction.priceLabel}</span>
+                    <span>{transaction.officeNetLabel}</span>
+                  </Link>
+                ))}
+                {snapshot.recentTransactions.length === 0 ? (
+                  <EmptyState description="当前 transaction 过滤条件下没有可展示的记录。" title="No transactions" />
+                ) : null}
+              </div>
+            </SectionCard>
+          </section>
         </div>
-      </Panel>
+
+        <div className="office-side-stack">
+          <section id="reports-agents">
+            <SectionCard
+              actions={
+                <Link
+                  className="office-button office-button-secondary"
+                  href={buildReportsHref(hrefBaseFilters, { ownerMembershipId: null, teamId: null })}
+                >
+                  Clear people filters
+                </Link>
+              }
+              subtitle="按 owner 聚合真实 transaction finance，并保留到 agent profile / transaction list 的 drill-down。"
+              title="Agent performance"
+            >
+              <div className="office-table">
+                <div className="office-table-header office-table-row office-table-row-report-agents">
+                  <span>Agent</span>
+                  <span>Team</span>
+                  <span>Deals</span>
+                  <span>Closed</span>
+                  <span>Volume</span>
+                  <span>Gross / office net</span>
+                  <span>Actions</span>
+                </div>
+                {snapshot.agentPerformance.map((row) => (
+                  <div className="office-table-row office-table-row-report-agents" key={row.ownerMembershipId ?? row.ownerName}>
+                    <div className="office-table-primary">
+                      <strong>{row.ownerName}</strong>
+                      <p>
+                        {row.pendingTransactionCount} pending · avg {row.averageVolumeLabel} · agent net {row.agentNetLabel}
+                      </p>
+                    </div>
+                    <span>{row.teamLabel}</span>
+                    <span>{row.transactionCount}</span>
+                    <span>{row.closedTransactionCount}</span>
+                    <span>{row.totalVolumeLabel}</span>
+                    <div className="office-table-primary">
+                      <strong>{row.grossCommissionLabel}</strong>
+                      <p>{row.officeNetLabel}</p>
+                    </div>
+                    <div className="office-report-row-actions">
+                      {row.ownerMembershipId ? (
+                        <Link
+                          className="office-inline-action"
+                          href={buildTransactionsHref(
+                            {
+                              startDate: snapshot.filters.startDate,
+                              endDate: snapshot.filters.endDate,
+                              ownerMembershipId: snapshot.filters.ownerMembershipId,
+                              teamId: snapshot.filters.teamId,
+                              transactionStatus: snapshot.filters.transactionStatus,
+                              transactionType: snapshot.filters.transactionType
+                            },
+                            {
+                              ownerMembershipId: row.ownerMembershipId
+                            }
+                          )}
+                        >
+                          Transactions
+                        </Link>
+                      ) : null}
+                      {row.profileHref ? (
+                        <Link className="office-inline-action" href={row.profileHref}>
+                          Profile
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+                {snapshot.agentPerformance.length === 0 ? (
+                  <EmptyState description="当前范围内没有可归属到 owner 的交易表现。" title="No agent rows" />
+                ) : null}
+              </div>
+            </SectionCard>
+          </section>
+
+          {snapshot.teamPerformance.hasTeams ? (
+            <section id="reports-teams">
+              <SectionCard
+                actions={<Badge tone="neutral">{snapshot.teamPerformance.rows.length} visible team rows</Badge>}
+                subtitle="按当前 owner 的有效 team membership 归类。"
+                title="Team performance"
+              >
+                {snapshot.teamPerformance.limitation ? (
+                  <p className="office-report-section-note">{snapshot.teamPerformance.limitation}</p>
+                ) : null}
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-teams">
+                    <span>Team</span>
+                    <span>Agents</span>
+                    <span>Deals</span>
+                    <span>Closed</span>
+                    <span>Volume</span>
+                    <span>Actions</span>
+                  </div>
+                  {snapshot.teamPerformance.rows.map((row) => (
+                    <div className="office-table-row office-table-row-report-teams" key={row.teamId}>
+                      <div className="office-table-primary">
+                        <strong>{row.teamName}</strong>
+                        <p>{row.officeNetLabel} office net</p>
+                      </div>
+                      <span>{row.agentCount}</span>
+                      <span>{row.transactionCount}</span>
+                      <span>{row.closedTransactionCount}</span>
+                      <span>{row.totalVolumeLabel}</span>
+                      <div className="office-report-row-actions">
+                        <Link
+                          className="office-inline-action"
+                          href={buildTransactionsHref(
+                            {
+                              startDate: snapshot.filters.startDate,
+                              endDate: snapshot.filters.endDate,
+                              ownerMembershipId: snapshot.filters.ownerMembershipId,
+                              teamId: snapshot.filters.teamId,
+                              transactionStatus: snapshot.filters.transactionStatus,
+                              transactionType: snapshot.filters.transactionType
+                            },
+                            {
+                              teamId: row.teamId,
+                              ownerMembershipId: null
+                            }
+                          )}
+                        >
+                          Transactions
+                        </Link>
+                        <Link className="office-inline-action" href={`/office/agents?teamId=${row.teamId}`}>
+                          Roster
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                  {snapshot.teamPerformance.rows.length === 0 ? (
+                    <EmptyState description="当前筛选条件下没有可展示的 team performance。" title="No team rows" />
+                  ) : null}
+                </div>
+              </SectionCard>
+            </section>
+          ) : null}
+
+          <section id="reports-commissions">
+            <SectionCard
+              actions={
+                <Link
+                  className="office-button office-button-secondary"
+                  href={buildAccountingHref(
+                    {
+                      startDate: snapshot.filters.startDate,
+                      endDate: snapshot.filters.endDate,
+                      ownerMembershipId: snapshot.filters.ownerMembershipId,
+                      teamId: snapshot.filters.teamId,
+                      transactionStatus: snapshot.filters.transactionStatus,
+                      transactionType: snapshot.filters.transactionType,
+                      commissionPlanId: snapshot.filters.commissionPlanId
+                    },
+                    {
+                      anchor: "#commissions"
+                    }
+                  )}
+                >
+                  Open commissions
+                </Link>
+              }
+              subtitle="仅展示当前真实 commission calculation 数据，不伪造 statement 或 payout。"
+              title="Commission summary"
+            >
+              <div className="office-report-stat-strip">
+                <article className="office-report-stat">
+                  <span>Calculation rows</span>
+                  <strong>{snapshot.commissionSummary.calculationCount}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Statement ready</span>
+                  <strong>{snapshot.commissionSummary.statementReadyLabel}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Payable</span>
+                  <strong>{snapshot.commissionSummary.payableLabel}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Paid</span>
+                  <strong>{snapshot.commissionSummary.paidLabel}</strong>
+                </article>
+              </div>
+
+              <div className="office-dashboard-grid-wide office-reports-subgrid">
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-commission-status">
+                    <span>Status</span>
+                    <span>Rows</span>
+                    <span>Statement amount</span>
+                  </div>
+                  {snapshot.commissionSummary.byStatus.map((row) => (
+                    <Link
+                      className="office-table-row office-table-row-report-commission-status"
+                      href={buildAccountingHref(
+                        {
+                          startDate: snapshot.filters.startDate,
+                          endDate: snapshot.filters.endDate,
+                          ownerMembershipId: snapshot.filters.ownerMembershipId,
+                          teamId: snapshot.filters.teamId,
+                          transactionStatus: snapshot.filters.transactionStatus,
+                          transactionType: snapshot.filters.transactionType,
+                          commissionPlanId: snapshot.filters.commissionPlanId
+                        },
+                        {
+                          commissionStatus: row.status.toLowerCase().replaceAll(" ", "_"),
+                          anchor: "#commissions"
+                        }
+                      )}
+                      key={row.status}
+                    >
+                      <span>
+                        <StatusBadge tone={getWorkflowTone(row.status)}>{row.status}</StatusBadge>
+                      </span>
+                      <span>{row.count}</span>
+                      <span>{row.statementAmountLabel}</span>
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-commission-plan">
+                    <span>Plan</span>
+                    <span>Rows</span>
+                    <span>Statement amount</span>
+                  </div>
+                  {snapshot.commissionSummary.byPlan.map((row) => (
+                    <Link
+                      className="office-table-row office-table-row-report-commission-plan"
+                      href={buildReportsHref(hrefBaseFilters, {
+                        commissionPlanId: row.commissionPlanId
+                      })}
+                      key={row.commissionPlanId ?? row.planName}
+                    >
+                      <span>{row.planName}</span>
+                      <span>{row.calculationCount}</span>
+                      <span>{row.statementAmountLabel}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="office-table">
+                <div className="office-table-header office-table-row office-table-row-report-commission-recent">
+                  <span>Calculation</span>
+                  <span>Status</span>
+                  <span>Statement</span>
+                  <span>Calculated</span>
+                  <span>Actions</span>
+                </div>
+                {snapshot.commissionSummary.recentCalculations.map((row) => (
+                  <div className="office-table-row office-table-row-report-commission-recent" key={row.id}>
+                    <div className="office-table-primary">
+                      <strong>{row.transactionLabel}</strong>
+                      <p>
+                        {row.ownerName} · gross {row.grossCommissionLabel}
+                      </p>
+                    </div>
+                    <span>
+                      <StatusBadge tone={getWorkflowTone(row.status)}>{row.status}</StatusBadge>
+                    </span>
+                    <span>{row.statementAmountLabel}</span>
+                    <span>{row.calculatedAtLabel}</span>
+                    <div className="office-report-row-actions">
+                      <Link className="office-inline-action" href={row.transactionHref}>
+                        Transaction
+                      </Link>
+                      {row.accountingHref ? (
+                        <Link className="office-inline-action" href={row.accountingHref}>
+                          Accounting
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+                {snapshot.commissionSummary.recentCalculations.length === 0 ? (
+                  <EmptyState description="当前筛选条件下还没有 commission calculations。" title="No commission rows" />
+                ) : null}
+              </div>
+            </SectionCard>
+          </section>
+
+          <section id="reports-accounting">
+            <SectionCard
+              actions={
+                <Link
+                  className="office-button office-button-secondary"
+                  href={buildAccountingHref(
+                    {
+                      startDate: snapshot.filters.startDate,
+                      endDate: snapshot.filters.endDate,
+                      ownerMembershipId: snapshot.filters.ownerMembershipId,
+                      teamId: snapshot.filters.teamId,
+                      transactionStatus: snapshot.filters.transactionStatus,
+                      transactionType: snapshot.filters.transactionType,
+                      commissionPlanId: snapshot.filters.commissionPlanId
+                    },
+                    {
+                      anchor: "#accounting-ledger"
+                    }
+                  )}
+                >
+                  Open accounting
+                </Link>
+              }
+              subtitle="Accounting / payment summary 复用现有 ledger-backed accounting foundations。"
+              title="Accounting and payment summary"
+            >
+              <div className="office-report-stat-strip">
+                <article className="office-report-stat">
+                  <span>Accounting rows</span>
+                  <strong>{snapshot.accountingSummary.transactionCount}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Invoices</span>
+                  <strong>{snapshot.accountingSummary.totalInvoices}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Open bills</span>
+                  <strong>{snapshot.accountingSummary.openBills}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Received / made payments</span>
+                  <strong>{snapshot.accountingSummary.receivedPaymentsLabel}</strong>
+                  <p>{snapshot.accountingSummary.madePaymentsLabel}</p>
+                </article>
+              </div>
+
+              <div className="office-dashboard-grid-wide office-reports-subgrid">
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-accounting-types">
+                    <span>Type</span>
+                    <span>Rows</span>
+                    <span>Total amount</span>
+                  </div>
+                  {snapshot.accountingSummary.byType.map((row) => (
+                    <Link
+                      className="office-table-row office-table-row-report-accounting-types"
+                      href={buildAccountingHref(
+                        {
+                          startDate: snapshot.filters.startDate,
+                          endDate: snapshot.filters.endDate,
+                          ownerMembershipId: snapshot.filters.ownerMembershipId,
+                          teamId: snapshot.filters.teamId,
+                          transactionStatus: snapshot.filters.transactionStatus,
+                          transactionType: snapshot.filters.transactionType,
+                          commissionPlanId: snapshot.filters.commissionPlanId
+                        },
+                        {
+                          type: row.type.toLowerCase().replaceAll(" ", "_"),
+                          anchor: "#accounting-ledger"
+                        }
+                      )}
+                      key={row.type}
+                    >
+                      <span>{row.type}</span>
+                      <span>{row.count}</span>
+                      <span>{row.totalAmountLabel}</span>
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-accounting-recent">
+                    <span>Date</span>
+                    <span>Type</span>
+                    <span>Status</span>
+                    <span>Counterparty</span>
+                    <span>Amount</span>
+                  </div>
+                  {snapshot.accountingSummary.recentTransactions.map((row) => (
+                    <Link className="office-table-row office-table-row-report-accounting-recent" href={row.href} key={row.id}>
+                      <span>{row.accountingDateLabel}</span>
+                      <span>{row.type}</span>
+                      <span>{row.status}</span>
+                      <div className="office-table-primary">
+                        <strong>{row.counterparty}</strong>
+                        <p>
+                          {row.ownerName} · {row.linkedTransactionLabel}
+                        </p>
+                      </div>
+                      <span>{row.amountLabel}</span>
+                    </Link>
+                  ))}
+                  {snapshot.accountingSummary.recentTransactions.length === 0 ? (
+                    <EmptyState description="当前筛选条件下没有 accounting rows。" title="No accounting rows" />
+                  ) : null}
+                </div>
+              </div>
+            </SectionCard>
+          </section>
+
+          <section id="reports-emd">
+            <SectionCard
+              actions={
+                <Link
+                  className="office-button office-button-secondary"
+                  href={buildAccountingHref(
+                    {
+                      startDate: snapshot.filters.startDate,
+                      endDate: snapshot.filters.endDate,
+                      ownerMembershipId: snapshot.filters.ownerMembershipId,
+                      teamId: snapshot.filters.teamId,
+                      transactionStatus: snapshot.filters.transactionStatus,
+                      transactionType: snapshot.filters.transactionType,
+                      commissionPlanId: snapshot.filters.commissionPlanId
+                    },
+                    {
+                      anchor: "#earnest-money"
+                    }
+                  )}
+                >
+                  Open EMD ledger
+                </Link>
+              }
+              subtitle="EMD summary 只展示当前持久化的 earnest money records。"
+              title="Earnest money summary"
+            >
+              <div className="office-report-stat-strip">
+                <article className="office-report-stat">
+                  <span>EMD records</span>
+                  <strong>{snapshot.emdSummary.recordCount}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Outstanding</span>
+                  <strong>{snapshot.emdSummary.outstandingCount}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Overdue</span>
+                  <strong>{snapshot.emdSummary.overdueCount}</strong>
+                </article>
+                <article className="office-report-stat">
+                  <span>Expected / received</span>
+                  <strong>{snapshot.emdSummary.expectedAmountLabel}</strong>
+                  <p>{snapshot.emdSummary.receivedAmountLabel}</p>
+                </article>
+              </div>
+
+              <div className="office-dashboard-grid-wide office-reports-subgrid">
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-emd-status">
+                    <span>Status</span>
+                    <span>Rows</span>
+                    <span>Expected</span>
+                    <span>Received</span>
+                  </div>
+                  {snapshot.emdSummary.byStatus.map((row) => (
+                    <Link
+                      className="office-table-row office-table-row-report-emd-status"
+                      href={buildAccountingHref(
+                        {
+                          startDate: snapshot.filters.startDate,
+                          endDate: snapshot.filters.endDate,
+                          ownerMembershipId: snapshot.filters.ownerMembershipId,
+                          teamId: snapshot.filters.teamId,
+                          transactionStatus: snapshot.filters.transactionStatus,
+                          transactionType: snapshot.filters.transactionType,
+                          commissionPlanId: snapshot.filters.commissionPlanId
+                        },
+                        {
+                          anchor: "#earnest-money"
+                        }
+                      )}
+                      key={row.status}
+                    >
+                      <span>
+                        <StatusBadge tone={getWorkflowTone(row.status)}>{row.status}</StatusBadge>
+                      </span>
+                      <span>{row.count}</span>
+                      <span>{row.expectedAmountLabel}</span>
+                      <span>{row.receivedAmountLabel}</span>
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="office-table">
+                  <div className="office-table-header office-table-row office-table-row-report-emd-recent">
+                    <span>Transaction</span>
+                    <span>Status</span>
+                    <span>Expected</span>
+                    <span>Received</span>
+                    <span>Due</span>
+                  </div>
+                  {snapshot.emdSummary.recentRecords.map((row) => (
+                    <Link className="office-table-row office-table-row-report-emd-recent" href={row.transactionHref} key={row.id}>
+                      <div className="office-table-primary">
+                        <strong>{row.transactionLabel}</strong>
+                        <p>{row.holdingLabel}</p>
+                      </div>
+                      <span>
+                        <StatusBadge tone={getWorkflowTone(row.status)}>{row.status}</StatusBadge>
+                      </span>
+                      <span>{row.expectedAmount}</span>
+                      <span>{row.receivedAmount}</span>
+                      <span>{row.dueAtLabel}</span>
+                    </Link>
+                  ))}
+                  {snapshot.emdSummary.recentRecords.length === 0 ? (
+                    <EmptyState description="当前筛选条件下没有 earnest money records。" title="No EMD rows" />
+                  ) : null}
+                </div>
+              </div>
+            </SectionCard>
+          </section>
+        </div>
+      </section>
     </PageShell>
   );
 }

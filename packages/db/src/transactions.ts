@@ -1,4 +1,4 @@
-import { Prisma, TransactionRepresenting, TransactionStatus, TransactionType } from "@prisma/client";
+import { Prisma, TransactionRepresenting, TransactionStatus, TransactionType, UserRole } from "@prisma/client";
 import { activityLogActions, recordActivityLogEvent } from "./activity-log";
 import { prisma } from "./client";
 import { listAvailableContactsForTransaction, type OfficeTransactionContact, type OfficeTransactionContactOption } from "./transaction-contacts";
@@ -29,6 +29,16 @@ export type OfficeTransactionSummary = {
   totalNetIncome: string;
 };
 
+export type OfficeTransactionSelectOption = {
+  id: string;
+  label: string;
+};
+
+export type OfficeTransactionFilterOptions = {
+  ownerOptions: OfficeTransactionSelectOption[];
+  teamOptions: OfficeTransactionSelectOption[];
+};
+
 export type OfficeTransactionListResult = {
   transactions: OfficeTransactionRecord[];
   summary: OfficeTransactionSummary;
@@ -36,6 +46,7 @@ export type OfficeTransactionListResult = {
   totalPages: number;
   page: number;
   pageSize: number;
+  filterOptions: OfficeTransactionFilterOptions;
 };
 
 export type OfficeTransactionDetail = {
@@ -85,6 +96,11 @@ export type ListTransactionsInput = {
   officeId?: string | null;
   search?: string;
   status?: OfficeTransactionStatus | "All";
+  ownerMembershipId?: string;
+  teamId?: string;
+  type?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   pageSize?: number;
 };
@@ -227,8 +243,31 @@ function parseOptionalDate(value: string | undefined) {
   }
 
   const trimmed = value.trim();
+  const parsed = trimmed ? new Date(trimmed) : null;
 
-  return trimmed ? new Date(trimmed) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+}
+
+function startOfDay(value: string | undefined) {
+  const parsed = parseOptionalDate(value);
+
+  if (!parsed) {
+    return null;
+  }
+
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function endOfDay(value: string | undefined) {
+  const parsed = parseOptionalDate(value);
+
+  if (!parsed) {
+    return null;
+  }
+
+  parsed.setHours(23, 59, 59, 999);
+  return parsed;
 }
 
 function parseOptionalDecimal(value: string | undefined) {
@@ -308,6 +347,14 @@ function getSearchMatchingRepresentingValues(query: string) {
   return Object.entries(representingLabelMap)
     .filter(([, label]) => label.toLowerCase().includes(normalizedQuery))
     .map(([representing]) => representing as TransactionRepresenting);
+}
+
+function parseTransactionTypeFilter(value: string | undefined) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  return Object.values(transactionTypeDbMap).includes(value.trim() as TransactionType) ? (value.trim() as TransactionType) : null;
 }
 
 function mapTransactionRecord(
@@ -447,19 +494,68 @@ function mapTransactionDetail(
 }
 
 export async function listTransactions(input: ListTransactionsInput): Promise<OfficeTransactionListResult> {
-  const where: Prisma.TransactionWhereInput = {
-    organizationId: input.organizationId
-  };
+  const whereConditions: Prisma.TransactionWhereInput[] = [
+    {
+      organizationId: input.organizationId
+    }
+  ];
   const requestedPage = Number.isFinite(input.page) ? Number(input.page) : defaultTransactionsPage;
   const requestedPageSize = Number.isFinite(input.pageSize) ? Number(input.pageSize) : defaultTransactionsPageSize;
   const pageSize = Math.min(Math.max(Math.trunc(requestedPageSize) || defaultTransactionsPageSize, 1), maxTransactionsPageSize);
+  const transactionType = parseTransactionTypeFilter(input.type);
+  const startDate = startOfDay(input.startDate);
+  const endDate = endOfDay(input.endDate);
 
   if (input.officeId) {
-    where.officeId = input.officeId;
+    whereConditions.push({
+      officeId: input.officeId
+    });
   }
 
   if (input.status && input.status !== "All") {
-    where.status = transactionStatusDbMap[input.status];
+    whereConditions.push({
+      status: transactionStatusDbMap[input.status]
+    });
+  }
+
+  if (input.ownerMembershipId?.trim()) {
+    whereConditions.push({
+      ownerMembershipId: input.ownerMembershipId.trim()
+    });
+  }
+
+  if (input.teamId?.trim()) {
+    whereConditions.push({
+      ownerMembership: {
+        is: {
+          teamMemberships: {
+            some: {
+              organizationId: input.organizationId,
+              teamId: input.teamId.trim(),
+              ...(input.officeId ? { OR: [{ officeId: input.officeId }, { officeId: null }] } : {}),
+              team: {
+                isActive: true
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (transactionType) {
+    whereConditions.push({
+      type: transactionType
+    });
+  }
+
+  if (startDate || endDate) {
+    whereConditions.push({
+      createdAt: {
+        ...(startDate ? { gte: startDate } : {}),
+        ...(endDate ? { lte: endDate } : {})
+      }
+    });
   }
 
   if (input.search?.trim()) {
@@ -467,46 +563,50 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
     const matchingStatuses = getSearchMatchingTransactionStatuses(query);
     const matchingRepresentingValues = getSearchMatchingRepresentingValues(query);
 
-    where.OR = [
-      { title: { contains: query, mode: "insensitive" } },
-      { address: { contains: query, mode: "insensitive" } },
-      { city: { contains: query, mode: "insensitive" } },
-      { zipCode: { contains: query, mode: "insensitive" } },
-      {
-        ownerMembership: {
-          user: {
-            OR: [
-              { firstName: { contains: query, mode: "insensitive" } },
-              { lastName: { contains: query, mode: "insensitive" } },
-              { email: { contains: query, mode: "insensitive" } }
-            ]
-          }
-        }
-      },
-      {
-        transactionContacts: {
-          some: {
-            client: {
+    whereConditions.push({
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { address: { contains: query, mode: "insensitive" } },
+        { city: { contains: query, mode: "insensitive" } },
+        { zipCode: { contains: query, mode: "insensitive" } },
+        {
+          ownerMembership: {
+            user: {
               OR: [
-                { fullName: { contains: query, mode: "insensitive" } },
-                { email: { contains: query, mode: "insensitive" } },
-                { phone: { contains: query, mode: "insensitive" } }
+                { firstName: { contains: query, mode: "insensitive" } },
+                { lastName: { contains: query, mode: "insensitive" } },
+                { email: { contains: query, mode: "insensitive" } }
               ]
             }
           }
-        }
-      },
-      ...(matchingStatuses.length > 0 ? [{ status: { in: matchingStatuses } }] : []),
-      ...(matchingRepresentingValues.length > 0 ? [{ representing: { in: matchingRepresentingValues } }] : [])
-    ];
+        },
+        {
+          transactionContacts: {
+            some: {
+              client: {
+                OR: [
+                  { fullName: { contains: query, mode: "insensitive" } },
+                  { email: { contains: query, mode: "insensitive" } },
+                  { phone: { contains: query, mode: "insensitive" } }
+                ]
+              }
+            }
+          }
+        },
+        ...(matchingStatuses.length > 0 ? [{ status: { in: matchingStatuses } }] : []),
+        ...(matchingRepresentingValues.length > 0 ? [{ representing: { in: matchingRepresentingValues } }] : [])
+      ]
+    });
   }
+
+  const where = whereConditions.length === 1 ? whereConditions[0] : { AND: whereConditions };
 
   const totalCount = await prisma.transaction.count({
     where
   });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const page = Math.min(Math.max(Math.trunc(requestedPage) || defaultTransactionsPage, 1), totalPages);
-  const [transactions, financeAggregate] = await Promise.all([
+  const [transactions, financeAggregate, ownerMemberships, teams] = await Promise.all([
     prisma.transaction.findMany({
       where,
       include: {
@@ -525,6 +625,31 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
       _sum: {
         officeNet: true
       }
+    }),
+    prisma.membership.findMany({
+      where: {
+        organizationId: input.organizationId,
+        status: "active",
+        ...(input.officeId ? { officeId: input.officeId } : {}),
+        role: {
+          in: ["agent", "office_manager", "office_admin"] satisfies UserRole[]
+        }
+      },
+      include: {
+        user: true
+      },
+      orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }]
+    }),
+    prisma.team.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...(input.officeId ? { OR: [{ officeId: input.officeId }, { officeId: null }] } : {})
+      },
+      select: {
+        id: true,
+        name: true
+      },
+      orderBy: [{ name: "asc" }]
     })
   ]);
 
@@ -537,7 +662,17 @@ export async function listTransactions(input: ListTransactionsInput): Promise<Of
     totalCount,
     totalPages,
     page,
-    pageSize
+    pageSize,
+    filterOptions: {
+      ownerOptions: ownerMemberships.map((membership) => ({
+        id: membership.id,
+        label: `${membership.user.firstName} ${membership.user.lastName}`
+      })),
+      teamOptions: teams.map((team) => ({
+        id: team.id,
+        label: team.name
+      }))
+    }
   };
 }
 

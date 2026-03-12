@@ -71,6 +71,11 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("q") ?? undefined;
   const status = searchParams.get("status") ?? "All";
+  const ownerMembershipId = searchParams.get("ownerMembershipId") ?? undefined;
+  const teamId = searchParams.get("teamId") ?? undefined;
+  const type = searchParams.get("type") ?? undefined;
+  const startDate = searchParams.get("startDate") ?? undefined;
+  const endDate = searchParams.get("endDate") ?? undefined;
   const page = parsePositiveInteger(searchParams.get("page"), defaultTransactionsPage);
   const pageSize = parsePositiveInteger(
     searchParams.get("pageSize"),
@@ -91,6 +96,11 @@ export async function GET(request: NextRequest) {
     officeId: context.currentOffice?.id,
     search,
     status: status === "All" ? "All" : (status as OfficeTransactionStatus),
+    ownerMembershipId,
+    teamId,
+    type,
+    startDate,
+    endDate,
     page,
     pageSize
   });

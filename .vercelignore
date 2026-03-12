@@ -1,0 +1,8 @@
+.DS_Store
+*.dmg
+*.gif
+*.pdf
+*.docx
+brokermint_architecture_blueprint.md
+brokermint_official_docs_map.md
+docs/

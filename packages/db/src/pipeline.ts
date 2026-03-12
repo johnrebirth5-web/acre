@@ -11,10 +11,17 @@ export type OfficePipelineOwnerOption = {
   label: string;
 };
 
+export type OfficePipelineMetricOption = {
+  value: OfficePipelineMetricMode;
+  label: string;
+  description: string;
+};
+
 export type OfficePipelineFunnelBucket = {
   status: Extract<OfficePipelineStatus, "Opportunity" | "Active" | "Pending">;
   count: number;
   metricLabel: string;
+  shareLabel: string;
 };
 
 export type OfficePipelineHistoryBucket = {
@@ -26,6 +33,8 @@ export type OfficePipelineHistoryBucket = {
 export type OfficePipelineHistoryMonth = {
   monthKey: string;
   label: string;
+  totalCount: number;
+  totalMetricLabel: string;
   buckets: OfficePipelineHistoryBucket[];
 };
 
@@ -39,7 +48,8 @@ export type OfficePipelineWorkspaceRow = {
   owner: string;
   priceLabel: string;
   metricValueLabel: string;
-  closingOrImportantLabel: string;
+  keyDateTypeLabel: string;
+  keyDateLabel: string;
   updatedLabel: string;
 };
 
@@ -49,6 +59,7 @@ export type OfficePipelineWorkspaceSnapshot = {
     representing: OfficePipelineRepresentingFilter;
     ownerMembershipId: string;
     metricMode: OfficePipelineMetricMode;
+    metricOptions: OfficePipelineMetricOption[];
     ownerOptions: OfficePipelineOwnerOption[];
     stage: Extract<OfficePipelineStatus, "Opportunity" | "Active" | "Pending"> | "";
     historyStatus: OfficePipelineHistoryStatus | "";
@@ -62,9 +73,27 @@ export type OfficePipelineWorkspaceSnapshot = {
     note: string;
     contextChips: string[];
   };
-  allTransactionsSummary: {
-    count: number;
-    metricLabel: string;
+  workspaceSummary: {
+    filteredTransactions: {
+      count: number;
+      metricLabel: string;
+      note: string;
+    };
+    livePipeline: {
+      count: number;
+      metricLabel: string;
+      note: string;
+    };
+    recentHistory: {
+      count: number;
+      metricLabel: string;
+      note: string;
+    };
+    selectedView: {
+      count: number;
+      metricLabel: string;
+      note: string;
+    };
   };
   funnelBuckets: OfficePipelineFunnelBucket[];
   historyMonths: OfficePipelineHistoryMonth[];
@@ -140,6 +169,7 @@ const metricModeLabels: Record<OfficePipelineMetricMode, string> = {
   office_net: "Office net",
   office_gross: "Office gross"
 };
+const metricModeOrder: OfficePipelineMetricMode[] = ["transaction_volume", "office_net", "office_gross"];
 
 function normalizeRepresentingFilter(value: string | undefined): OfficePipelineRepresentingFilter {
   if (!value || value === "all") {
@@ -301,8 +331,8 @@ function buildSelectionState(
   if (stage) {
     return {
       kind: "stage" as const,
-      label: `${stage} pipeline`,
-      note: "Showing the current filtered transaction list for the selected funnel stage.",
+      label: `${stage} stage`,
+      note: "Showing the working list for the selected live funnel stage after the current top filters.",
       contextChips
     };
   }
@@ -318,8 +348,8 @@ function buildSelectionState(
 
   return {
     kind: "all" as const,
-    label: "All transactions",
-    note: "Showing all transactions in the current pipeline workspace filters.",
+    label: "All filtered transactions",
+    note: "Showing every transaction that matches the current top-level pipeline filters.",
     contextChips
   };
 }
@@ -336,24 +366,28 @@ function buildMetricModeDescription(metricMode: OfficePipelineMetricMode) {
   return "Uses transaction price as the current pipeline volume metric.";
 }
 
+function isLivePipelineStatus(
+  status: OfficePipelineStatus
+): status is Extract<OfficePipelineStatus, "Opportunity" | "Active" | "Pending"> {
+  return activePipelineStatuses.includes(status as Extract<OfficePipelineStatus, "Opportunity" | "Active" | "Pending">);
+}
+
 function mapPipelineRow(transaction: PipelineWorkspaceTransaction, metricMode: OfficePipelineMetricMode): OfficePipelineWorkspaceRow {
-  const detailDate = transaction.closingDate
-    ? `Closing ${formatDateLabel(transaction.closingDate)}`
-    : transaction.importantDate
-      ? `Important ${formatDateLabel(transaction.importantDate)}`
-      : "—";
+  const keyDate = transaction.closingDate ?? transaction.importantDate;
+  const cityState = [transaction.city, transaction.state].filter(Boolean).join(", ");
 
   return {
     id: transaction.id,
     title: transaction.title,
     addressLine: transaction.address,
-    cityState: `${transaction.city}, ${transaction.state} ${transaction.zipCode}`,
+    cityState: cityState || transaction.zipCode || "—",
     status: pipelineStatusFromDb[transaction.status],
     representing: representingLabelMap[transaction.representing],
     owner: buildOwnerLabel(transaction),
     priceLabel: formatCurrency(transaction.price),
     metricValueLabel: formatCurrency(getTransactionMetricValue(transaction, metricMode)),
-    closingOrImportantLabel: detailDate,
+    keyDateTypeLabel: transaction.closingDate ? "Closing" : transaction.importantDate ? "Important date" : "Key date",
+    keyDateLabel: keyDate ? formatDateLabel(keyDate) : "—",
     updatedLabel: formatDateLabel(transaction.updatedAt)
   };
 }
@@ -407,12 +441,23 @@ export async function getOfficePipelineWorkspaceSnapshot(
     ? ownerOptions.find((option) => option.id === input.ownerMembershipId?.trim())?.label ?? "Selected owner"
     : "Any owner / agent";
   const representingFilterLabel = representing === "all" ? "Any side" : `${representingLabelMap[representing]} side`;
+  const metricOptions = metricModeOrder.map((value) => ({
+    value,
+    label: metricModeLabels[value],
+    description: buildMetricModeDescription(value)
+  }));
   const selectionContextChips = [
     representingFilterLabel,
     ownerFilterLabel,
     `Metric: ${metricModeLabels[metricMode]}`,
     ...(input.search?.trim() ? [`Search: ${input.search.trim()}`] : [])
   ];
+  const livePipelineTransactions = transactions.filter((transaction) => isLivePipelineStatus(pipelineStatusFromDb[transaction.status]));
+  const livePipelineCount = livePipelineTransactions.length;
+  const livePipelineMetric = livePipelineTransactions.reduce(
+    (sum, transaction) => sum + getTransactionMetricValue(transaction, metricMode),
+    0
+  );
 
   const funnelBuckets = activePipelineStatuses.map((currentStatus) => {
     const scopedTransactions = transactions.filter((transaction) => pipelineStatusFromDb[transaction.status] === currentStatus);
@@ -421,14 +466,23 @@ export async function getOfficePipelineWorkspaceSnapshot(
     return {
       status: currentStatus,
       count: scopedTransactions.length,
-      metricLabel: formatCurrency(totalMetric)
+      metricLabel: formatCurrency(totalMetric),
+      shareLabel: livePipelineCount > 0 ? `${Math.round((scopedTransactions.length / livePipelineCount) * 100)}% of live funnel` : "0% of live funnel"
     };
   });
 
   const historyMonthKeys = buildHistoryMonthKeys();
+  const recentHistoryTransactions = transactions.filter((transaction) => {
+    const status = pipelineStatusFromDb[transaction.status];
+    return historyPipelineStatuses.includes(status as OfficePipelineHistoryStatus) && historyMonthKeys.includes(getMonthlyRollupKey(transaction));
+  });
+  const recentHistoryMetric = recentHistoryTransactions.reduce(
+    (sum, transaction) => sum + getTransactionMetricValue(transaction, metricMode),
+    0
+  );
   const historyMonths = historyMonthKeys
     .map((monthKey) => {
-      const buckets = historyPipelineStatuses.map((currentStatus) => {
+      const bucketMetrics = historyPipelineStatuses.map((currentStatus) => {
         const scopedTransactions = transactions.filter(
           (transaction) =>
             pipelineStatusFromDb[transaction.status] === currentStatus && getMonthlyRollupKey(transaction) === monthKey
@@ -436,16 +490,21 @@ export async function getOfficePipelineWorkspaceSnapshot(
         const totalMetric = scopedTransactions.reduce((sum, transaction) => sum + getTransactionMetricValue(transaction, metricMode), 0);
 
         return {
+          totalMetric,
           status: currentStatus,
           count: scopedTransactions.length,
           metricLabel: formatCurrency(totalMetric)
         };
       });
+      const totalCount = bucketMetrics.reduce((sum, bucket) => sum + bucket.count, 0);
+      const totalMetric = bucketMetrics.reduce((sum, bucket) => sum + bucket.totalMetric, 0);
 
       return {
         monthKey,
         label: formatMonthLabel(monthKey),
-        buckets
+        totalCount,
+        totalMetricLabel: formatCurrency(totalMetric),
+        buckets: bucketMetrics.map(({ totalMetric: _totalMetric, ...bucket }) => bucket)
       };
     })
     .filter((month) => month.buckets.some((bucket) => bucket.count > 0) || month.monthKey === historyMonth);
@@ -481,6 +540,7 @@ export async function getOfficePipelineWorkspaceSnapshot(
       representing,
       ownerMembershipId: input.ownerMembershipId?.trim() ?? "",
       metricMode,
+      metricOptions,
       ownerOptions,
       stage,
       historyStatus,
@@ -489,9 +549,30 @@ export async function getOfficePipelineWorkspaceSnapshot(
     metricModeLabel: metricModeLabels[metricMode],
     metricModeDescription: buildMetricModeDescription(metricMode),
     selection,
-    allTransactionsSummary: {
-      count: transactions.length,
-      metricLabel: formatCurrency(allTransactionsMetric)
+    workspaceSummary: {
+      filteredTransactions: {
+        count: transactions.length,
+        metricLabel: formatCurrency(allTransactionsMetric),
+        note: "All statuses inside the current search, side, owner, and office scope."
+      },
+      livePipeline: {
+        count: livePipelineCount,
+        metricLabel: formatCurrency(livePipelineMetric),
+        note: "Opportunity, Active, and Pending records only."
+      },
+      recentHistory: {
+        count: recentHistoryTransactions.length,
+        metricLabel: formatCurrency(recentHistoryMetric),
+        note: `Closed and Cancelled rollups across the last ${pipelineHistoryWindowMonths} months.`
+      },
+      selectedView: {
+        count: selectedTransactions.length,
+        metricLabel: formatCurrency(totalMetric),
+        note:
+          selection.kind === "all"
+            ? "The current working list before any stage or month drilldown."
+            : "The currently selected stage or monthly history bucket."
+      }
     },
     funnelBuckets,
     historyMonths,

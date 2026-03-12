@@ -24,14 +24,24 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const startDate = url.searchParams.get("startDate") ?? undefined;
   const endDate = url.searchParams.get("endDate") ?? undefined;
+  const officeFilterId = url.searchParams.get("officeId") ?? undefined;
   const ownerMembershipId = url.searchParams.get("ownerMembershipId") ?? undefined;
+  const teamId = url.searchParams.get("teamId") ?? undefined;
+  const transactionStatus = url.searchParams.get("transactionStatus") ?? undefined;
+  const transactionType = url.searchParams.get("transactionType") ?? undefined;
+  const commissionPlanId = url.searchParams.get("commissionPlanId") ?? undefined;
 
   const rows = await listOfficeReportTransactionsForExport({
     organizationId: sessionContext.currentOrganization.id,
     officeId: sessionContext.currentOffice?.id,
+    officeFilterId,
     startDate,
     endDate,
-    ownerMembershipId
+    ownerMembershipId,
+    teamId,
+    transactionStatus,
+    transactionType,
+    commissionPlanId
   });
 
   const headers = [
