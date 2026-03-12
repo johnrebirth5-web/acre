@@ -14,6 +14,8 @@ export type AppPermission =
   | "teams:view"
   | "teams:manage"
   | "users:view"
+  | "library:view"
+  | "library:manage"
   | "documents:view"
   | "documents:manage"
   | "documents:approve"
@@ -97,6 +99,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "teams:manage",
     "users:view",
     "users:manage",
+    "library:view",
+    "library:manage",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -148,6 +152,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "teams:view",
     "teams:manage",
     "users:view",
+    "library:view",
+    "library:manage",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -282,6 +288,14 @@ export function canViewOfficeDocuments(role: UserRole): boolean {
 
 export function canManageOfficeDocuments(role: UserRole): boolean {
   return can(role, "documents:manage");
+}
+
+export function canViewOfficeLibrary(role: UserRole): boolean {
+  return can(role, "library:view");
+}
+
+export function canManageOfficeLibrary(role: UserRole): boolean {
+  return can(role, "library:manage");
 }
 
 export function canApproveOfficeDocuments(role: UserRole): boolean {

@@ -67,9 +67,14 @@
   - 列表页现在使用 URL 驱动的服务端查询：
     - `q`
     - `status`
+    - `ownerMembershipId`
+    - `teamId`
+    - `type`
+    - `startDate`
+    - `endDate`
     - `page`
     - `pageSize`
-  - 支持搜索、状态筛选和服务端分页
+  - 支持搜索、状态 / owner / team / type / date window 筛选和服务端分页
   - 顶部 `MY NET INCOME` 现在按真实 `officeNet` 聚合，不再硬编码 `$ 0`
   - `Create Transaction` modal 会真实写入数据库
   - 已有 transaction detail 页面
@@ -209,13 +214,25 @@
   - 已切到 `TransactionContact` relation，支持一个 transaction 关联多个 contact
   - `Transaction.primaryClientId` 仍临时保留，并与当前 primary linked contact 同步
 - `Reports` 现在也已接入真实数据库：
-  - 支持 total transactions
-  - 支持 transactions by status
-  - 支持 transactions by owner / agent
-  - 支持 transactions over time
-  - 支持 contacts needing follow-up
-  - 支持最小 date range / owner 过滤
-  - 支持按当前过滤条件导出真实 transaction CSV
+  - 现在是一个更强的 management reporting workspace，而不只是 summary + export
+  - 支持按真实数据查看：
+    - transaction performance
+    - agent performance
+    - team performance（基于当前 team membership，可见限制会在页面说明）
+    - commission summary
+    - accounting / payment summary
+    - earnest money summary
+  - 顶部过滤当前支持：
+    - `startDate`
+    - `endDate`
+    - `officeId`
+    - `ownerMembershipId`
+    - `teamId`
+    - `transactionStatus`
+    - `transactionType`
+    - `commissionPlanId`
+  - 页面内 summary rows 可 drill-down 到真实 `/office/transactions`、`/office/accounting`、`/office/agents/:membershipId`
+  - CSV 导出仍保留，并继续复用当前 transaction 过滤上下文导出真实 transaction 行
 - `Accounting` 现在也已接入真实数据库，作为一个最小但真实的 back-office accounting MVP：
   - 路由：`/office/accounting`
   - 基于 `LedgerAccount / AccountingTransaction / AccountingTransactionLineItem / GeneralLedgerEntry / EarnestMoneyRecord`
@@ -402,6 +419,34 @@
     - contacts needing follow-up soon
     - overdue follow-up tasks
     - transaction finance incomplete
+- `Library` 现在也已接入真实数据库，作为真实 `Company Library / Internal Document Library`：
+  - 路由保持在 `/office/library`
+  - 页面改成真实三栏 workspace：
+    - 左侧 folder tree
+    - 中间 file list
+    - 右侧 preview / details pane
+  - 数据模型现在使用独立 Prisma 实体：
+    - `LibraryFolder`
+    - `LibraryDocument`
+  - 当前支持：
+    - create folder
+    - rename folder
+    - upload file
+    - rename file
+    - move file between folders
+    - inline PDF preview
+    - open / download
+    - delete file
+    - keyword / folder / category / tag filtering
+  - 当前作用域明确区分：
+    - `company_wide`
+    - `office_only`
+  - 当前访问权限：
+    - `library:view`
+    - `library:manage`
+  - major library actions 会写入 `Activity Log`
+  - 当前文件存储仍然是本地文件系统 MVP，不是假装已接入对象存储
+  - 当前 page count 只在已知值时显示；上传时暂未做稳定 PDF page indexing
 - `Create Transaction` 保持在 `Transactions` 页面内的 modal 结构，按 `NEW TRANSACTION / step 1 of 4` 真实截图铺出，包含顶部 `Type / Status / Representing` 和 `Additional fields`
 - 基础页面路由：
   - `/` -> 登录后跳对应 workspace，未登录跳 `/login`
@@ -452,6 +497,11 @@
   - `/api/office/contacts/:contactId/follow-up-tasks`
   - `/api/office/contacts/:contactId/transactions/:transactionId`
   - `/api/office/activity/comments`
+  - `/api/office/library/folders`
+  - `/api/office/library/folders/:folderId`
+  - `/api/office/library/documents`
+  - `/api/office/library/documents/:documentId`
+  - `/api/office/library/documents/:documentId/file`
   - `/api/office/agents/teams`
   - `/api/office/agents/teams/:teamId`
   - `/api/office/agents/teams/:teamId/memberships`

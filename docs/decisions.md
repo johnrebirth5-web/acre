@@ -217,7 +217,7 @@ Trade-off：
 - 没有异常监控
 - 已有 Vercel 生产部署实例，但还没有完整生产业务能力
 - `@acre/backoffice` 目前同时承担“领域模型”和“临时数据源”两种职责
-- 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但除 `Dashboard` 业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 外，大部分仍是静态示例数据和简化交互，不应误判为已复刻完成
+- 当前 `Back Office` 页面虽然已经开始贴近 `Brokermint`，但仍有一些边角流程、agent/resource feed 和非核心路径保留静态示例数据或简化交互，不应误判为已完全复刻完成
 - 文档文件当前采用本地文件系统 MVP，而不是对象存储；这适合开发和本地验证，不应误判为生产可用存储层
 - `Forms / eSignature / Incoming updates` 当前是内部 workflow foundation，不是外部 vendor integration
 
@@ -582,12 +582,44 @@ Trade-off：
   - org-wide access (`officeId = null`)
 - 这样看起来没有某些 SaaS 那么“花”，但不会伪造未实现的 access pattern，也避免之后高成本返工
 
+## 关键决策 10.7：Company Library 不复用旧 `Resource / Vendor` mock，而是建立独立 folder/document 模型
+
+原因：
+
+- `/office/library` 的目标已经明确是内部 `Company Library / Internal Document Library`，不是 vendor marketplace
+- 旧的 `Resource` 列表更适合过渡期的扁平资源 feed，不适合 folder tree、file move、preview pane 这类文档工作区行为
+- 如果继续把 PDF library 挤进 `Resource`，后续 folder、scope、preview 和审计都会越来越别扭
+
+影响：
+
+- 新增独立 Prisma 模型：
+  - `LibraryFolder`
+  - `LibraryDocument`
+- `LibraryFolder` 明确承载：
+  - organization / office scope
+  - parent folder
+  - sort order
+  - active state
+- `LibraryDocument` 明确承载：
+  - folder assignment
+  - original file metadata
+  - local storage key
+  - tags / category / visibility
+  - PDF-first preview metadata
+- `/office/library` 现在直接读写 Prisma，而不是再经过 `@acre/backoffice` mock feed
+- library major actions 进入 `AuditLog`
+
+Trade-off：
+
+- 现在仓库里同时还保留旧 `Resource / Vendor` 模型，短期内会有两套“资源”概念并存
+- 但这样能保持 agent/resource feed 和 office/company library 各自语义清晰，而不是继续混成一个模糊模型
+
 ## 后续接手时最需要先理解的几个决策
 
 如果你只读这一段，也要先理解下面四点：
 
 1. 当前系统不是“全栈已完成”，而是“前端 + API + schema + 最小 Prisma runtime + 最小本地 auth + 部分模块数据库落地”已完成
-2. 当前主 API 和页面的数据仍主要来自 `@acre/backoffice` 的内存数据，但 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Reports` 已是例外
+2. 当前主 API 和页面的数据仍有一部分来自 `@acre/backoffice` 的内存数据，但 `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity`、`Library`、`Accounting`、`Agent Management`、`Settings` 已不再是 mock 页面
 3. `packages/db` 现在已经能 generate / migrate / seed / query，但这不代表所有页面都已经完成数据库迁移
 4. 当前 auth 只是本地开发方案，不应误判为生产 auth 设计
 5. 后续功能开发应优先保持模块边界，不要把 auth、db、页面逻辑重新混在一起

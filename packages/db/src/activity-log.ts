@@ -55,6 +55,8 @@ export const activityLogActions = {
   offerWithdrawn: "offer.withdrawn",
   offerCommentAdded: "offer.comment_added",
   offerDocumentLinked: "offer.document_linked",
+  libraryFolderCreated: "library.folder_created",
+  libraryFolderUpdated: "library.folder_updated",
   documentUploaded: "document.uploaded",
   documentUpdated: "document.updated",
   documentDeleted: "document.deleted",
@@ -129,6 +131,8 @@ export type ActivityLogEntityType =
   | "follow_up_task"
   | "activity_comment"
   | "session"
+  | "library_folder"
+  | "library_document"
   | "transaction_document"
   | "transaction_form"
   | "signature_request"
@@ -374,6 +378,8 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "offer.withdrawn": "Offer withdrawn",
   "offer.comment_added": "Offer comment added",
   "offer.document_linked": "Offer document linked",
+  "library.folder_created": "Library folder created",
+  "library.folder_updated": "Library folder updated",
   "document.uploaded": "Document uploaded",
   "document.updated": "Document updated",
   "document.deleted": "Document deleted",
@@ -510,6 +516,8 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
     label: "Documents / Forms / Signatures",
     matches: (action) =>
       action === activityLogActions.documentUploaded ||
+      action === activityLogActions.libraryFolderCreated ||
+      action === activityLogActions.libraryFolderUpdated ||
       action === activityLogActions.documentUpdated ||
       action === activityLogActions.documentDeleted ||
       action === activityLogActions.documentOpened ||
@@ -700,6 +708,8 @@ function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjec
       return "transaction";
     case "contact":
       return "contact";
+    case "library_folder":
+    case "library_document":
     case "transaction_document":
     case "transaction_form":
     case "signature_request":
@@ -811,6 +821,10 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "agent_recurring_charge_rule" || record.entityType === "agent_payment_method") {
     return payload.contextHref ?? "/office/accounting#agent-billing";
+  }
+
+  if (record.entityType === "library_folder" || record.entityType === "library_document") {
+    return payload.contextHref ?? "/office/library";
   }
 
   if (record.entityType === "transaction_document" && payload.transactionId) {
@@ -995,6 +1009,14 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "added an offer comment";
     case activityLogActions.offerDocumentLinked:
       return "linked a document to an offer";
+    case activityLogActions.libraryFolderCreated:
+      return "created a library folder";
+    case activityLogActions.libraryFolderUpdated:
+      return payload.changes.length === 1 && payload.changes[0]?.label === "Folder name"
+        ? "renamed a library folder"
+        : payload.changes.length === 1
+          ? `updated library folder ${payload.changes[0].label.toLowerCase()}`
+          : "updated a library folder";
     case activityLogActions.documentUploaded:
       return "uploaded a document";
     case activityLogActions.documentUpdated:

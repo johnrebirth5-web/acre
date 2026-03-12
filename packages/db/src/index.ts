@@ -15,6 +15,8 @@ export const databaseModules = [
   "events",
   "resources",
   "vendors",
+  "library_folders",
+  "library_documents",
   "audit_logs",
   "transactions",
   "transaction_contacts",
@@ -56,6 +58,16 @@ export { getOfficeActivitySnapshot } from "./activity";
 export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnapshot, recordActivityLogEvent } from "./activity-log";
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
+export {
+  createLibraryDocument,
+  createLibraryFolder,
+  deleteLibraryDocument,
+  getLibraryDocumentStorageRecord,
+  getOfficeLibrarySnapshot,
+  recordLibraryDocumentOpened,
+  updateLibraryDocument,
+  updateLibraryFolder
+} from "./library";
 export {
   applyAgentOnboardingTemplate,
   addAgentToTeam,
@@ -274,6 +286,21 @@ export type {
   OfficeOperationalAlertSeverity
 } from "./activity-log";
 export type {
+  CreateLibraryDocumentInput,
+  CreateLibraryFolderInput,
+  GetOfficeLibrarySnapshotInput,
+  OfficeLibraryDocument,
+  OfficeLibraryFolderNode,
+  OfficeLibraryFolderOption,
+  OfficeLibraryFolderSelection,
+  OfficeLibraryScope,
+  OfficeLibrarySelectedFolder,
+  OfficeLibrarySnapshot,
+  OfficeLibrarySummary,
+  UpdateLibraryDocumentInput,
+  UpdateLibraryFolderInput
+} from "./library";
+export type {
   ChecklistTemplateItemInput,
   CreateChecklistTemplateInput,
   GetOfficeAdminUsersInput,
@@ -343,6 +370,7 @@ export type {
 } from "./pipeline";
 export type {
   GetOfficeReportsSnapshotInput,
+  OfficeReportStatus,
   OfficeReportOwnerMetric,
   OfficeReportOwnerOption,
   OfficeReportTransactionExportRow,
@@ -418,8 +446,10 @@ export type {
 export type {
   CreateTransactionInput,
   OfficeTransactionDetail,
+  OfficeTransactionFilterOptions,
   OfficeTransactionListResult,
   OfficeTransactionRecord,
+  OfficeTransactionSelectOption,
   OfficeTransactionSummary,
   OfficeTransactionStatus,
   UpdateTransactionFinanceInput,

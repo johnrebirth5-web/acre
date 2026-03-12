@@ -62,6 +62,11 @@ enum ResourceType {
   playbook
 }
 
+enum LibraryDocumentVisibility {
+  company_wide
+  office_only
+}
+
 enum TransactionType {
   sales
   sales_listing
@@ -323,102 +328,106 @@ enum EarnestMoneyStatus {
 }
 
 model Organization {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  timezone      String         @default("America/New_York")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  offices       Office[]
-  memberships   Membership[]
-  listings      Listing[]
-  clients       Client[]
-  followUpTasks FollowUpTask[]
-  notifications Notification[]
-  events        Event[]
-  resources     Resource[]
-  vendors       Vendor[]
-  auditLogs     AuditLog[]
-  transactions  Transaction[]
-  transactionContacts TransactionContact[]
-  transactionTasks TransactionTask[]
-  taskListViews TaskListView[]
-  ledgerAccounts LedgerAccount[]
-  accountingTransactions AccountingTransaction[]
-  accountingTransactionLineItems AccountingTransactionLineItem[]
+  id                                String                             @id @default(cuid())
+  name                              String
+  slug                              String                             @unique
+  timezone                          String                             @default("America/New_York")
+  createdAt                         DateTime                           @default(now())
+  updatedAt                         DateTime                           @updatedAt
+  offices                           Office[]
+  memberships                       Membership[]
+  listings                          Listing[]
+  clients                           Client[]
+  followUpTasks                     FollowUpTask[]
+  notifications                     Notification[]
+  events                            Event[]
+  resources                         Resource[]
+  vendors                           Vendor[]
+  libraryFolders                    LibraryFolder[]
+  libraryDocuments                  LibraryDocument[]
+  auditLogs                         AuditLog[]
+  transactions                      Transaction[]
+  transactionContacts               TransactionContact[]
+  transactionTasks                  TransactionTask[]
+  taskListViews                     TaskListView[]
+  ledgerAccounts                    LedgerAccount[]
+  accountingTransactions            AccountingTransaction[]
+  accountingTransactionLineItems    AccountingTransactionLineItem[]
   accountingTransactionApplications AccountingTransactionApplication[]
-  generalLedgerEntries GeneralLedgerEntry[]
-  earnestMoneyRecords EarnestMoneyRecord[]
-  agentRecurringChargeRules AgentRecurringChargeRule[]
-  agentPaymentMethods AgentPaymentMethod[]
-  transactionDocuments TransactionDocument[]
-  formTemplates FormTemplate[]
-  transactionForms TransactionForm[]
-  signatureRequests SignatureRequest[]
-  incomingUpdates IncomingUpdate[]
-  offers          Offer[]
-  offerComments   OfferComment[]
-  agentProfiles   AgentProfile[]
-  teams           Team[]
-  teamMemberships TeamMembership[]
-  agentOnboardingTemplateItems AgentOnboardingTemplateItem[]
-  agentOnboardingItems AgentOnboardingItem[]
-  agentGoals      AgentGoal[]
-  commissionPlans CommissionPlan[]
-  commissionPlanAssignments CommissionPlanAssignment[]
-  commissionPlanRules CommissionPlanRule[]
-  commissionCalculations CommissionCalculation[]
-  requiredContactRoleSettings RequiredContactRoleSetting[]
-  transactionFieldSettings TransactionFieldSetting[]
-  checklistTemplates ChecklistTemplate[]
-  checklistTemplateItems ChecklistTemplateItem[]
+  generalLedgerEntries              GeneralLedgerEntry[]
+  earnestMoneyRecords               EarnestMoneyRecord[]
+  agentRecurringChargeRules         AgentRecurringChargeRule[]
+  agentPaymentMethods               AgentPaymentMethod[]
+  transactionDocuments              TransactionDocument[]
+  formTemplates                     FormTemplate[]
+  transactionForms                  TransactionForm[]
+  signatureRequests                 SignatureRequest[]
+  incomingUpdates                   IncomingUpdate[]
+  offers                            Offer[]
+  offerComments                     OfferComment[]
+  agentProfiles                     AgentProfile[]
+  teams                             Team[]
+  teamMemberships                   TeamMembership[]
+  agentOnboardingTemplateItems      AgentOnboardingTemplateItem[]
+  agentOnboardingItems              AgentOnboardingItem[]
+  agentGoals                        AgentGoal[]
+  commissionPlans                   CommissionPlan[]
+  commissionPlanAssignments         CommissionPlanAssignment[]
+  commissionPlanRules               CommissionPlanRule[]
+  commissionCalculations            CommissionCalculation[]
+  requiredContactRoleSettings       RequiredContactRoleSetting[]
+  transactionFieldSettings          TransactionFieldSetting[]
+  checklistTemplates                ChecklistTemplate[]
+  checklistTemplateItems            ChecklistTemplateItem[]
 }
 
 model Office {
-  id             String         @id @default(cuid())
-  organizationId String
-  name           String
-  slug           String
-  market         String
-  isPrimary      Boolean        @default(false)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  memberships    Membership[]
-  listings       Listing[]
-  events         Event[]
-  resources      Resource[]
-  vendors        Vendor[]
-  transactions   Transaction[]
-  taskListViews  TaskListView[]
-  ledgerAccounts LedgerAccount[]
-  accountingTransactions AccountingTransaction[]
-  accountingTransactionLineItems AccountingTransactionLineItem[]
+  id                                String                             @id @default(cuid())
+  organizationId                    String
+  name                              String
+  slug                              String
+  market                            String
+  isPrimary                         Boolean                            @default(false)
+  createdAt                         DateTime                           @default(now())
+  updatedAt                         DateTime                           @updatedAt
+  organization                      Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships                       Membership[]
+  listings                          Listing[]
+  events                            Event[]
+  resources                         Resource[]
+  vendors                           Vendor[]
+  libraryFolders                    LibraryFolder[]
+  libraryDocuments                  LibraryDocument[]
+  transactions                      Transaction[]
+  taskListViews                     TaskListView[]
+  ledgerAccounts                    LedgerAccount[]
+  accountingTransactions            AccountingTransaction[]
+  accountingTransactionLineItems    AccountingTransactionLineItem[]
   accountingTransactionApplications AccountingTransactionApplication[]
-  generalLedgerEntries GeneralLedgerEntry[]
-  earnestMoneyRecords EarnestMoneyRecord[]
-  agentRecurringChargeRules AgentRecurringChargeRule[]
-  agentPaymentMethods AgentPaymentMethod[]
-  transactionDocuments TransactionDocument[]
-  formTemplates FormTemplate[]
-  transactionForms TransactionForm[]
-  signatureRequests SignatureRequest[]
-  incomingUpdates IncomingUpdate[]
-  offers          Offer[]
-  offerComments   OfferComment[]
-  agentProfiles   AgentProfile[]
-  teams           Team[]
-  teamMemberships TeamMembership[]
-  agentOnboardingTemplateItems AgentOnboardingTemplateItem[]
-  agentOnboardingItems AgentOnboardingItem[]
-  agentGoals      AgentGoal[]
-  commissionPlans CommissionPlan[]
-  commissionPlanAssignments CommissionPlanAssignment[]
-  commissionCalculations CommissionCalculation[]
-  requiredContactRoleSettings RequiredContactRoleSetting[]
-  transactionFieldSettings TransactionFieldSetting[]
-  checklistTemplates ChecklistTemplate[]
-  checklistTemplateItems ChecklistTemplateItem[]
+  generalLedgerEntries              GeneralLedgerEntry[]
+  earnestMoneyRecords               EarnestMoneyRecord[]
+  agentRecurringChargeRules         AgentRecurringChargeRule[]
+  agentPaymentMethods               AgentPaymentMethod[]
+  transactionDocuments              TransactionDocument[]
+  formTemplates                     FormTemplate[]
+  transactionForms                  TransactionForm[]
+  signatureRequests                 SignatureRequest[]
+  incomingUpdates                   IncomingUpdate[]
+  offers                            Offer[]
+  offerComments                     OfferComment[]
+  agentProfiles                     AgentProfile[]
+  teams                             Team[]
+  teamMemberships                   TeamMembership[]
+  agentOnboardingTemplateItems      AgentOnboardingTemplateItem[]
+  agentOnboardingItems              AgentOnboardingItem[]
+  agentGoals                        AgentGoal[]
+  commissionPlans                   CommissionPlan[]
+  commissionPlanAssignments         CommissionPlanAssignment[]
+  commissionCalculations            CommissionCalculation[]
+  requiredContactRoleSettings       RequiredContactRoleSetting[]
+  transactionFieldSettings          TransactionFieldSetting[]
+  checklistTemplates                ChecklistTemplate[]
+  checklistTemplateItems            ChecklistTemplateItem[]
 
   @@unique([organizationId, slug])
 }
@@ -437,110 +446,112 @@ model User {
 }
 
 model Membership {
-  id                String            @id @default(cuid())
-  organizationId    String
-  officeId          String?
-  userId            String
-  role              UserRole
-  status            MembershipStatus  @default(active)
-  title             String?
-  permissions       Json?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office            Office?           @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listingsOwned     Listing[]
-  clientsOwned      Client[]
-  tasksAssigned     FollowUpTask[]
-  notifications     Notification[]
-  eventsCreated     Event[]
-  eventRsvps        EventRsvp[]
-  auditLogs         AuditLog[]
-  transactionsOwned Transaction[]
-  transactionTasksAssigned TransactionTask[]         @relation("TransactionTaskAssignee")
-  transactionTasksCompleted TransactionTask[]        @relation("TransactionTaskCompletedBy")
-  transactionTasksSubmittedForReview TransactionTask[] @relation("TransactionTaskSubmittedForReviewBy")
-  transactionTasksFirstApproved TransactionTask[]    @relation("TransactionTaskFirstApprovedBy")
-  transactionTasksSecondApproved TransactionTask[]   @relation("TransactionTaskSecondApprovedBy")
-  transactionTasksRejected TransactionTask[]         @relation("TransactionTaskRejectedBy")
-  taskListViews TaskListView[]
-  accountingTransactionsCreated AccountingTransaction[] @relation("AccountingTransactionCreatedBy")
-  accountingTransactionsRelated AccountingTransaction[] @relation("AccountingTransactionRelatedMembership")
+  id                                       String                             @id @default(cuid())
+  organizationId                           String
+  officeId                                 String?
+  userId                                   String
+  role                                     UserRole
+  status                                   MembershipStatus                   @default(active)
+  title                                    String?
+  permissions                              Json?
+  createdAt                                DateTime                           @default(now())
+  updatedAt                                DateTime                           @updatedAt
+  organization                             Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                                   Office?                            @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  user                                     User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingsOwned                            Listing[]
+  clientsOwned                             Client[]
+  tasksAssigned                            FollowUpTask[]
+  notifications                            Notification[]
+  eventsCreated                            Event[]
+  eventRsvps                               EventRsvp[]
+  auditLogs                                AuditLog[]
+  transactionsOwned                        Transaction[]
+  transactionTasksAssigned                 TransactionTask[]                  @relation("TransactionTaskAssignee")
+  transactionTasksCompleted                TransactionTask[]                  @relation("TransactionTaskCompletedBy")
+  transactionTasksSubmittedForReview       TransactionTask[]                  @relation("TransactionTaskSubmittedForReviewBy")
+  transactionTasksFirstApproved            TransactionTask[]                  @relation("TransactionTaskFirstApprovedBy")
+  transactionTasksSecondApproved           TransactionTask[]                  @relation("TransactionTaskSecondApprovedBy")
+  transactionTasksRejected                 TransactionTask[]                  @relation("TransactionTaskRejectedBy")
+  taskListViews                            TaskListView[]
+  accountingTransactionsCreated            AccountingTransaction[]            @relation("AccountingTransactionCreatedBy")
+  accountingTransactionsRelated            AccountingTransaction[]            @relation("AccountingTransactionRelatedMembership")
   accountingTransactionApplicationsCreated AccountingTransactionApplication[] @relation("AccountingTransactionApplicationCreatedBy")
-  earnestMoneyRecordsCreated EarnestMoneyRecord[] @relation("EarnestMoneyCreatedBy")
-  agentRecurringChargeRules AgentRecurringChargeRule[] @relation("AgentRecurringChargeRuleMembership")
-  agentPaymentMethods AgentPaymentMethod[]
-  uploadedTransactionDocuments TransactionDocument[] @relation("TransactionDocumentUploadedBy")
-  createdTransactionForms TransactionForm[] @relation("TransactionFormCreatedBy")
-  requestedSignatureRequests SignatureRequest[] @relation("SignatureRequestRequestedBy")
-  reviewedIncomingUpdates IncomingUpdate[] @relation("IncomingUpdateReviewedBy")
-  createdOffers          Offer[]               @relation("OfferCreatedBy")
-  offerComments          OfferComment[]
-  agentProfile         AgentProfile?
-  teamMemberships      TeamMembership[]
-  agentOnboardingItems AgentOnboardingItem[]
-  completedAgentOnboardingItems AgentOnboardingItem[] @relation("AgentOnboardingCompletedBy")
-  agentGoals           AgentGoal[]
-  commissionPlanAssignments CommissionPlanAssignment[]
-  commissionCalculations CommissionCalculation[] @relation("CommissionCalculationMembership")
-  calculatedCommissionCalculations CommissionCalculation[] @relation("CommissionCalculationCalculatedBy")
-  checklistTemplatesCreated ChecklistTemplate[] @relation("ChecklistTemplateCreatedBy")
-  checklistTemplatesUpdated ChecklistTemplate[] @relation("ChecklistTemplateUpdatedBy")
+  earnestMoneyRecordsCreated               EarnestMoneyRecord[]               @relation("EarnestMoneyCreatedBy")
+  agentRecurringChargeRules                AgentRecurringChargeRule[]         @relation("AgentRecurringChargeRuleMembership")
+  agentPaymentMethods                      AgentPaymentMethod[]
+  createdLibraryFolders                    LibraryFolder[]                    @relation("LibraryFolderCreatedBy")
+  uploadedTransactionDocuments             TransactionDocument[]              @relation("TransactionDocumentUploadedBy")
+  uploadedLibraryDocuments                 LibraryDocument[]                  @relation("LibraryDocumentUploadedBy")
+  createdTransactionForms                  TransactionForm[]                  @relation("TransactionFormCreatedBy")
+  requestedSignatureRequests               SignatureRequest[]                 @relation("SignatureRequestRequestedBy")
+  reviewedIncomingUpdates                  IncomingUpdate[]                   @relation("IncomingUpdateReviewedBy")
+  createdOffers                            Offer[]                            @relation("OfferCreatedBy")
+  offerComments                            OfferComment[]
+  agentProfile                             AgentProfile?
+  teamMemberships                          TeamMembership[]
+  agentOnboardingItems                     AgentOnboardingItem[]
+  completedAgentOnboardingItems            AgentOnboardingItem[]              @relation("AgentOnboardingCompletedBy")
+  agentGoals                               AgentGoal[]
+  commissionPlanAssignments                CommissionPlanAssignment[]
+  commissionCalculations                   CommissionCalculation[]            @relation("CommissionCalculationMembership")
+  calculatedCommissionCalculations         CommissionCalculation[]            @relation("CommissionCalculationCalculatedBy")
+  checklistTemplatesCreated                ChecklistTemplate[]                @relation("ChecklistTemplateCreatedBy")
+  checklistTemplatesUpdated                ChecklistTemplate[]                @relation("ChecklistTemplateUpdatedBy")
 
   @@unique([organizationId, userId])
 }
 
 model Transaction {
-  id                          String                   @id @default(cuid())
-  organizationId              String
-  officeId                    String?
-  ownerMembershipId           String?
-  primaryClientId             String?
-  type                        TransactionType
-  status                      TransactionStatus        @default(opportunity)
-  representing                TransactionRepresenting
-  title                       String
-  address                     String
-  city                        String
-  state                       String
-  zipCode                     String
-  price                       Decimal?                 @db.Decimal(12, 2)
-  importantDate               DateTime?
-  buyerAgreementDate          DateTime?
-  buyerExpirationDate         DateTime?
-  acceptanceDate              DateTime?
-  listingDate                 DateTime?
-  listingExpirationDate       DateTime?
-  closingDate                 DateTime?
-  companyReferral             Boolean                  @default(false)
-  companyReferralEmployeeName String?
-  referralContext             Json?
-  grossCommission             Decimal?                 @db.Decimal(12, 2)
-  referralFee                 Decimal?                 @db.Decimal(12, 2)
-  officeNet                   Decimal?                 @db.Decimal(12, 2)
-  agentNet                    Decimal?                 @db.Decimal(12, 2)
-  financeNotes                String?
-  commissionContext           Json?
-  additionalFields            Json?
-  createdAt                   DateTime                 @default(now())
-  updatedAt                   DateTime                 @updatedAt
-  organization                Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                      Office?                  @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  ownerMembership             Membership?              @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
-  primaryClient               Client?                  @relation("TransactionPrimaryClient", fields: [primaryClientId], references: [id], onDelete: SetNull)
-  transactionContacts         TransactionContact[]
-  tasks                       TransactionTask[]
-  accountingTransactions      AccountingTransaction[]
+  id                             String                          @id @default(cuid())
+  organizationId                 String
+  officeId                       String?
+  ownerMembershipId              String?
+  primaryClientId                String?
+  type                           TransactionType
+  status                         TransactionStatus               @default(opportunity)
+  representing                   TransactionRepresenting
+  title                          String
+  address                        String
+  city                           String
+  state                          String
+  zipCode                        String
+  price                          Decimal?                        @db.Decimal(12, 2)
+  importantDate                  DateTime?
+  buyerAgreementDate             DateTime?
+  buyerExpirationDate            DateTime?
+  acceptanceDate                 DateTime?
+  listingDate                    DateTime?
+  listingExpirationDate          DateTime?
+  closingDate                    DateTime?
+  companyReferral                Boolean                         @default(false)
+  companyReferralEmployeeName    String?
+  referralContext                Json?
+  grossCommission                Decimal?                        @db.Decimal(12, 2)
+  referralFee                    Decimal?                        @db.Decimal(12, 2)
+  officeNet                      Decimal?                        @db.Decimal(12, 2)
+  agentNet                       Decimal?                        @db.Decimal(12, 2)
+  financeNotes                   String?
+  commissionContext              Json?
+  additionalFields               Json?
+  createdAt                      DateTime                        @default(now())
+  updatedAt                      DateTime                        @updatedAt
+  organization                   Organization                    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                         Office?                         @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  ownerMembership                Membership?                     @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  primaryClient                  Client?                         @relation("TransactionPrimaryClient", fields: [primaryClientId], references: [id], onDelete: SetNull)
+  transactionContacts            TransactionContact[]
+  tasks                          TransactionTask[]
+  accountingTransactions         AccountingTransaction[]
   accountingTransactionLineItems AccountingTransactionLineItem[]
-  generalLedgerEntries        GeneralLedgerEntry[]
-  earnestMoneyRecords         EarnestMoneyRecord[]
-  documents                   TransactionDocument[]
-  forms                       TransactionForm[]
-  signatureRequests           SignatureRequest[]
-  incomingUpdates             IncomingUpdate[]
-  offers                      Offer[]
-  commissionCalculations      CommissionCalculation[]
+  generalLedgerEntries           GeneralLedgerEntry[]
+  earnestMoneyRecords            EarnestMoneyRecord[]
+  documents                      TransactionDocument[]
+  forms                          TransactionForm[]
+  signatureRequests              SignatureRequest[]
+  incomingUpdates                IncomingUpdate[]
+  offers                         Offer[]
+  commissionCalculations         CommissionCalculation[]
 
   @@index([organizationId, status])
   @@index([organizationId, officeId])
@@ -581,53 +592,53 @@ model Listing {
 }
 
 model ListingAsset {
-  id         String   @id @default(cuid())
-  listingId  String
-  assetType  String
-  label      String
-  url        String
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  listingId String
+  assetType String
+  label     String
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
 
 model ListingShareLink {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   listingId    String
   membershipId String?
   channel      String
-  code         String    @unique
+  code         String   @unique
   targetUrl    String
-  clickCount   Int       @default(0)
+  clickCount   Int      @default(0)
   qrAssetUrl   String?
-  createdAt    DateTime  @default(now())
-  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
 
 model Client {
-  id                String        @id @default(cuid())
-  organizationId    String
-  ownerMembershipId String?
-  fullName          String
-  email             String?
-  phone             String?
-  contactType       String?
-  source            String
-  stage             String
-  intent            String
-  budgetMin         Decimal?      @db.Decimal(12, 2)
-  budgetMax         Decimal?      @db.Decimal(12, 2)
-  preferredAreas    String[]
-  needsSummary      Json?
-  notes             String?
-  lastContactAt     DateTime?
-  nextFollowUpAt    DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  ownerMembership   Membership?   @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
-  followUpTasks     FollowUpTask[]
-  primaryTransactions Transaction[]      @relation("TransactionPrimaryClient")
+  id                  String               @id @default(cuid())
+  organizationId      String
+  ownerMembershipId   String?
+  fullName            String
+  email               String?
+  phone               String?
+  contactType         String?
+  source              String
+  stage               String
+  intent              String
+  budgetMin           Decimal?             @db.Decimal(12, 2)
+  budgetMax           Decimal?             @db.Decimal(12, 2)
+  preferredAreas      String[]
+  needsSummary        Json?
+  notes               String?
+  lastContactAt       DateTime?
+  nextFollowUpAt      DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerMembership     Membership?          @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  followUpTasks       FollowUpTask[]
+  primaryTransactions Transaction[]        @relation("TransactionPrimaryClient")
   transactionContacts TransactionContact[]
 
   @@index([organizationId, stage])
@@ -654,45 +665,45 @@ model TransactionContact {
 }
 
 model TransactionTask {
-  id                        String                          @id @default(cuid())
-  organizationId            String
-  transactionId             String
-  checklistGroup            String                          @default("General")
-  title                     String
-  description               String?
-  assigneeMembershipId      String?
-  dueAt                     DateTime?
-  status                    TransactionTaskStatus           @default(todo)
-  requiresDocument          Boolean                         @default(false)
-  requiresDocumentApproval  Boolean                         @default(false)
-  requiresSecondaryApproval Boolean                         @default(false)
-  reviewStatus              TransactionTaskReviewStatus     @default(not_required)
-  complianceStatus          TransactionTaskComplianceStatus @default(not_applicable)
-  sortOrder                 Int                             @default(0)
-  completedAt               DateTime?
-  completedByMembershipId   String?
-  submittedForReviewAt      DateTime?
+  id                               String                          @id @default(cuid())
+  organizationId                   String
+  transactionId                    String
+  checklistGroup                   String                          @default("General")
+  title                            String
+  description                      String?
+  assigneeMembershipId             String?
+  dueAt                            DateTime?
+  status                           TransactionTaskStatus           @default(todo)
+  requiresDocument                 Boolean                         @default(false)
+  requiresDocumentApproval         Boolean                         @default(false)
+  requiresSecondaryApproval        Boolean                         @default(false)
+  reviewStatus                     TransactionTaskReviewStatus     @default(not_required)
+  complianceStatus                 TransactionTaskComplianceStatus @default(not_applicable)
+  sortOrder                        Int                             @default(0)
+  completedAt                      DateTime?
+  completedByMembershipId          String?
+  submittedForReviewAt             DateTime?
   submittedForReviewByMembershipId String?
-  firstApprovedAt           DateTime?
-  firstApprovedByMembershipId String?
-  secondApprovedAt          DateTime?
-  secondApprovedByMembershipId String?
-  rejectedAt                DateTime?
-  rejectedByMembershipId    String?
-  rejectionReason           String?
-  reopenedAt                DateTime?
-  createdAt                 DateTime                        @default(now())
-  updatedAt                 DateTime                        @updatedAt
-  organization              Organization                    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  transaction               Transaction                     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  assigneeMembership        Membership?                     @relation("TransactionTaskAssignee", fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
-  completedByMembership     Membership?                     @relation("TransactionTaskCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
-  submittedForReviewByMembership Membership?               @relation("TransactionTaskSubmittedForReviewBy", fields: [submittedForReviewByMembershipId], references: [id], onDelete: SetNull)
-  firstApprovedByMembership Membership?                     @relation("TransactionTaskFirstApprovedBy", fields: [firstApprovedByMembershipId], references: [id], onDelete: SetNull)
-  secondApprovedByMembership Membership?                    @relation("TransactionTaskSecondApprovedBy", fields: [secondApprovedByMembershipId], references: [id], onDelete: SetNull)
-  rejectedByMembership      Membership?                     @relation("TransactionTaskRejectedBy", fields: [rejectedByMembershipId], references: [id], onDelete: SetNull)
-  documents                 TransactionDocument[]
-  forms                     TransactionForm[]
+  firstApprovedAt                  DateTime?
+  firstApprovedByMembershipId      String?
+  secondApprovedAt                 DateTime?
+  secondApprovedByMembershipId     String?
+  rejectedAt                       DateTime?
+  rejectedByMembershipId           String?
+  rejectionReason                  String?
+  reopenedAt                       DateTime?
+  createdAt                        DateTime                        @default(now())
+  updatedAt                        DateTime                        @updatedAt
+  organization                     Organization                    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction                      Transaction                     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  assigneeMembership               Membership?                     @relation("TransactionTaskAssignee", fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
+  completedByMembership            Membership?                     @relation("TransactionTaskCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
+  submittedForReviewByMembership   Membership?                     @relation("TransactionTaskSubmittedForReviewBy", fields: [submittedForReviewByMembershipId], references: [id], onDelete: SetNull)
+  firstApprovedByMembership        Membership?                     @relation("TransactionTaskFirstApprovedBy", fields: [firstApprovedByMembershipId], references: [id], onDelete: SetNull)
+  secondApprovedByMembership       Membership?                     @relation("TransactionTaskSecondApprovedBy", fields: [secondApprovedByMembershipId], references: [id], onDelete: SetNull)
+  rejectedByMembership             Membership?                     @relation("TransactionTaskRejectedBy", fields: [rejectedByMembershipId], references: [id], onDelete: SetNull)
+  documents                        TransactionDocument[]
+  forms                            TransactionForm[]
 
   @@index([organizationId, transactionId])
   @@index([organizationId, assigneeMembershipId])
@@ -725,40 +736,40 @@ model TaskListView {
 }
 
 model FollowUpTask {
-  id                 String        @id @default(cuid())
+  id                 String         @id @default(cuid())
   organizationId     String
   clientId           String?
   assigneeMemberId   String?
   title              String
-  status             TaskStatus    @default(queued)
+  status             TaskStatus     @default(queued)
   dueAt              DateTime?
   metadata           Json?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  organization       Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  client             Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  assigneeMembership Membership?   @relation(fields: [assigneeMemberId], references: [id], onDelete: SetNull)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  organization       Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client             Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  assigneeMembership Membership?    @relation(fields: [assigneeMemberId], references: [id], onDelete: SetNull)
   notifications      Notification[]
 
   @@index([organizationId, status])
 }
 
 model Notification {
-  id                 String           @id @default(cuid())
-  organizationId     String
-  membershipId       String?
-  followUpTaskId     String?
-  eventId            String?
-  type               NotificationType
-  title              String
-  body               String
-  actionUrl          String?
-  readAt             DateTime?
-  createdAt          DateTime         @default(now())
-  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  membership         Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
-  followUpTask       FollowUpTask?    @relation(fields: [followUpTaskId], references: [id], onDelete: SetNull)
-  event              Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  id             String           @id @default(cuid())
+  organizationId String
+  membershipId   String?
+  followUpTaskId String?
+  eventId        String?
+  type           NotificationType
+  title          String
+  body           String
+  actionUrl      String?
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  membership     Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  followUpTask   FollowUpTask?    @relation(fields: [followUpTaskId], references: [id], onDelete: SetNull)
+  event          Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, type])
 }
@@ -787,19 +798,19 @@ model Event {
 }
 
 model EventRsvp {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   eventId      String
   membershipId String
   status       RsvpStatus
-  respondedAt  DateTime    @default(now())
-  event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  respondedAt  DateTime   @default(now())
+  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, membershipId])
 }
 
 model Resource {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   officeId       String?
   type           ResourceType
@@ -808,18 +819,18 @@ model Resource {
   summary        String
   url            String
   tags           String[]
-  isPublished    Boolean       @default(true)
+  isPublished    Boolean      @default(true)
   searchText     String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office         Office?       @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, slug])
 }
 
 model Vendor {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   officeId       String?
   category       String
@@ -830,59 +841,112 @@ model Vendor {
   website        String?
   neighborhoods  String[]
   notes          String?
-  isFeatured     Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office         Office?       @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  isFeatured     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
+}
+
+model LibraryFolder {
+  id                    String            @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  parentFolderId        String?
+  createdByMembershipId String?
+  name                  String
+  description           String?
+  sortOrder             Int               @default(0)
+  isActive              Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  organization          Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?           @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  parentFolder          LibraryFolder?    @relation("LibraryFolderParent", fields: [parentFolderId], references: [id], onDelete: SetNull)
+  childFolders          LibraryFolder[]   @relation("LibraryFolderParent")
+  createdByMembership   Membership?       @relation("LibraryFolderCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  documents             LibraryDocument[]
+
+  @@index([organizationId, officeId, isActive, sortOrder])
+  @@index([organizationId, parentFolderId, isActive, sortOrder])
+}
+
+model LibraryDocument {
+  id                     String                    @id @default(cuid())
+  organizationId         String
+  officeId               String?
+  folderId               String?
+  uploadedByMembershipId String?
+  title                  String
+  originalFileName       String
+  mimeType               String
+  fileSizeBytes          Int
+  storageKey             String
+  pageCount              Int?
+  summary                String?
+  tags                   String[]
+  category               String?
+  visibility             LibraryDocumentVisibility @default(company_wide)
+  sortOrder              Int                       @default(0)
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  organization           Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                 Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  folder                 LibraryFolder?            @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedByMembership   Membership?               @relation("LibraryDocumentUploadedBy", fields: [uploadedByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, officeId, folderId, createdAt])
+  @@index([organizationId, officeId, category])
+  @@index([organizationId, officeId, visibility])
+  @@index([organizationId, officeId, updatedAt])
 }
 
 model AuditLog {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   membershipId   String?
   entityType     String
   entityId       String
   action         String
   payload        Json?
-  createdAt      DateTime      @default(now())
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  membership     Membership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  membership     Membership?  @relation(fields: [membershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, entityType])
 }
 
 model TransactionDocument {
-  id                   String                    @id @default(cuid())
-  organizationId       String
-  officeId             String?
-  transactionId        String
-  offerId              String?
+  id                     String                    @id @default(cuid())
+  organizationId         String
+  officeId               String?
+  transactionId          String
+  offerId                String?
   uploadedByMembershipId String?
-  linkedTaskId         String?
-  title                String
-  fileName             String
-  mimeType             String
-  fileSizeBytes        Int
-  storageKey           String
-  storageUrl           String?
-  documentType         String
-  status               TransactionDocumentStatus @default(uploaded)
-  source               TransactionDocumentSource @default(manual_upload)
-  isRequired           Boolean                   @default(false)
-  isSigned             Boolean                   @default(false)
-  isUnsorted           Boolean                   @default(false)
-  signedAt             DateTime?
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  organization         Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office               Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  transaction          Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  offer                Offer?                    @relation(fields: [offerId], references: [id], onDelete: SetNull)
-  uploadedByMembership Membership?              @relation("TransactionDocumentUploadedBy", fields: [uploadedByMembershipId], references: [id], onDelete: SetNull)
-  linkedTask           TransactionTask?          @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
-  forms                TransactionForm[]         @relation("TransactionFormDocument")
-  signatureRequests    SignatureRequest[]        @relation("SignatureRequestDocument")
+  linkedTaskId           String?
+  title                  String
+  fileName               String
+  mimeType               String
+  fileSizeBytes          Int
+  storageKey             String
+  storageUrl             String?
+  documentType           String
+  status                 TransactionDocumentStatus @default(uploaded)
+  source                 TransactionDocumentSource @default(manual_upload)
+  isRequired             Boolean                   @default(false)
+  isSigned               Boolean                   @default(false)
+  isUnsorted             Boolean                   @default(false)
+  signedAt               DateTime?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  organization           Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                 Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction            Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  offer                  Offer?                    @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  uploadedByMembership   Membership?               @relation("TransactionDocumentUploadedBy", fields: [uploadedByMembershipId], references: [id], onDelete: SetNull)
+  linkedTask             TransactionTask?          @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  forms                  TransactionForm[]         @relation("TransactionFormDocument")
+  signatureRequests      SignatureRequest[]        @relation("SignatureRequestDocument")
 
   @@index([organizationId, transactionId, status])
   @@index([organizationId, transactionId, isUnsorted])
@@ -892,49 +956,49 @@ model TransactionDocument {
 }
 
 model FormTemplate {
-  id             String      @id @default(cuid())
-  organizationId String?
-  officeId       String?
-  key            String      @unique
-  name           String
-  description    String?
-  documentType   String
-  mergeFields    Json
-  isSystem       Boolean     @default(true)
-  isActive       Boolean     @default(true)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office         Office?     @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  id               String            @id @default(cuid())
+  organizationId   String?
+  officeId         String?
+  key              String            @unique
+  name             String
+  description      String?
+  documentType     String
+  mergeFields      Json
+  isSystem         Boolean           @default(true)
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office           Office?           @relation(fields: [officeId], references: [id], onDelete: SetNull)
   transactionForms TransactionForm[]
 
   @@index([organizationId, officeId, isActive])
 }
 
 model TransactionForm {
-  id                   String               @id @default(cuid())
-  organizationId       String
-  officeId             String?
-  transactionId        String
-  offerId              String?
-  templateId           String?
-  linkedTaskId         String?
-  documentId           String?
-  name                 String
-  status               TransactionFormStatus @default(draft)
-  generatedPayload     Json
+  id                    String                @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  transactionId         String
+  offerId               String?
+  templateId            String?
+  linkedTaskId          String?
+  documentId            String?
+  name                  String
+  status                TransactionFormStatus @default(draft)
+  generatedPayload      Json
   createdByMembershipId String
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  transaction          Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  offer                Offer?               @relation(fields: [offerId], references: [id], onDelete: SetNull)
-  template             FormTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  linkedTask           TransactionTask?     @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
-  document             TransactionDocument? @relation("TransactionFormDocument", fields: [documentId], references: [id], onDelete: SetNull)
-  createdByMembership  Membership           @relation("TransactionFormCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
-  signatureRequests    SignatureRequest[]   @relation("SignatureRequestForm")
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction           Transaction           @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  offer                 Offer?                @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  template              FormTemplate?         @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  linkedTask            TransactionTask?      @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  document              TransactionDocument?  @relation("TransactionFormDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  createdByMembership   Membership            @relation("TransactionFormCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  signatureRequests     SignatureRequest[]    @relation("SignatureRequestForm")
 
   @@index([organizationId, transactionId, status])
   @@index([organizationId, linkedTaskId])
@@ -943,32 +1007,32 @@ model TransactionForm {
 }
 
 model SignatureRequest {
-  id                   String                @id @default(cuid())
-  organizationId       String
-  officeId             String?
-  transactionId        String
-  offerId              String?
-  formId               String?
-  documentId           String?
+  id                      String                 @id @default(cuid())
+  organizationId          String
+  officeId                String?
+  transactionId           String
+  offerId                 String?
+  formId                  String?
+  documentId              String?
   requestedByMembershipId String
-  recipientName        String
-  recipientEmail       String
-  recipientRole        String
-  signingOrder         Int?
-  status               SignatureRequestStatus @default(draft)
-  sentAt               DateTime?
-  viewedAt             DateTime?
-  completedAt          DateTime?
-  declinedAt           DateTime?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  transaction          Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  offer                Offer?               @relation(fields: [offerId], references: [id], onDelete: SetNull)
-  form                 TransactionForm?     @relation("SignatureRequestForm", fields: [formId], references: [id], onDelete: SetNull)
-  document             TransactionDocument? @relation("SignatureRequestDocument", fields: [documentId], references: [id], onDelete: SetNull)
-  requestedByMembership Membership          @relation("SignatureRequestRequestedBy", fields: [requestedByMembershipId], references: [id], onDelete: Cascade)
+  recipientName           String
+  recipientEmail          String
+  recipientRole           String
+  signingOrder            Int?
+  status                  SignatureRequestStatus @default(draft)
+  sentAt                  DateTime?
+  viewedAt                DateTime?
+  completedAt             DateTime?
+  declinedAt              DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  organization            Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                  Office?                @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction             Transaction            @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  offer                   Offer?                 @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  form                    TransactionForm?       @relation("SignatureRequestForm", fields: [formId], references: [id], onDelete: SetNull)
+  document                TransactionDocument?   @relation("SignatureRequestDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  requestedByMembership   Membership             @relation("SignatureRequestRequestedBy", fields: [requestedByMembershipId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, transactionId, status])
   @@index([organizationId, officeId])
@@ -978,64 +1042,64 @@ model SignatureRequest {
 }
 
 model IncomingUpdate {
-  id                   String               @id @default(cuid())
-  organizationId       String
-  officeId             String?
-  transactionId        String?
-  sourceSystem         String
-  sourceReference      String
-  status               IncomingUpdateStatus @default(pending_review)
-  summary              String
-  payload              Json
-  receivedAt           DateTime             @default(now())
-  reviewedAt           DateTime?
+  id                     String               @id @default(cuid())
+  organizationId         String
+  officeId               String?
+  transactionId          String?
+  sourceSystem           String
+  sourceReference        String
+  status                 IncomingUpdateStatus @default(pending_review)
+  summary                String
+  payload                Json
+  receivedAt             DateTime             @default(now())
+  reviewedAt             DateTime?
   reviewedByMembershipId String?
-  acceptedAt           DateTime?
-  rejectedAt           DateTime?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office               Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  transaction          Transaction?         @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  reviewedByMembership Membership?          @relation("IncomingUpdateReviewedBy", fields: [reviewedByMembershipId], references: [id], onDelete: SetNull)
+  acceptedAt             DateTime?
+  rejectedAt             DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  organization           Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                 Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction            Transaction?         @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  reviewedByMembership   Membership?          @relation("IncomingUpdateReviewedBy", fields: [reviewedByMembershipId], references: [id], onDelete: SetNull)
 
+  @@unique([organizationId, sourceSystem, sourceReference])
   @@index([organizationId, status])
   @@index([organizationId, transactionId])
   @@index([organizationId, officeId, receivedAt])
-  @@unique([organizationId, sourceSystem, sourceReference])
 }
 
 model Offer {
-  id                   String      @id @default(cuid())
-  organizationId       String
-  officeId             String?
-  transactionId        String
+  id                    String                @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  transactionId         String
   createdByMembershipId String
-  title                String
-  offeringPartyName    String
-  buyerName            String?
-  status               OfferStatus @default(draft)
-  price                Decimal?    @db.Decimal(12, 2)
-  earnestMoneyAmount   Decimal?    @db.Decimal(12, 2)
-  financingType        String?
-  closingDateOffered   DateTime?
-  expirationAt         DateTime?
-  isPrimaryOffer       Boolean     @default(false)
-  notes                String?
-  submittedAt          DateTime?
-  acceptedAt           DateTime?
-  rejectedAt           DateTime?
-  withdrawnAt          DateTime?
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office               Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  transaction          Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  createdByMembership  Membership   @relation("OfferCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
-  documents            TransactionDocument[]
-  forms                TransactionForm[]
-  signatureRequests    SignatureRequest[]
-  comments             OfferComment[]
+  title                 String
+  offeringPartyName     String
+  buyerName             String?
+  status                OfferStatus           @default(draft)
+  price                 Decimal?              @db.Decimal(12, 2)
+  earnestMoneyAmount    Decimal?              @db.Decimal(12, 2)
+  financingType         String?
+  closingDateOffered    DateTime?
+  expirationAt          DateTime?
+  isPrimaryOffer        Boolean               @default(false)
+  notes                 String?
+  submittedAt           DateTime?
+  acceptedAt            DateTime?
+  rejectedAt            DateTime?
+  withdrawnAt           DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  transaction           Transaction           @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  createdByMembership   Membership            @relation("OfferCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  documents             TransactionDocument[]
+  forms                 TransactionForm[]
+  signatureRequests     SignatureRequest[]
+  comments              OfferComment[]
 
   @@index([organizationId, transactionId, status])
   @@index([organizationId, officeId, createdAt])
@@ -1044,14 +1108,14 @@ model Offer {
 }
 
 model OfferComment {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   officeId       String?
   offerId        String
   membershipId   String
   body           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office         Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
   offer          Offer        @relation(fields: [offerId], references: [id], onDelete: Cascade)
@@ -1062,19 +1126,19 @@ model OfferComment {
 }
 
 model LedgerAccount {
-  id             String           @id @default(cuid())
-  organizationId String
-  officeId       String?
-  code           String?
-  name           String
-  accountType    LedgerAccountType
-  isSystem       Boolean          @default(false)
-  isActive       Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office         Office?          @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  lineItems      AccountingTransactionLineItem[]
+  id                   String                          @id @default(cuid())
+  organizationId       String
+  officeId             String?
+  code                 String?
+  name                 String
+  accountType          LedgerAccountType
+  isSystem             Boolean                         @default(false)
+  isActive             Boolean                         @default(true)
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+  organization         Organization                    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office               Office?                         @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  lineItems            AccountingTransactionLineItem[]
   generalLedgerEntries GeneralLedgerEntry[]
 
   @@unique([organizationId, code])
@@ -1083,41 +1147,41 @@ model LedgerAccount {
 }
 
 model AccountingTransaction {
-  id                    String                      @id @default(cuid())
-  organizationId        String
-  officeId              String?
-  relatedTransactionId  String?
-  relatedMembershipId   String?
-  type                  AccountingTransactionType
-  status                AccountingTransactionStatus @default(draft)
-  accountingDate        DateTime
-  dueDate               DateTime?
-  paymentMethod         AccountingPaymentMethod?
-  referenceNumber       String?
-  counterpartyName      String?
-  memo                  String?
-  notes                 String?
-  isAgentBilling        Boolean                     @default(false)
-  billingCategory       String?
+  id                          String                             @id @default(cuid())
+  organizationId              String
+  officeId                    String?
+  relatedTransactionId        String?
+  relatedMembershipId         String?
+  type                        AccountingTransactionType
+  status                      AccountingTransactionStatus        @default(draft)
+  accountingDate              DateTime
+  dueDate                     DateTime?
+  paymentMethod               AccountingPaymentMethod?
+  referenceNumber             String?
+  counterpartyName            String?
+  memo                        String?
+  notes                       String?
+  isAgentBilling              Boolean                            @default(false)
+  billingCategory             String?
   originRecurringChargeRuleId String?
-  totalAmount           Decimal                     @db.Decimal(12, 2)
-  createdByMembershipId String
-  postedAt              DateTime?
-  externalSyncStatus    String?
-  externalReferenceId   String?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  organization          Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                Office?                     @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  relatedTransaction    Transaction?                @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
-  relatedMembership     Membership?                 @relation("AccountingTransactionRelatedMembership", fields: [relatedMembershipId], references: [id], onDelete: SetNull)
-  createdByMembership   Membership                  @relation("AccountingTransactionCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
-  originRecurringChargeRule AgentRecurringChargeRule? @relation(fields: [originRecurringChargeRuleId], references: [id], onDelete: SetNull)
-  commissionCalculations CommissionCalculation[]
-  lineItems             AccountingTransactionLineItem[]
-  applicationsFrom      AccountingTransactionApplication[] @relation("AccountingTransactionApplicationSource")
-  applicationsTo        AccountingTransactionApplication[] @relation("AccountingTransactionApplicationTarget")
-  ledgerEntries         GeneralLedgerEntry[]
+  totalAmount                 Decimal                            @db.Decimal(12, 2)
+  createdByMembershipId       String
+  postedAt                    DateTime?
+  externalSyncStatus          String?
+  externalReferenceId         String?
+  createdAt                   DateTime                           @default(now())
+  updatedAt                   DateTime                           @updatedAt
+  organization                Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                      Office?                            @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  relatedTransaction          Transaction?                       @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
+  relatedMembership           Membership?                        @relation("AccountingTransactionRelatedMembership", fields: [relatedMembershipId], references: [id], onDelete: SetNull)
+  createdByMembership         Membership                         @relation("AccountingTransactionCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: Cascade)
+  originRecurringChargeRule   AgentRecurringChargeRule?          @relation(fields: [originRecurringChargeRuleId], references: [id], onDelete: SetNull)
+  commissionCalculations      CommissionCalculation[]
+  lineItems                   AccountingTransactionLineItem[]
+  applicationsFrom            AccountingTransactionApplication[] @relation("AccountingTransactionApplicationSource")
+  applicationsTo              AccountingTransactionApplication[] @relation("AccountingTransactionApplicationTarget")
+  ledgerEntries               GeneralLedgerEntry[]
 
   @@index([organizationId, officeId, type])
   @@index([organizationId, officeId, status])
@@ -1128,23 +1192,23 @@ model AccountingTransaction {
 }
 
 model AccountingTransactionLineItem {
-  id                    String                  @id @default(cuid())
-  organizationId        String
-  officeId              String?
+  id                      String                  @id @default(cuid())
+  organizationId          String
+  officeId                String?
   accountingTransactionId String
-  relatedTransactionId  String?
-  ledgerAccountId       String
-  description           String?
-  entrySide             AccountingLineEntrySide
-  amount                Decimal                 @db.Decimal(12, 2)
-  sortOrder             Int                     @default(0)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                Office?                 @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  accountingTransaction AccountingTransaction   @relation(fields: [accountingTransactionId], references: [id], onDelete: Cascade)
-  relatedTransaction    Transaction?            @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
-  ledgerAccount         LedgerAccount           @relation(fields: [ledgerAccountId], references: [id], onDelete: Restrict)
+  relatedTransactionId    String?
+  ledgerAccountId         String
+  description             String?
+  entrySide               AccountingLineEntrySide
+  amount                  Decimal                 @db.Decimal(12, 2)
+  sortOrder               Int                     @default(0)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  organization            Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                  Office?                 @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  accountingTransaction   AccountingTransaction   @relation(fields: [accountingTransactionId], references: [id], onDelete: Cascade)
+  relatedTransaction      Transaction?            @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
+  ledgerAccount           LedgerAccount           @relation(fields: [ledgerAccountId], references: [id], onDelete: Restrict)
 
   @@index([organizationId, accountingTransactionId])
   @@index([organizationId, ledgerAccountId])
@@ -1152,22 +1216,22 @@ model AccountingTransactionLineItem {
 }
 
 model AccountingTransactionApplication {
-  id                           String                @id @default(cuid())
-  organizationId               String
-  officeId                     String?
+  id                            String                @id @default(cuid())
+  organizationId                String
+  officeId                      String?
   sourceAccountingTransactionId String
   targetAccountingTransactionId String
-  createdByMembershipId        String?
-  amount                       Decimal               @db.Decimal(12, 2)
-  memo                         String?
-  appliedAt                    DateTime              @default(now())
-  createdAt                    DateTime              @default(now())
-  updatedAt                    DateTime              @updatedAt
-  organization                 Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                       Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  sourceAccountingTransaction  AccountingTransaction @relation("AccountingTransactionApplicationSource", fields: [sourceAccountingTransactionId], references: [id], onDelete: Cascade)
-  targetAccountingTransaction  AccountingTransaction @relation("AccountingTransactionApplicationTarget", fields: [targetAccountingTransactionId], references: [id], onDelete: Cascade)
-  createdByMembership          Membership?           @relation("AccountingTransactionApplicationCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  createdByMembershipId         String?
+  amount                        Decimal               @db.Decimal(12, 2)
+  memo                          String?
+  appliedAt                     DateTime              @default(now())
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
+  organization                  Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                        Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  sourceAccountingTransaction   AccountingTransaction @relation("AccountingTransactionApplicationSource", fields: [sourceAccountingTransactionId], references: [id], onDelete: Cascade)
+  targetAccountingTransaction   AccountingTransaction @relation("AccountingTransactionApplicationTarget", fields: [targetAccountingTransactionId], references: [id], onDelete: Cascade)
+  createdByMembership           Membership?           @relation("AccountingTransactionApplicationCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, sourceAccountingTransactionId])
   @@index([organizationId, targetAccountingTransactionId])
@@ -1175,22 +1239,22 @@ model AccountingTransactionApplication {
 }
 
 model GeneralLedgerEntry {
-  id                    String                @id @default(cuid())
-  organizationId        String
-  officeId              String?
+  id                      String                @id @default(cuid())
+  organizationId          String
+  officeId                String?
   accountingTransactionId String
-  relatedTransactionId  String?
-  accountId             String
-  entryDate             DateTime
-  debitAmount           Decimal               @default(0) @db.Decimal(12, 2)
-  creditAmount          Decimal               @default(0) @db.Decimal(12, 2)
-  memo                  String?
-  createdAt             DateTime              @default(now())
-  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  accountingTransaction AccountingTransaction @relation(fields: [accountingTransactionId], references: [id], onDelete: Cascade)
-  relatedTransaction    Transaction?          @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
-  account               LedgerAccount         @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  relatedTransactionId    String?
+  accountId               String
+  entryDate               DateTime
+  debitAmount             Decimal               @default(0) @db.Decimal(12, 2)
+  creditAmount            Decimal               @default(0) @db.Decimal(12, 2)
+  memo                    String?
+  createdAt               DateTime              @default(now())
+  organization            Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                  Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  accountingTransaction   AccountingTransaction @relation(fields: [accountingTransactionId], references: [id], onDelete: Cascade)
+  relatedTransaction      Transaction?          @relation(fields: [relatedTransactionId], references: [id], onDelete: SetNull)
+  account                 LedgerAccount         @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
   @@index([organizationId, officeId, entryDate])
   @@index([organizationId, accountingTransactionId])
@@ -1199,27 +1263,27 @@ model GeneralLedgerEntry {
 }
 
 model AgentRecurringChargeRule {
-  id                  String               @id @default(cuid())
-  organizationId      String
-  officeId            String?
-  membershipId        String
-  name                String
-  chargeType          String
-  description         String?
-  amount              Decimal              @db.Decimal(12, 2)
-  frequency           AgentBillingFrequency
-  customIntervalDays  Int?
-  startDate           DateTime
-  nextDueDate         DateTime
-  endDate             DateTime?
-  lastGeneratedAt     DateTime?
-  autoGenerateInvoice Boolean              @default(false)
-  isActive            Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office              Office?              @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  membership          Membership           @relation("AgentRecurringChargeRuleMembership", fields: [membershipId], references: [id], onDelete: Cascade)
+  id                    String                  @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  membershipId          String
+  name                  String
+  chargeType            String
+  description           String?
+  amount                Decimal                 @db.Decimal(12, 2)
+  frequency             AgentBillingFrequency
+  customIntervalDays    Int?
+  startDate             DateTime
+  nextDueDate           DateTime
+  endDate               DateTime?
+  lastGeneratedAt       DateTime?
+  autoGenerateInvoice   Boolean                 @default(false)
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?                 @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership            Membership              @relation("AgentRecurringChargeRuleMembership", fields: [membershipId], references: [id], onDelete: Cascade)
   generatedTransactions AccountingTransaction[]
 
   @@unique([organizationId, membershipId, name])
@@ -1277,17 +1341,17 @@ model AgentProfile {
 }
 
 model Team {
-  id             String           @id @default(cuid())
-  organizationId String
-  officeId       String?
-  name           String
-  slug           String
-  isActive       Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office         Office?          @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  memberships    TeamMembership[]
+  id                        String                     @id @default(cuid())
+  organizationId            String
+  officeId                  String?
+  name                      String
+  slug                      String
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  organization              Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                    Office?                    @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  memberships               TeamMembership[]
   commissionPlanAssignments CommissionPlanAssignment[]
 
   @@unique([organizationId, slug])
@@ -1313,26 +1377,26 @@ model TeamMembership {
 }
 
 model AgentOnboardingItem {
-  id                    String                    @id @default(cuid())
-  organizationId        String
-  officeId              String?
-  membershipId          String
-  templateItemId        String?
-  title                 String
-  description           String?
-  category              String                    @default("General")
-  dueAt                 DateTime?
-  status                AgentOnboardingItemStatus @default(pending)
-  sortOrder             Int                       @default(0)
-  completedAt           DateTime?
+  id                      String                       @id @default(cuid())
+  organizationId          String
+  officeId                String?
+  membershipId            String
+  templateItemId          String?
+  title                   String
+  description             String?
+  category                String                       @default("General")
+  dueAt                   DateTime?
+  status                  AgentOnboardingItemStatus    @default(pending)
+  sortOrder               Int                          @default(0)
+  completedAt             DateTime?
   completedByMembershipId String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  organization          Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  membership            Membership                @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-  templateItem          AgentOnboardingTemplateItem? @relation(fields: [templateItemId], references: [id], onDelete: SetNull)
-  completedByMembership Membership?              @relation("AgentOnboardingCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  organization            Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                  Office?                      @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership              Membership                   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  templateItem            AgentOnboardingTemplateItem? @relation(fields: [templateItemId], references: [id], onDelete: SetNull)
+  completedByMembership   Membership?                  @relation("AgentOnboardingCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, officeId, membershipId])
   @@index([organizationId, membershipId, status])
@@ -1340,19 +1404,19 @@ model AgentOnboardingItem {
 }
 
 model AgentOnboardingTemplateItem {
-  id             String        @id @default(cuid())
-  organizationId String
-  officeId       String?
-  title          String
-  description    String?
-  category       String        @default("General")
-  dueDaysOffset  Int?
-  sortOrder      Int           @default(0)
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office         Office?       @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  id              String                @id @default(cuid())
+  organizationId  String
+  officeId        String?
+  title           String
+  description     String?
+  category        String                @default("General")
+  dueDaysOffset   Int?
+  sortOrder       Int                   @default(0)
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office          Office?               @relation(fields: [officeId], references: [id], onDelete: SetNull)
   onboardingItems AgentOnboardingItem[]
 
   @@index([organizationId, officeId, isActive])
@@ -1414,21 +1478,21 @@ model TransactionFieldSetting {
 }
 
 model ChecklistTemplate {
-  id                    String          @id @default(cuid())
+  id                    String                  @id @default(cuid())
   organizationId        String
   officeId              String?
   name                  String
   description           String?
   transactionType       TransactionType?
-  isActive              Boolean         @default(true)
+  isActive              Boolean                 @default(true)
   createdByMembershipId String?
   updatedByMembershipId String?
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office                Office?         @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  createdByMembership   Membership?     @relation("ChecklistTemplateCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
-  updatedByMembership   Membership?     @relation("ChecklistTemplateUpdatedBy", fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?                 @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  createdByMembership   Membership?             @relation("ChecklistTemplateCreatedBy", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  updatedByMembership   Membership?             @relation("ChecklistTemplateUpdatedBy", fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
   items                 ChecklistTemplateItem[]
 
   @@index([organizationId, officeId, isActive])
@@ -1459,18 +1523,18 @@ model ChecklistTemplateItem {
 }
 
 model CommissionPlan {
-  id              String                    @id @default(cuid())
+  id              String                     @id @default(cuid())
   organizationId  String
   officeId        String?
   name            String
   description     String?
-  isActive        Boolean                   @default(true)
-  calculationMode CommissionCalculationMode @default(split_and_fees)
+  isActive        Boolean                    @default(true)
+  calculationMode CommissionCalculationMode  @default(split_and_fees)
   defaultCurrency String?
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
-  organization    Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  office          Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  organization    Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office          Office?                    @relation(fields: [officeId], references: [id], onDelete: SetNull)
   assignments     CommissionPlanAssignment[]
   rules           CommissionPlanRule[]
   calculations    CommissionCalculation[]
@@ -1503,25 +1567,25 @@ model CommissionPlanAssignment {
 }
 
 model CommissionPlanRule {
-  id               String                 @id @default(cuid())
+  id               String                   @id @default(cuid())
   organizationId   String
   commissionPlanId String
   ruleType         CommissionPlanRuleType
   ruleName         String
-  sortOrder        Int                    @default(0)
-  splitPercent     Decimal?               @db.Decimal(7, 4)
-  flatAmount       Decimal?               @db.Decimal(12, 2)
+  sortOrder        Int                      @default(0)
+  splitPercent     Decimal?                 @db.Decimal(7, 4)
+  flatAmount       Decimal?                 @db.Decimal(12, 2)
   feeType          CommissionRuleFeeType?
-  feeAmount        Decimal?               @db.Decimal(12, 2)
-  thresholdStart   Decimal?               @db.Decimal(12, 2)
-  thresholdEnd     Decimal?               @db.Decimal(12, 2)
+  feeAmount        Decimal?                 @db.Decimal(12, 2)
+  thresholdStart   Decimal?                 @db.Decimal(12, 2)
+  thresholdEnd     Decimal?                 @db.Decimal(12, 2)
   appliesToRole    String?
   recipientType    CommissionRecipientType?
-  isActive         Boolean                @default(true)
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  commissionPlan   CommissionPlan         @relation(fields: [commissionPlanId], references: [id], onDelete: Cascade)
+  isActive         Boolean                  @default(true)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  organization     Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  commissionPlan   CommissionPlan           @relation(fields: [commissionPlanId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, commissionPlanId, sortOrder])
   @@index([organizationId, ruleType, isActive])

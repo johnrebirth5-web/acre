@@ -8,12 +8,12 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Activity Log`、`Office Accounting`、`Office Agent Management` 和 `Office Admin / Settings` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Activity Log`、`Office Library`、`Office Accounting`、`Office Agent Management` 和 `Office Admin / Settings` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
-- 但数据库只进入了一个最小读路径，还没有替换主页面和主 API 的 mock 数据
+- 数据库现在已经覆盖主要 `Office / Back Office` 模块，但 agent/resource feed 和部分次级路径仍保留 mock 或过渡数据
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Approve Docs`、`Reports`、`Activity` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Approve Docs`、`Reports`、`Activity`、`Library` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 - `Transaction detail` 现在已经进入真实 workflow 阶段，除 overview / status / contacts / finance / tasks 外，还包含：
   - offers
   - documents
@@ -61,6 +61,7 @@
 - 当前 API 已包含最小读写路径：
   - `Transactions`：list / detail / create / status update
   - `Contacts`：list / detail / create / edit / follow-up task create / transaction link
+  - `Library`：folder create / rename、document upload / rename / move / delete、inline preview / download
   - `Transaction detail`：finance update、linked contacts 管理、transaction tasks create / update、documents / forms / signatures / incoming updates、commission calculation
   - `Approve Docs`：server-side document review queue snapshot；approve / reject / reopen / complete 继续复用 transaction task workflow route
   - `Activity`：server-side 同时读取真实 `AuditLog` 和实时派生 alerts，渲染 `Activity Log + Operational Alerts`
@@ -82,8 +83,24 @@
   - `Office gross` 当前来自 transaction finance 上已存储的 `grossCommission`
   - stage / history 选择会直接驱动右侧 working list，并保存在 shareable URL 中
   - 当前 stage / history 选择可清除回保留 top filters 的 `all filtered transactions`
-- 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
-- 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
+- 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据，并扩展成 management reporting workspace
+- 当前 `Reports` 页面现在覆盖：
+  - transaction performance
+  - agent performance
+  - team performance（基于当前 owner team memberships）
+  - commission summary
+  - accounting / payment summary
+  - earnest money summary
+- 当前 `Reports` 页面使用 shareable query-param 过滤：
+  - `startDate / endDate`
+  - `officeId`
+  - `ownerMembershipId`
+  - `teamId`
+  - `transactionStatus`
+  - `transactionType`
+  - `commissionPlanId`
+- 当前 `Reports` workspace 的 summary rows 会 drill-down 到真实 `/office/transactions`、`/office/accounting`、`/office/agents/:membershipId`
+- 当前 `Reports` 页面也保留 CSV 导出路径，使用当前 session 和过滤条件直接导出真实 transaction 行
 - 当前 `Commission Management` 已通过 Prisma service 和 route handlers 落地到：
   - `/office/accounting`
   - transaction detail
@@ -99,10 +116,20 @@
     - `Team / TeamMembership` 做 team admin
     - `RequiredContactRoleSetting / TransactionFieldSetting` 做 workflow requirements
     - `ChecklistTemplate / ChecklistTemplateItem` 做 checklist template admin
+- 当前 `Office Library` 已通过 Prisma service 和 route handlers 落地到：
+  - `/office/library`
+  - 核心复用：
+    - `LibraryFolder` 做 folder tree / scope / sort order
+    - `LibraryDocument` 做 file metadata / folder assignment / preview metadata
+    - `AuditLog` 记录 folder create / rename 和 document upload / update / delete
+  - 当前 scope 仍只支持：
+    - company-wide (`officeId = null`)
+    - current office only (`officeId = currentOfficeId`)
+  - 当前 preview 仍是 PDF-first；其他文件类型只保证 open / download
 - 当前已有最小本地登录 / 登出 / cookie session
-- 当前已经有 transaction、contact、follow-up task 的 service-to-db 数据访问层，其他模块还没有
+- 当前已经有 transaction、contact、task、activity、library、accounting、agent management、settings 等模块的 service-to-db 数据访问层
 - 当前 dashboard 业务指标也已有最小查询 service
-- 当前 transaction documents 使用本地文件系统 storage adapter，metadata 和 workflow 放在 Prisma
+- 当前 transaction documents 和 office library documents 都使用本地文件系统 storage adapter，metadata 和 workflow 放在 Prisma
 - 当前没有 worker、queue、cron
 
 ### 数据库
@@ -117,7 +144,7 @@
 - 已有 runtime Prisma client 接入
 - 已有初始 migration 基线
 - 已有 seed workflow
-- 当前已经有数据库 probe read path、本地 auth 查询路径，以及 transaction/contact persistence；主页面和大多数主 API 仍未切到数据库
+- 当前已经有本地 auth 查询路径，以及 transactions / contacts / tasks / activity / library / accounting / agents / settings 等真实持久化读写路径
 
 ## Office 设计系统
 
@@ -156,6 +183,7 @@
 补充说明：
 
 - 当前文档文件不是接入 S3 / R2，而是本地文件系统 MVP
+- `Company Library` 也复用同一套本地文件系统存储基础，但按 organization / library scope 单独分目录
 - 当前 eSignature 不是第三方 vendor integration，而是内部状态机 foundation
 - 当前 incoming updates 不是 live Folio sync，而是内部 review-ready model
 
@@ -262,6 +290,8 @@
 - `Event`
 - `EventRsvp`
 - `Resource`
+- `LibraryFolder`
+- `LibraryDocument`
 - `Vendor`
 - `AuditLog`
 - `LedgerAccount`
@@ -374,8 +404,8 @@
 1. `/office/dashboard` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeDashboardBusinessSnapshot`
 2. `/office/activity` 先读取当前 office session，再调 `@acre/db` 的 `getOfficeActivityLogSnapshot`
 3. `/office/pipeline` 调 `@acre/db` 的 `getOfficePipelineWorkspaceSnapshot`
-4. `/office/transactions` 调 `@acre/db` 的 transaction service，并按 query-param 驱动的 `q / status / page / pageSize` 做服务端过滤和分页
-5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库；`GET /api/office/transactions` 也接受 `q / status / page / pageSize`
+4. `/office/transactions` 调 `@acre/db` 的 transaction service，并按 query-param 驱动的 `q / status / ownerMembershipId / teamId / type / startDate / endDate / page / pageSize` 做服务端过滤和分页
+5. `/office/transactions` 内的客户端 modal 调 `/api/office/transactions` 写入数据库；`GET /api/office/transactions` 也接受同一组 list-side query params
 6. `/office/transactions/:transactionId` 调 `getTransactionById`
 6. detail 页面通过 `/api/office/transactions/:transactionId` 更新 status
 7. detail 页面通过 `/api/office/transactions/:transactionId/finance` 更新最小 finance 字段
@@ -383,7 +413,7 @@
 9. detail 页面通过 transaction task routes 做 create / edit / complete / reopen / request review / approve / reject，并按 linked document / signature / approval truth 决定任务是否真正可 complete
 10. `/office/contacts` 调 `@acre/db` 的 contact service，并按 query-param 驱动的 `q / stage / page / pageSize` 做服务端过滤和分页
 11. `/office/contacts` 和 `/office/contacts/:contactId` 通过 contacts API 做 create / edit / follow-up task / transaction link；`GET /api/office/contacts` 也接受 `q / stage / page / pageSize`
-12. `/office/reports` 调 `@acre/db` 的 reports service，返回组织范围内的最小实时报表聚合
+12. `/office/reports` 调 `@acre/db` 的 reports service，返回 query-param 驱动的 reporting workspace snapshot，覆盖 transaction、agent/team、commission、accounting、EMD 聚合
 13. `/office/accounting` 调 `@acre/db` 的 accounting service，返回 overview cards、accounting transaction list、general ledger、EMD records 和 chart of accounts
 14. `/office/accounting` 也会调 commission service，返回 plan list、assignment list、commission queue 和 statement snapshot
 15. `/api/office/accounting/transactions` 与 `/api/office/accounting/earnest-money` 负责最小 create / update 写入；posting 成功后同步生成 GL entries 和 `AuditLog`
@@ -393,7 +423,7 @@
 19. auth login / logout 和 follow-up task create 也会写入 `AuditLog`
 20. `/office/activity` 顶部的内部评论也会写入 `AuditLog`，并出现在同一条 stream 里
 21. `/office/activity` 的左侧分类来自真实 action taxonomy，不是静态菜单
-22. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV
+22. `GET /api/office/reports/export` 复用相同过滤条件和 session scope，导出真实 transaction CSV；当前支持 `officeId / ownerMembershipId / teamId / transactionStatus / transactionType / commissionPlanId`
 23. `/office/tasks` 读取 `TransactionTask + TaskListView`，按 built-in view、saved view 和 query-param filters 返回真实任务列表
 24. `/office/tasks` 的 create / edit / complete / reopen / request review / approve / reject 都直接写数据库，并同步写入 `AuditLog`
 25. document-linked tasks 会根据真实 workflow evidence 推导 task status，例如：

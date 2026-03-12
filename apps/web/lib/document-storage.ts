@@ -9,6 +9,13 @@ type SaveStoredFileInput = {
   bytes: Uint8Array;
 };
 
+type SaveStoredLibraryFileInput = {
+  organizationId: string;
+  officeId?: string | null;
+  fileName: string;
+  bytes: Uint8Array;
+};
+
 type SaveStoredTextInput = {
   organizationId: string;
   transactionId: string;
@@ -31,14 +38,23 @@ function sanitizeSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 120) || "file";
 }
 
-async function ensureTransactionDirectory(organizationId: string, transactionId: string) {
-  const directory = path.join(getStorageRoot(), sanitizeSegment(organizationId), sanitizeSegment(transactionId));
+async function ensureScopedDirectory(organizationId: string, scopeSegments: string[]) {
+  const directory = path.join(
+    getStorageRoot(),
+    sanitizeSegment(organizationId),
+    ...scopeSegments.map((segment) => sanitizeSegment(segment))
+  );
   await mkdir(directory, { recursive: true });
   return directory;
 }
 
-export async function saveStoredFile(input: SaveStoredFileInput): Promise<StoredDocumentFile> {
-  const directory = await ensureTransactionDirectory(input.organizationId, input.transactionId);
+async function saveScopedFile(input: {
+  organizationId: string;
+  scopeSegments: string[];
+  fileName: string;
+  bytes: Uint8Array;
+}): Promise<StoredDocumentFile> {
+  const directory = await ensureScopedDirectory(input.organizationId, input.scopeSegments);
   const fileName = `${randomUUID()}-${sanitizeSegment(input.fileName)}`;
   const absolutePath = path.join(directory, fileName);
 
@@ -50,6 +66,24 @@ export async function saveStoredFile(input: SaveStoredFileInput): Promise<Stored
     fileName,
     fileSizeBytes: input.bytes.byteLength
   };
+}
+
+export async function saveStoredFile(input: SaveStoredFileInput): Promise<StoredDocumentFile> {
+  return saveScopedFile({
+    organizationId: input.organizationId,
+    scopeSegments: [input.transactionId],
+    fileName: input.fileName,
+    bytes: input.bytes
+  });
+}
+
+export async function saveStoredLibraryFile(input: SaveStoredLibraryFileInput): Promise<StoredDocumentFile> {
+  return saveScopedFile({
+    organizationId: input.organizationId,
+    scopeSegments: ["library", input.officeId ? `office-${input.officeId}` : "company"],
+    fileName: input.fileName,
+    bytes: input.bytes
+  });
 }
 
 export async function saveStoredTextDocument(input: SaveStoredTextInput): Promise<StoredDocumentFile> {

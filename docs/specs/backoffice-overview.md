@@ -28,6 +28,17 @@ This file is the high-level product map for the current `Office / Back Office` s
   - more advanced owner/team slicing
   - more cross-links into downstream transaction work queues
 
+### Reports
+
+- What it is for:
+  - management reporting workspace with transaction, agent/team, commission, accounting/payment, and earnest money visibility.
+- Current maturity:
+  - `MVP / refined`
+- Follow-up work:
+  - add more controlled period definitions beyond the current native-date-per-module behavior
+  - expand more accounting-side drilldowns only where the underlying data model is explicit
+  - keep reducing transitional gaps between report slices and downstream working queues
+
 ### Transactions
 
 - What it is for:
@@ -73,6 +84,21 @@ This file is the high-level product map for the current `Office / Back Office` s
   - broader event coverage for future modules
   - deeper filtering and export
   - more alert types tied to newly implemented workflows
+
+### Library
+
+- What it is for:
+  - internal company document library with folders, file metadata, PDF-first preview, and office/company scope.
+- Current maturity:
+  - `MVP`
+- Current notable behavior:
+  - `/office/library` is now backed by Prisma `LibraryFolder` and `LibraryDocument`, not the old mock resource feed.
+  - primary workflow is folder select -> file list -> preview/details pane.
+  - major folder/document actions write into `AuditLog`.
+- Follow-up work:
+  - stable PDF page indexing and richer metadata extraction
+  - safer folder deactivation/archive workflow
+  - future object storage replacement for local filesystem storage
 
 ### Accounting
 

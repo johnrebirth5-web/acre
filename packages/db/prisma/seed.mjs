@@ -9,32 +9,98 @@ if (!process.env.DATABASE_URL) {
 }
 
 function getSeedDocumentsRoot() {
-  return process.env.ACRE_DOCUMENTS_STORAGE_DIR?.trim() || path.join(process.cwd(), ".local-storage", "documents");
+  return process.env.ACRE_DOCUMENTS_STORAGE_DIR?.trim() || path.join(process.cwd(), "..", "..", ".local-storage", "documents");
 }
 
 function sanitizeStorageSegment(value) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 120) || "file";
 }
 
-async function writeSeedStoredDocument({ organizationId, transactionId, fileName, content }) {
+async function writeSeedStoredFile({ organizationId, scopeSegments, fileName, content }) {
   const directory = path.join(
     getSeedDocumentsRoot(),
     sanitizeStorageSegment(organizationId),
-    sanitizeStorageSegment(transactionId)
+    ...scopeSegments.map((segment) => sanitizeStorageSegment(segment))
   );
   await mkdir(directory, { recursive: true });
 
   const normalizedFileName = sanitizeStorageSegment(fileName);
   const absolutePath = path.join(directory, normalizedFileName);
-  const fileBody = typeof content === "string" ? content : JSON.stringify(content, null, 2);
+  const fileBody =
+    typeof content === "string"
+      ? Buffer.from(content, "utf8")
+      : content instanceof Uint8Array
+        ? Buffer.from(content)
+        : Buffer.from(JSON.stringify(content, null, 2), "utf8");
 
-  await writeFile(absolutePath, fileBody, "utf8");
+  await writeFile(absolutePath, fileBody);
 
   return {
     fileName: normalizedFileName,
     storageKey: absolutePath,
-    fileSizeBytes: Buffer.byteLength(fileBody)
+    fileSizeBytes: fileBody.byteLength
   };
+}
+
+async function writeSeedStoredDocument({ organizationId, transactionId, fileName, content }) {
+  return writeSeedStoredFile({
+    organizationId,
+    scopeSegments: [transactionId],
+    fileName,
+    content
+  });
+}
+
+async function writeSeedStoredLibraryDocument({ organizationId, officeId, fileName, content }) {
+  return writeSeedStoredFile({
+    organizationId,
+    scopeSegments: ["library", officeId ? `office-${officeId}` : "company"],
+    fileName,
+    content
+  });
+}
+
+function escapePdfText(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function buildMinimalPdf({ title, lines }) {
+  const commands = ["BT", "/F1 16 Tf", "50 760 Td", `(${escapePdfText(title)}) Tj`, "/F1 10 Tf"];
+
+  for (const line of lines) {
+    commands.push("0 -20 Td", `(${escapePdfText(line)}) Tj`);
+  }
+
+  commands.push("ET");
+
+  const stream = `${commands.join("\n")}\n`;
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n",
+    `4 0 obj\n<< /Length ${Buffer.byteLength(stream, "utf8")} >>\nstream\n${stream}endstream\nendobj\n`,
+    "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+  ];
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(pdf, "utf8"));
+    pdf += object;
+  }
+
+  const xrefOffset = Buffer.byteLength(pdf, "utf8");
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += "0000000000 65535 f \n";
+
+  for (let index = 1; index < offsets.length; index += 1) {
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+
+  return Buffer.from(pdf, "utf8");
 }
 
 async function upsertUser({ email, firstName, lastName }) {
@@ -1840,6 +1906,321 @@ async function main() {
       ].join("\n")
     })
   };
+
+  const storedSeedLibraryFiles = {
+    userManual: await writeSeedStoredLibraryDocument({
+      organizationId: organization.id,
+      officeId: null,
+      fileName: "acre-agent-os-user-manual.pdf",
+      content: buildMinimalPdf({
+        title: "Acre Agent OS User Manual",
+        lines: [
+          "Internal reference for the Office / Back Office workspace.",
+          "Covers navigation, daily operating flows, and audit expectations.",
+          "Use this as the first-stop guide for new office users."
+        ]
+      })
+    }),
+    financialGuide: await writeSeedStoredLibraryDocument({
+      organizationId: organization.id,
+      officeId: null,
+      fileName: "financial-document-controls.pdf",
+      content: buildMinimalPdf({
+        title: "Financial Document Controls",
+        lines: [
+          "Checklist for invoices, brokerage receipts, and reimbursement packets.",
+          "Store statement-ready PDFs with clean naming and office scoping.",
+          "Accounting review remains manager-driven in the MVP."
+        ]
+      })
+    }),
+    legalGuide: await writeSeedStoredLibraryDocument({
+      organizationId: organization.id,
+      officeId: null,
+      fileName: "legal-compliance-reference.pdf",
+      content: buildMinimalPdf({
+        title: "Legal and Compliance Reference",
+        lines: [
+          "Quick handbook for disclosures, fair housing reminders, and audit prep.",
+          "Pair this library copy with transaction-level compliance tasks.",
+          "Update whenever office policy or state guidance changes."
+        ]
+      })
+    }),
+    onboardingGuide: await writeSeedStoredLibraryDocument({
+      organizationId: organization.id,
+      officeId: null,
+      fileName: "new-agent-onboarding-packet.pdf",
+      content: buildMinimalPdf({
+        title: "New Agent Onboarding Packet",
+        lines: [
+          "Day 1 through Day 14 checklist for office onboarding.",
+          "Includes account setup, compliance reading, and training milestones.",
+          "Managers should assign related onboarding items separately."
+        ]
+      })
+    }),
+    offerPlaybook: await writeSeedStoredLibraryDocument({
+      organizationId: organization.id,
+      officeId: office.id,
+      fileName: "offer-review-playbook.pdf",
+      content: buildMinimalPdf({
+        title: "Offer Review Playbook",
+        lines: [
+          "Office-only playbook for structuring and comparing offer packages.",
+          "Use with transaction offers, supporting documents, and approval queues.",
+          "Keep office-specific negotiation notes here, not in the public site."
+        ]
+      })
+    }),
+    benefitsReference: await writeSeedStoredLibraryDocument({
+      organizationId: organization.id,
+      officeId: null,
+      fileName: "company-benefits-reference.pdf",
+      content: buildMinimalPdf({
+        title: "Company Benefits Quick Reference",
+        lines: [
+          "Unfiled sample document for root-level library behavior.",
+          "Useful for testing search, preview, and download flows.",
+          "Move into a folder once the final category is agreed."
+        ]
+      })
+    })
+  };
+
+  const seededLibraryFolders = [
+    {
+      id: "seed-library-folder-manuals",
+      officeId: null,
+      parentFolderId: null,
+      createdByEmail: "naomi@acre.com",
+      name: "User Manual Documents",
+      description: "Core company manuals and how-to PDFs for office operations.",
+      sortOrder: 0
+    },
+    {
+      id: "seed-library-folder-financial",
+      officeId: null,
+      parentFolderId: null,
+      createdByEmail: "simon@acre.com",
+      name: "Financial Documents",
+      description: "Accounting policies, internal financial references, and support packets.",
+      sortOrder: 1
+    },
+    {
+      id: "seed-library-folder-legal",
+      officeId: null,
+      parentFolderId: null,
+      createdByEmail: "naomi@acre.com",
+      name: "Legal Documents",
+      description: "Compliance and legal guidance used by the back office.",
+      sortOrder: 2
+    },
+    {
+      id: "seed-library-folder-onboarding",
+      officeId: null,
+      parentFolderId: null,
+      createdByEmail: "naomi@acre.com",
+      name: "Onboarding Documents",
+      description: "Internal onboarding references and training packets.",
+      sortOrder: 3
+    },
+    {
+      id: "seed-library-folder-onboarding-packets",
+      officeId: null,
+      parentFolderId: "seed-library-folder-onboarding",
+      createdByEmail: "naomi@acre.com",
+      name: "Starter Packets",
+      description: "Nested onboarding packet examples for new hires and transfers.",
+      sortOrder: 0
+    },
+    {
+      id: "seed-library-folder-playbooks",
+      officeId: office.id,
+      parentFolderId: null,
+      createdByEmail: "simon@acre.com",
+      name: "Templates and Playbooks",
+      description: "Office-only playbooks, quick-start packets, and reusable internal guides.",
+      sortOrder: 4
+    }
+  ];
+
+  for (const folder of seededLibraryFolders) {
+    const createdByMembership = folder.createdByEmail ? membershipByEmail.get(folder.createdByEmail) ?? null : null;
+
+    await prisma.libraryFolder.upsert({
+      where: { id: folder.id },
+      update: {
+        organizationId: organization.id,
+        officeId: folder.officeId,
+        parentFolderId: folder.parentFolderId,
+        createdByMembershipId: createdByMembership?.id ?? null,
+        name: folder.name,
+        description: folder.description,
+        sortOrder: folder.sortOrder,
+        isActive: true
+      },
+      create: {
+        id: folder.id,
+        organizationId: organization.id,
+        officeId: folder.officeId,
+        parentFolderId: folder.parentFolderId,
+        createdByMembershipId: createdByMembership?.id ?? null,
+        name: folder.name,
+        description: folder.description,
+        sortOrder: folder.sortOrder,
+        isActive: true
+      }
+    });
+  }
+
+  const seededLibraryDocuments = [
+    {
+      id: "seed-library-doc-user-manual",
+      officeId: null,
+      folderId: "seed-library-folder-manuals",
+      uploadedByEmail: "naomi@acre.com",
+      title: "Acre Agent OS User Manual",
+      originalFileName: "acre-agent-os-user-manual.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: storedSeedLibraryFiles.userManual.fileSizeBytes,
+      storageKey: storedSeedLibraryFiles.userManual.storageKey,
+      pageCount: 1,
+      summary: "Primary internal user manual for the company back-office workspace.",
+      tags: ["manual", "office", "training"],
+      category: "User Manual Documents",
+      visibility: "company_wide",
+      sortOrder: 0
+    },
+    {
+      id: "seed-library-doc-financial-guide",
+      officeId: null,
+      folderId: "seed-library-folder-financial",
+      uploadedByEmail: "simon@acre.com",
+      title: "Financial Document Controls",
+      originalFileName: "financial-document-controls.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: storedSeedLibraryFiles.financialGuide.fileSizeBytes,
+      storageKey: storedSeedLibraryFiles.financialGuide.storageKey,
+      pageCount: 1,
+      summary: "Reference guide for internal accounting and finance document handling.",
+      tags: ["finance", "accounting", "policy"],
+      category: "Financial Documents",
+      visibility: "company_wide",
+      sortOrder: 1
+    },
+    {
+      id: "seed-library-doc-legal-guide",
+      officeId: null,
+      folderId: "seed-library-folder-legal",
+      uploadedByEmail: "naomi@acre.com",
+      title: "Legal and Compliance Reference",
+      originalFileName: "legal-compliance-reference.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: storedSeedLibraryFiles.legalGuide.fileSizeBytes,
+      storageKey: storedSeedLibraryFiles.legalGuide.storageKey,
+      pageCount: 1,
+      summary: "Internal legal and compliance quick-reference used by office operations.",
+      tags: ["legal", "compliance", "policy"],
+      category: "Legal Documents",
+      visibility: "company_wide",
+      sortOrder: 2
+    },
+    {
+      id: "seed-library-doc-onboarding-packet",
+      officeId: null,
+      folderId: "seed-library-folder-onboarding-packets",
+      uploadedByEmail: "naomi@acre.com",
+      title: "New Agent Onboarding Packet",
+      originalFileName: "new-agent-onboarding-packet.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: storedSeedLibraryFiles.onboardingGuide.fileSizeBytes,
+      storageKey: storedSeedLibraryFiles.onboardingGuide.storageKey,
+      pageCount: 1,
+      summary: "Starter onboarding packet for first-week office setup and training.",
+      tags: ["onboarding", "training", "packet"],
+      category: "Onboarding Documents",
+      visibility: "company_wide",
+      sortOrder: 3
+    },
+    {
+      id: "seed-library-doc-offer-playbook",
+      officeId: office.id,
+      folderId: "seed-library-folder-playbooks",
+      uploadedByEmail: "simon@acre.com",
+      title: "Offer Review Playbook",
+      originalFileName: "offer-review-playbook.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: storedSeedLibraryFiles.offerPlaybook.fileSizeBytes,
+      storageKey: storedSeedLibraryFiles.offerPlaybook.storageKey,
+      pageCount: 1,
+      summary: "Office-only playbook for document-heavy offer review and negotiation prep.",
+      tags: ["playbook", "offers", "office-only"],
+      category: "Templates and Playbooks",
+      visibility: "office_only",
+      sortOrder: 4
+    },
+    {
+      id: "seed-library-doc-benefits-reference",
+      officeId: null,
+      folderId: null,
+      uploadedByEmail: "naomi@acre.com",
+      title: "Company Benefits Quick Reference",
+      originalFileName: "company-benefits-reference.pdf",
+      mimeType: "application/pdf",
+      fileSizeBytes: storedSeedLibraryFiles.benefitsReference.fileSizeBytes,
+      storageKey: storedSeedLibraryFiles.benefitsReference.storageKey,
+      pageCount: 1,
+      summary: "Unfiled sample reference used to verify root-level library document behavior.",
+      tags: ["reference", "benefits", "unfiled"],
+      category: "General",
+      visibility: "company_wide",
+      sortOrder: 5
+    }
+  ];
+
+  for (const document of seededLibraryDocuments) {
+    const uploadedByMembership = document.uploadedByEmail ? membershipByEmail.get(document.uploadedByEmail) ?? null : null;
+
+    await prisma.libraryDocument.upsert({
+      where: { id: document.id },
+      update: {
+        organizationId: organization.id,
+        officeId: document.officeId,
+        folderId: document.folderId,
+        uploadedByMembershipId: uploadedByMembership?.id ?? null,
+        title: document.title,
+        originalFileName: document.originalFileName,
+        mimeType: document.mimeType,
+        fileSizeBytes: document.fileSizeBytes,
+        storageKey: document.storageKey,
+        pageCount: document.pageCount,
+        summary: document.summary,
+        tags: document.tags,
+        category: document.category,
+        visibility: document.visibility,
+        sortOrder: document.sortOrder
+      },
+      create: {
+        id: document.id,
+        organizationId: organization.id,
+        officeId: document.officeId,
+        folderId: document.folderId,
+        uploadedByMembershipId: uploadedByMembership?.id ?? null,
+        title: document.title,
+        originalFileName: document.originalFileName,
+        mimeType: document.mimeType,
+        fileSizeBytes: document.fileSizeBytes,
+        storageKey: document.storageKey,
+        pageCount: document.pageCount,
+        summary: document.summary,
+        tags: document.tags,
+        category: document.category,
+        visibility: document.visibility,
+        sortOrder: document.sortOrder
+      }
+    });
+  }
 
   const seededTransactionDocuments = [
     {
@@ -3963,7 +4344,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededRequiredContactRoleSettings.length} required contact role settings, ${seededTransactionFieldSettings.length} transaction field settings, ${seededChecklistTemplates.length} checklist templates, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededCommissionPlans.length} commission plans, ${seededCommissionAssignments.length} commission assignments, ${seededCommissionCalculations.length} commission calculations, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededRequiredContactRoleSettings.length} required contact role settings, ${seededTransactionFieldSettings.length} transaction field settings, ${seededChecklistTemplates.length} checklist templates, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededLibraryFolders.length} library folders, ${seededLibraryDocuments.length} library documents, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededCommissionPlans.length} commission plans, ${seededCommissionAssignments.length} commission assignments, ${seededCommissionCalculations.length} commission calculations, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 
