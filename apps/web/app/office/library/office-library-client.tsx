@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { Button, EmptyState, FilterBar, FilterField, SecondaryMetaList, SelectInput, TextInput, TextareaInput } from "@acre/ui";
-import type { OfficeLibraryFolderNode, OfficeLibraryFolderOption, OfficeLibrarySnapshot } from "@acre/db";
+import type {
+  OfficeLibraryDocument,
+  OfficeLibraryFolderNode,
+  OfficeLibraryFolderOption,
+  OfficeLibrarySnapshot
+} from "@acre/db";
 
 type OfficeLibraryClientProps = {
   snapshot: OfficeLibrarySnapshot;
@@ -108,6 +113,12 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
     startRoutingTransition(() => {
       router.replace(buildLibraryUrl(updates), { scroll: false });
       router.refresh();
+    });
+  }
+
+  function closeDocumentPreview() {
+    navigate({
+      documentId: null
     });
   }
 
@@ -304,6 +315,65 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
     }
   }
 
+  const selectedDocument = snapshot.selectedDocument;
+  const selectedFolderIsManaged =
+    snapshot.selectedFolder.id !== null && snapshot.selectedFolder.key !== "all" && snapshot.selectedFolder.key !== "unfiled";
+  const showAllFilesGroup = snapshot.filters.folderId === "all";
+  const showUnfiledGroup = snapshot.filters.folderId === "unfiled";
+
+  function renderVisibleDocuments(documents: OfficeLibraryDocument[]) {
+    if (!documents.length) {
+      return (
+        <div className="office-library-inline-empty">
+          <strong>No files in this view</strong>
+          <span>Adjust filters, upload a PDF, or choose another folder.</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="office-library-folder-documents">
+        {documents.map((document) => {
+          const isSelected = selectedDocument?.id === document.id;
+          const secondaryParts = [document.originalFileName];
+
+          if (document.folderName && snapshot.filters.folderId === "all") {
+            secondaryParts.push(document.folderName);
+          }
+
+          if (document.category) {
+            secondaryParts.push(document.category);
+          }
+
+          return (
+            <button
+              className={`office-library-document-entry${isSelected ? " is-selected" : ""}`}
+              key={document.id}
+              onClick={() =>
+                navigate({
+                  documentId: document.id
+                })
+              }
+              type="button"
+            >
+              <div className="office-library-document-entry-main">
+                <strong>{document.title}</strong>
+                <p>{secondaryParts.join(" · ")}</p>
+              </div>
+
+              <div className="office-library-document-entry-trailing">
+                <span className="office-library-document-chip">
+                  {document.pageCount ? `${document.pageCount} pages` : document.isPdf ? "PDF" : "File"}
+                </span>
+                <span className="office-library-document-meta">{formatFileSize(document.fileSizeBytes)}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   function renderFolderNodes(nodes: OfficeLibraryFolderNode[]) {
     return nodes.map((node) => {
       const isExpanded = expandedFolders[node.id] ?? true;
@@ -319,6 +389,7 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
             ) : (
               <span className="office-library-folder-toggle is-placeholder">•</span>
             )}
+
             <button
               className="office-library-folder-button"
               onClick={() =>
@@ -329,20 +400,19 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
               }
               type="button"
             >
-              <span className="office-library-folder-name">{node.name}</span>
+              <span className="office-library-folder-button-main">
+                <span className="office-library-folder-name">{node.name}</span>
+              </span>
               <span className="office-library-folder-count">{node.documentCount}</span>
             </button>
           </div>
-          {node.children.length && isExpanded ? (
-            <div className="office-library-folder-children">{renderFolderNodes(node.children)}</div>
-          ) : null}
+
+          {isSelected && isExpanded ? renderVisibleDocuments(snapshot.documents) : null}
+          {node.children.length && isExpanded ? <div className="office-library-folder-children">{renderFolderNodes(node.children)}</div> : null}
         </div>
       );
     });
   }
-
-  const selectedDocument = snapshot.selectedDocument;
-  const selectedFolderIsManaged = snapshot.selectedFolder.id !== null && snapshot.selectedFolder.key !== "all" && snapshot.selectedFolder.key !== "unfiled";
 
   return (
     <>
@@ -354,14 +424,6 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
             <span>{snapshot.summary.pdfDocuments} PDFs</span>
             <span>{snapshot.summary.unfiledDocuments} unfiled</span>
           </div>
-          {canManageLibrary ? (
-            <div className="office-library-action-row">
-              <Button onClick={() => setIsUploadOpen(true)} variant="secondary">
-                Upload file
-              </Button>
-              <Button onClick={() => setIsCreateFolderOpen(true)}>Add folder</Button>
-            </div>
-          ) : null}
         </div>
 
         <FilterBar as="form" className="office-library-filter-bar" method="get">
@@ -414,18 +476,27 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
 
       {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
 
-      <section className="office-library-workspace">
-        <aside className="bm-table-card office-library-panel office-library-panel-nav">
-          <div className="office-library-panel-head">
-            <div>
-              <h3>Folders</h3>
-              <span>Browse company and office-only folders.</span>
-            </div>
+      <section className="bm-table-card office-library-browser-sheet">
+        <div className="office-library-browser-head">
+          <div>
+            <h3>Company library</h3>
+            <p>Select a folder to expand its files. PDF preview stays hidden until a document is opened.</p>
           </div>
 
-          <div className="office-library-folder-tree">
+          {canManageLibrary ? (
+            <div className="office-library-action-row">
+              <Button onClick={() => setIsUploadOpen(true)} variant="secondary">
+                Upload file
+              </Button>
+              <Button onClick={() => setIsCreateFolderOpen(true)}>Add folder</Button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="office-library-folder-tree">
+          <div className="office-library-folder-group">
             <button
-              className={`office-library-folder-button office-library-folder-button-root${snapshot.filters.folderId === "all" ? " is-selected" : ""}`}
+              className={`office-library-folder-button office-library-folder-button-root${showAllFilesGroup ? " is-selected" : ""}`}
               onClick={() =>
                 navigate({
                   folderId: null,
@@ -434,12 +505,18 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
               }
               type="button"
             >
-              <span>All files</span>
-              <span>{snapshot.summary.totalDocuments}</span>
+              <span className="office-library-folder-button-main">
+                <span className="office-library-folder-name">All files</span>
+              </span>
+              <span className="office-library-folder-count">{snapshot.summary.totalDocuments}</span>
             </button>
 
+            {showAllFilesGroup ? renderVisibleDocuments(snapshot.documents) : null}
+          </div>
+
+          <div className="office-library-folder-group">
             <button
-              className={`office-library-folder-button office-library-folder-button-root${snapshot.filters.folderId === "unfiled" ? " is-selected" : ""}`}
+              className={`office-library-folder-button office-library-folder-button-root${showUnfiledGroup ? " is-selected" : ""}`}
               onClick={() =>
                 navigate({
                   folderId: "unfiled",
@@ -448,111 +525,109 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
               }
               type="button"
             >
-              <span>Unfiled documents</span>
-              <span>{snapshot.summary.unfiledDocuments}</span>
+              <span className="office-library-folder-button-main">
+                <span className="office-library-folder-name">Unfiled documents</span>
+              </span>
+              <span className="office-library-folder-count">{snapshot.summary.unfiledDocuments}</span>
             </button>
 
-            {snapshot.folderTree.length ? (
-              <div className="office-library-folder-branch">{renderFolderNodes(snapshot.folderTree)}</div>
-            ) : (
-              <EmptyState description="Create the first company folder to organize manuals and internal files." title="No folders yet" />
-            )}
+            {showUnfiledGroup ? renderVisibleDocuments(snapshot.documents) : null}
           </div>
 
-          {canManageLibrary && selectedFolderIsManaged ? (
-            <form className="office-library-side-form" key={snapshot.selectedFolder.id} onSubmit={handleRenameFolder}>
-              <div className="office-library-side-form-head">
-                <strong>Rename folder</strong>
+          {snapshot.folderTree.length ? (
+            <div className="office-library-folder-branch">{renderFolderNodes(snapshot.folderTree)}</div>
+          ) : (
+            <EmptyState description="Create the first company folder to organize manuals and internal files." title="No folders yet" />
+          )}
+        </div>
+
+        {selectedFolderIsManaged && !selectedDocument ? (
+          <section className="office-library-folder-settings">
+            <div className="office-library-panel-head">
+              <div>
+                <h3>{snapshot.selectedFolder.name}</h3>
                 <span>{snapshot.selectedFolder.scopeLabel}</span>
               </div>
-              <label className="office-form-field">
-                <span>Folder name</span>
-                <TextInput defaultValue={snapshot.selectedFolder.name} name="name" />
-              </label>
-              <label className="office-form-field">
-                <span>Description</span>
-                <TextareaInput defaultValue={snapshot.selectedFolder.description} name="description" rows={4} />
-              </label>
-              <div className="office-library-side-actions">
-                <Button disabled={pendingAction === "rename-folder"} size="sm" type="submit">
-                  {pendingAction === "rename-folder" ? "Saving..." : "Save folder"}
-                </Button>
-              </div>
-            </form>
-          ) : null}
-        </aside>
-
-        <section className="bm-table-card office-library-panel office-library-panel-list">
-          <div className="office-library-panel-head">
-            <div>
-              <h3>{snapshot.selectedFolder.name}</h3>
-              <span>
-                {snapshot.selectedFolder.documentCount} file{snapshot.selectedFolder.documentCount === 1 ? "" : "s"} in this view
-              </span>
             </div>
-            <span>{snapshot.selectedFolder.scopeLabel}</span>
-          </div>
 
-          {snapshot.documents.length ? (
-            <div className="office-library-document-list">
-              <div className="office-library-document-list-head">
-                <span>Document</span>
-                <span>Folder</span>
-                <span>Category</span>
-                <span>Updated</span>
+            <p className="office-library-folder-description">
+              {snapshot.selectedFolder.description || "No folder description yet. Select a file or update this folder's details."}
+            </p>
+
+            <SecondaryMetaList
+              className="office-library-meta-list"
+              items={[
+                { label: "Folder", value: snapshot.selectedFolder.name },
+                { label: "Scope", value: snapshot.selectedFolder.scopeLabel },
+                { label: "Files in view", value: String(snapshot.selectedFolder.documentCount) }
+              ]}
+            />
+
+            {canManageLibrary ? (
+              <form className="office-library-side-form" key={snapshot.selectedFolder.id} onSubmit={handleRenameFolder}>
+                <div className="office-library-side-form-head">
+                  <strong>Folder details</strong>
+                  <span>Rename the folder and keep its description current for the office team.</span>
+                </div>
+
+                <label className="office-form-field">
+                  <span>Folder name</span>
+                  <TextInput defaultValue={snapshot.selectedFolder.name} name="name" />
+                </label>
+
+                <label className="office-form-field">
+                  <span>Description</span>
+                  <TextareaInput defaultValue={snapshot.selectedFolder.description} name="description" rows={4} />
+                </label>
+
+                <div className="office-library-side-actions">
+                  <Button disabled={pendingAction === "rename-folder"} size="sm" type="submit">
+                    {pendingAction === "rename-folder" ? "Saving..." : "Save folder"}
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+          </section>
+        ) : null}
+      </section>
+
+      {selectedDocument ? (
+        <div className="bm-modal-overlay" onClick={closeDocumentPreview}>
+          <section className="bm-transaction-modal office-library-preview-modal" onClick={(event) => event.stopPropagation()}>
+            <header className="bm-transaction-modal-header">
+              <div>
+                <h3>{selectedDocument.title}</h3>
+                <p>
+                  {selectedDocument.visibilityLabel} · {selectedDocument.folderName || "Unfiled"}
+                </p>
               </div>
-              {snapshot.documents.map((document) => (
+
+              <div className="office-library-preview-actions">
+                <Link className="bm-view-toggle" href={selectedDocument.openUrl} target="_blank">
+                  Open
+                </Link>
+                <Link className="bm-view-toggle" href={selectedDocument.downloadUrl} target="_blank">
+                  Download
+                </Link>
                 <button
-                  className={`office-library-document-row${selectedDocument?.id === document.id ? " is-selected" : ""}`}
-                  key={document.id}
-                  onClick={() =>
-                    navigate({
-                      documentId: document.id
-                    })
-                  }
+                  aria-label="Close document preview"
+                  className="office-library-preview-close"
+                  onClick={closeDocumentPreview}
                   type="button"
                 >
-                  <div className="office-library-document-main">
-                    <strong>{document.title}</strong>
-                    <p>
-                      {document.originalFileName} · {document.isPdf ? "PDF" : document.mimeType} · {formatFileSize(document.fileSizeBytes)}
-                    </p>
-                  </div>
-                  <span>{document.folderName || "Unfiled"}</span>
-                  <span>{document.category || "General"}</span>
-                  <span>{formatDateTime(document.updatedAt)}</span>
+                  ×
                 </button>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              description="Adjust filters, upload a PDF, or select a different folder."
-              title="No documents match this view"
-            />
-          )}
-        </section>
-
-        <aside className="bm-table-card office-library-panel office-library-panel-preview">
-          {selectedDocument ? (
-            <>
-              <div className="office-library-panel-head">
-                <div>
-                  <h3>{selectedDocument.title}</h3>
-                  <span>{selectedDocument.visibilityLabel}</span>
-                </div>
-                <div className="office-library-preview-actions">
-                  <Link className="bm-view-toggle" href={selectedDocument.openUrl} target="_blank">
-                    Open
-                  </Link>
-                  <Link className="bm-view-toggle" href={selectedDocument.downloadUrl} target="_blank">
-                    Download
-                  </Link>
-                </div>
               </div>
+            </header>
 
-              <div className="office-library-preview-frame-wrap">
+            <div className="office-library-preview-modal-body">
+              <div className="office-library-preview-frame-wrap office-library-preview-frame-wrap-modal">
                 {selectedDocument.isPdf ? (
-                  <iframe className="office-library-preview-frame" src={selectedDocument.previewUrl} title={selectedDocument.title} />
+                  <iframe
+                    className="office-library-preview-frame office-library-preview-frame-modal"
+                    src={selectedDocument.previewUrl}
+                    title={selectedDocument.title}
+                  />
                 ) : (
                   <EmptyState
                     description="Inline preview is currently PDF-first. Use Open or Download for this file type."
@@ -561,102 +636,99 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                 )}
               </div>
 
-              <SecondaryMetaList
-                className="office-library-meta-list"
-                items={[
-                  { label: "File", value: selectedDocument.originalFileName },
-                  { label: "Folder", value: selectedDocument.folderName || "Unfiled" },
-                  { label: "Category", value: selectedDocument.category || "General" },
-                  { label: "Scope", value: selectedDocument.visibilityLabel },
-                  { label: "Size", value: formatFileSize(selectedDocument.fileSizeBytes) },
-                  { label: "Pages", value: selectedDocument.pageCount ? String(selectedDocument.pageCount) : "Not indexed" },
-                  { label: "Uploaded by", value: selectedDocument.uploadedByName || "System" },
-                  { label: "Updated", value: formatDateTime(selectedDocument.updatedAt) }
-                ]}
-              />
+              <div className="office-library-preview-modal-sidebar">
+                <SecondaryMetaList
+                  className="office-library-meta-list"
+                  items={[
+                    { label: "File", value: selectedDocument.originalFileName },
+                    { label: "Folder", value: selectedDocument.folderName || "Unfiled" },
+                    { label: "Category", value: selectedDocument.category || "General" },
+                    { label: "Scope", value: selectedDocument.visibilityLabel },
+                    { label: "Size", value: formatFileSize(selectedDocument.fileSizeBytes) },
+                    { label: "Pages", value: selectedDocument.pageCount ? String(selectedDocument.pageCount) : "Not indexed" },
+                    { label: "Uploaded by", value: selectedDocument.uploadedByName || "System" },
+                    { label: "Updated", value: formatDateTime(selectedDocument.updatedAt) }
+                  ]}
+                />
 
-              {selectedDocument.tags.length ? (
-                <div className="office-library-tag-list">
-                  {selectedDocument.tags.map((tag) => (
-                    <span className="office-badge office-badge-neutral" key={tag}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-
-              {canManageLibrary ? (
-                <form className="office-library-side-form" key={selectedDocument.id} onSubmit={handleSaveDocument}>
-                  <div className="office-library-side-form-head">
-                    <strong>Document details</strong>
-                    <span>Rename, move, and update internal metadata.</span>
+                {selectedDocument.tags.length ? (
+                  <div className="office-library-tag-list">
+                    {selectedDocument.tags.map((tag) => (
+                      <span className="office-badge office-badge-neutral" key={tag}>
+                        {tag}
+                      </span>
+                    ))}
                   </div>
+                ) : null}
 
-                  <label className="office-form-field">
-                    <span>Title</span>
-                    <TextInput defaultValue={selectedDocument.title} name="title" />
-                  </label>
+                {canManageLibrary ? (
+                  <form className="office-library-side-form" key={selectedDocument.id} onSubmit={handleSaveDocument}>
+                    <div className="office-library-side-form-head">
+                      <strong>Document details</strong>
+                      <span>Rename, move, and update internal metadata.</span>
+                    </div>
 
-                  <label className="office-form-field">
-                    <span>Folder</span>
-                    <SelectInput defaultValue={selectedDocument.folderId ?? ""} name="folderId">
-                      <option value="">Unfiled</option>
-                      {snapshot.folderOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {buildFolderLabel(option)}
-                        </option>
-                      ))}
-                    </SelectInput>
-                  </label>
+                    <label className="office-form-field">
+                      <span>Title</span>
+                      <TextInput defaultValue={selectedDocument.title} name="title" />
+                    </label>
 
-                  <label className="office-form-field">
-                    <span>Category</span>
-                    <TextInput defaultValue={selectedDocument.category} name="category" placeholder="Category label" />
-                  </label>
+                    <label className="office-form-field">
+                      <span>Folder</span>
+                      <SelectInput defaultValue={selectedDocument.folderId ?? ""} name="folderId">
+                        <option value="">Unfiled</option>
+                        {snapshot.folderOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {buildFolderLabel(option)}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
 
-                  <label className="office-form-field">
-                    <span>Visibility</span>
-                    <SelectInput defaultValue={selectedDocument.visibilityKey} name="visibility">
-                      <option value="company_wide">Company-wide</option>
-                      <option value="office_only">Office only</option>
-                    </SelectInput>
-                  </label>
+                    <label className="office-form-field">
+                      <span>Category</span>
+                      <TextInput defaultValue={selectedDocument.category} name="category" placeholder="Category label" />
+                    </label>
 
-                  <label className="office-form-field">
-                    <span>Tags</span>
-                    <TextInput defaultValue={selectedDocument.tags.join(", ")} name="tags" placeholder="Comma-separated tags" />
-                  </label>
+                    <label className="office-form-field">
+                      <span>Visibility</span>
+                      <SelectInput defaultValue={selectedDocument.visibilityKey} name="visibility">
+                        <option value="company_wide">Company-wide</option>
+                        <option value="office_only">Office only</option>
+                      </SelectInput>
+                    </label>
 
-                  <label className="office-form-field">
-                    <span>Summary</span>
-                    <TextareaInput defaultValue={selectedDocument.summary} name="summary" rows={5} />
-                  </label>
+                    <label className="office-form-field">
+                      <span>Tags</span>
+                      <TextInput defaultValue={selectedDocument.tags.join(", ")} name="tags" placeholder="Comma-separated tags" />
+                    </label>
 
-                  <div className="office-library-side-actions">
-                    <Button disabled={pendingAction === "save-document"} size="sm" type="submit">
-                      {pendingAction === "save-document" ? "Saving..." : "Save document"}
-                    </Button>
-                    <Button
-                      disabled={pendingAction === "delete-document"}
-                      onClick={handleDeleteDocument}
-                      size="sm"
-                      type="button"
-                      variant="danger"
-                    >
-                      {pendingAction === "delete-document" ? "Deleting..." : "Delete"}
-                    </Button>
-                  </div>
-                </form>
-              ) : null}
-            </>
-          ) : (
-            <EmptyState
-              description="Select a document to review details and load the inline PDF preview."
-              title="No document selected"
-            />
-          )}
-        </aside>
-      </section>
+                    <label className="office-form-field">
+                      <span>Summary</span>
+                      <TextareaInput defaultValue={selectedDocument.summary} name="summary" rows={5} />
+                    </label>
+
+                    <div className="office-library-side-actions">
+                      <Button disabled={pendingAction === "save-document"} size="sm" type="submit">
+                        {pendingAction === "save-document" ? "Saving..." : "Save document"}
+                      </Button>
+                      <Button
+                        disabled={pendingAction === "delete-document"}
+                        onClick={handleDeleteDocument}
+                        size="sm"
+                        type="button"
+                        variant="danger"
+                      >
+                        {pendingAction === "delete-document" ? "Deleting..." : "Delete"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {canManageLibrary && isCreateFolderOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsCreateFolderOpen(false)}>

@@ -675,11 +675,15 @@ export async function getOfficeLibrarySnapshot(input: GetOfficeLibrarySnapshotIn
 
   const scopeFilteredDocuments = allAccessibleDocuments.filter((document) => matchesScope(document.officeId, scope, currentOfficeId));
   const folderPathById = buildFolderPathById(folders);
+  const requestedDocument =
+    selectedDocumentId.length > 0 ? scopeFilteredDocuments.find((document) => document.id === selectedDocumentId) ?? null : null;
+  const requestedFolderSelection =
+    requestedFolderKey === "all" && requestedDocument ? getDocumentFolderSelection(requestedDocument.folderId) : requestedFolderKey;
   const effectiveSelectedFolderKey =
-    requestedFolderKey === "all" ||
-    requestedFolderKey === "unfiled" ||
-    folders.some((folder) => folder.id === requestedFolderKey)
-      ? requestedFolderKey
+    requestedFolderSelection === "all" ||
+    requestedFolderSelection === "unfiled" ||
+    folders.some((folder) => folder.id === requestedFolderSelection)
+      ? requestedFolderSelection
       : "all";
   const folderTree = buildFolderTree(folders, scopeFilteredDocuments);
   const folderOptions = flattenFolderOptions(folderTree);
@@ -710,7 +714,9 @@ export async function getOfficeLibrarySnapshot(input: GetOfficeLibrarySnapshotIn
     .map((document) => mapLibraryDocument(document, folderPathById))
     .sort(sortDocuments);
 
-  const selectedDocument = visibleDocuments.find((document) => document.id === selectedDocumentId) ?? visibleDocuments[0] ?? null;
+  const selectedDocument = selectedDocumentId
+    ? visibleDocuments.find((document) => document.id === selectedDocumentId) ?? null
+    : null;
 
   return {
     summary: {
