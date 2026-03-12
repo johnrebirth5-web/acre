@@ -2737,7 +2737,7 @@ select {
 .office-task-boolean-filters,
 .office-task-checkbox-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   flex-wrap: wrap;
 }
@@ -2750,6 +2750,34 @@ select {
   gap: 8px;
   color: #4e5f78;
   font-size: 0.75rem;
+}
+
+.office-task-compliance-options label input,
+.office-task-boolean-filters label input,
+.office-task-checkbox-row label input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.office-task-checkbox-row {
+  align-content: flex-start;
+  row-gap: 12px;
+}
+
+.office-task-checkbox-row > span {
+  width: 100%;
+}
+
+.office-task-checkbox-row label {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  background: #fbfcfe;
 }
 
 .office-task-filter-actions,
@@ -5592,7 +5620,7 @@ a {
 .bm-activity-filter-field select,
 .office-report-filter input,
 .office-report-filter select,
-.bm-detail-field input,
+.bm-detail-field input:not([type="checkbox"]):not([type="radio"]),
 .bm-detail-field select,
 .bm-detail-field textarea,
 .bm-transaction-status-form input,
