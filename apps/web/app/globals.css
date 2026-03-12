@@ -7674,16 +7674,29 @@ a {
   align-items: end;
 }
 
+.office-library-filter-bar > .office-library-search-field {
+  flex: 1.35 1 300px;
+  min-width: min(300px, 100%);
+}
+
+.office-library-filter-bar > .office-library-filter-field {
+  flex: 1 1 220px;
+  min-width: min(220px, 100%);
+}
+
 .office-library-filter-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .office-library-workspace {
   display: grid;
-  grid-template-columns: minmax(240px, 280px) minmax(440px, 1fr) minmax(360px, 0.95fr);
+  grid-template-columns: minmax(250px, 280px) minmax(540px, 1.2fr) minmax(390px, 430px);
   gap: 16px;
   align-items: start;
 }
@@ -7850,7 +7863,7 @@ a {
 .office-library-document-list-head,
 .office-library-document-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.8fr) minmax(120px, 0.9fr) minmax(120px, 0.9fr) minmax(80px, 0.6fr) minmax(120px, 0.8fr);
+  grid-template-columns: minmax(260px, 1.95fr) minmax(130px, 0.9fr) minmax(150px, 0.95fr) minmax(138px, 0.8fr);
   align-items: center;
   gap: 12px;
 }
@@ -7889,16 +7902,23 @@ a {
   min-width: 0;
 }
 
+.office-library-document-row > span {
+  min-width: 0;
+  line-height: 1.4;
+}
+
 .office-library-document-main strong {
   display: block;
   margin: 0;
   font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .office-library-document-main p {
   margin: 4px 0 0;
   color: var(--office-text-muted);
   font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .office-library-preview-actions {
@@ -7908,7 +7928,7 @@ a {
 }
 
 .office-library-preview-frame-wrap {
-  min-height: 360px;
+  min-height: 420px;
   border: 1px solid var(--office-border);
   border-radius: var(--office-radius-md);
   overflow: hidden;
@@ -7918,7 +7938,7 @@ a {
 .office-library-preview-frame {
   display: block;
   width: 100%;
-  min-height: 420px;
+  min-height: 520px;
   border: 0;
   background: white;
 }
@@ -7957,7 +7977,7 @@ a {
   }
 
   .office-library-workspace {
-    grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+    grid-template-columns: minmax(250px, 290px) minmax(0, 1fr);
   }
 
   .office-library-panel-preview {
@@ -7985,7 +8005,7 @@ a {
 
   .office-library-document-list-head,
   .office-library-document-row {
-    grid-template-columns: minmax(220px, 1.6fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(80px, 0.7fr);
+    grid-template-columns: minmax(240px, 1.7fr) minmax(120px, 0.95fr) minmax(140px, 1fr);
   }
 
   .office-library-document-list-head span:last-child,

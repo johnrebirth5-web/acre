@@ -367,11 +367,11 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
         <FilterBar as="form" className="office-library-filter-bar" method="get">
           <input name="folderId" type="hidden" value={snapshot.filters.folderId === "all" ? "" : snapshot.filters.folderId} />
 
-          <FilterField label="Search">
+          <FilterField className="office-library-search-field" label="Search">
             <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Search title or file name" />
           </FilterField>
 
-          <FilterField label="Scope">
+          <FilterField className="office-library-filter-field" label="Scope">
             <SelectInput defaultValue={snapshot.filters.scope} name="scope">
               <option value="all">All scopes</option>
               <option value="company">Company-wide</option>
@@ -379,7 +379,7 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
             </SelectInput>
           </FilterField>
 
-          <FilterField label="Category">
+          <FilterField className="office-library-filter-field" label="Category">
             <SelectInput defaultValue={snapshot.filters.category} name="category">
               <option value="">All categories</option>
               {snapshot.categoryOptions.map((category) => (
@@ -390,7 +390,7 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
             </SelectInput>
           </FilterField>
 
-          <FilterField label="Tag">
+          <FilterField className="office-library-filter-field" label="Tag">
             <SelectInput defaultValue={snapshot.filters.tag} name="tag">
               <option value="">All tags</option>
               {snapshot.tagOptions.map((tag) => (
@@ -499,7 +499,6 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                 <span>Document</span>
                 <span>Folder</span>
                 <span>Category</span>
-                <span>Type</span>
                 <span>Updated</span>
               </div>
               {snapshot.documents.map((document) => (
@@ -516,12 +515,11 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                   <div className="office-library-document-main">
                     <strong>{document.title}</strong>
                     <p>
-                      {document.originalFileName} · {formatFileSize(document.fileSizeBytes)}
+                      {document.originalFileName} · {document.isPdf ? "PDF" : document.mimeType} · {formatFileSize(document.fileSizeBytes)}
                     </p>
                   </div>
                   <span>{document.folderName || "Unfiled"}</span>
                   <span>{document.category || "General"}</span>
-                  <span>{document.isPdf ? "PDF" : document.mimeType}</span>
                   <span>{formatDateTime(document.updatedAt)}</span>
                 </button>
               ))}
