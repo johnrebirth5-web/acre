@@ -456,12 +456,67 @@ async function main() {
     });
   }
 
+  const seededAgentOnboardingTemplates = [
+    {
+      id: "seed-agent-template-license",
+      title: "Upload license and state ID",
+      description: "Provide the current NY license and state ID for compliance review.",
+      category: "Compliance",
+      dueDaysOffset: 3,
+      sortOrder: 0
+    },
+    {
+      id: "seed-agent-template-packet",
+      title: "Complete brokerage onboarding packet",
+      description: "Review commission setup, office policies, and required agreements.",
+      category: "Operations",
+      dueDaysOffset: 5,
+      sortOrder: 1
+    },
+    {
+      id: "seed-agent-template-training",
+      title: "Review transaction workflow basics",
+      description: "Walk through tasks, documents, approvals, and finance checkpoints before going live.",
+      category: "Training",
+      dueDaysOffset: 7,
+      sortOrder: 2
+    }
+  ];
+
+  for (const template of seededAgentOnboardingTemplates) {
+    await prisma.agentOnboardingTemplateItem.upsert({
+      where: { id: template.id },
+      update: {
+        organizationId: organization.id,
+        officeId: office.id,
+        title: template.title,
+        description: template.description,
+        category: template.category,
+        dueDaysOffset: template.dueDaysOffset,
+        sortOrder: template.sortOrder,
+        isActive: true
+      },
+      create: {
+        id: template.id,
+        organizationId: organization.id,
+        officeId: office.id,
+        title: template.title,
+        description: template.description,
+        category: template.category,
+        dueDaysOffset: template.dueDaysOffset,
+        sortOrder: template.sortOrder,
+        isActive: true
+      }
+    });
+  }
+
   const janeMembership = membershipByEmail.get("jane@acre.com") ?? null;
   const seededAgentOnboardingItems = janeMembership
     ? [
         {
           id: "seed-agent-onboarding-license",
           membershipId: janeMembership.id,
+          templateItemId: "seed-agent-template-license",
           title: "Upload license and state ID",
           description: "Provide the current NY license and state ID for compliance review.",
           category: "Compliance",
@@ -474,6 +529,7 @@ async function main() {
         {
           id: "seed-agent-onboarding-packet",
           membershipId: janeMembership.id,
+          templateItemId: "seed-agent-template-packet",
           title: "Complete brokerage onboarding packet",
           description: "Review commission setup, office policies, and required agreements.",
           category: "Operations",
@@ -486,6 +542,7 @@ async function main() {
         {
           id: "seed-agent-onboarding-training",
           membershipId: janeMembership.id,
+          templateItemId: "seed-agent-template-training",
           title: "Review transaction workflow basics",
           description: "Walk through tasks, documents, approvals, and finance checkpoints before going live.",
           category: "Training",
@@ -505,6 +562,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         membershipId: item.membershipId,
+        templateItemId: item.templateItemId,
         title: item.title,
         description: item.description,
         category: item.category,
@@ -519,6 +577,7 @@ async function main() {
         organizationId: organization.id,
         officeId: office.id,
         membershipId: item.membershipId,
+        templateItemId: item.templateItemId,
         title: item.title,
         description: item.description,
         category: item.category,
@@ -3042,7 +3101,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
+    `Seeded organization ${organization.slug} with office ${office.slug}, ${memberships.length} memberships, ${seededAgentProfiles.length} agent profiles, ${seededTeams.length} teams, ${seededAgentOnboardingTemplates.length} onboarding templates, ${seededAgentOnboardingItems.length} onboarding items, ${seededAgentGoals.length} agent goals, ${seededTransactions.length} transactions, ${seededClients.length} clients, ${seededTasks.length} follow-up tasks, ${seededEvents.length} events, ${seededNotifications.length} notifications, ${seededTransactionTasks.length} transaction tasks, ${seededFormTemplates.length} form templates, ${seededTransactionDocuments.length} transaction documents, ${seededTransactionForms.length} transaction forms, ${seededSignatureRequests.length} signature requests, ${seededIncomingUpdates.length} incoming updates, ${seededLedgerAccounts.length} ledger accounts, ${seededAccountingTransactions.length} accounting transactions, ${seededEarnestMoneyRecords.length} earnest money records, and ${seededAuditLogs.length} audit logs.`
   );
 }
 

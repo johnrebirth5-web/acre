@@ -71,6 +71,18 @@ function buildProfileState(snapshot: OfficeAgentProfileSnapshot): ProfileState {
   };
 }
 
+function getMembershipTone(value: OfficeAgentProfileSnapshot["profile"]["membershipStatusValue"]) {
+  if (value === "active") {
+    return "success" as const;
+  }
+
+  if (value === "invited") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
+
 function buildOnboardingDraft(item: OfficeAgentProfileSnapshot["onboarding"]["items"][number]): OnboardingDraft {
   return {
     title: item.title,
@@ -278,6 +290,28 @@ export function AgentProfileClient({
     }
   }
 
+  async function handleApplyOnboardingTemplate() {
+    setPendingAction("apply-onboarding-template");
+    setError("");
+
+    try {
+      const response = await fetch(`/api/office/agents/${snapshot.profile.membershipId}/onboarding-template`, {
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to apply onboarding template.");
+      }
+
+      router.refresh();
+    } catch (templateError) {
+      setError(templateError instanceof Error ? templateError.message : "Failed to apply onboarding template.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
   async function handleSaveOnboardingItem(itemId: string) {
     setPendingAction(`save-onboarding:${itemId}`);
     setError("");
@@ -364,6 +398,7 @@ export function AgentProfileClient({
         actions={
           <>
             <Badge tone="neutral">{snapshot.profile.officeName}</Badge>
+            <StatusBadge tone={getMembershipTone(snapshot.profile.membershipStatusValue)}>{snapshot.profile.membershipStatus}</StatusBadge>
             <StatusBadge tone={snapshot.profile.onboardingStatusValue === "complete" ? "success" : snapshot.profile.onboardingStatusValue === "in_progress" ? "accent" : "warning"}>
               {snapshot.profile.onboardingStatus}
             </StatusBadge>
@@ -377,14 +412,18 @@ export function AgentProfileClient({
         title={snapshot.profile.displayName}
       />
 
-      <section className="office-kpi-grid">
+      <section className="office-kpi-grid office-agents-kpi-grid">
         <StatCard hint="currently open or in-progress" label="Active tasks" value={snapshot.summary.activeTaskCount} />
+        <StatCard hint="next onboarding and task due items" label="Operational agenda" value={snapshot.summary.operationalAgendaCount} />
         <StatCard hint="opportunity + active + pending" label="Open transactions" value={snapshot.summary.openTransactionCount} />
+        <StatCard hint="closed in the recent 90-day window" label="Recent closed" value={snapshot.summary.recentClosedTransactionCount} />
         <StatCard hint="from agent billing foundation" label="Current balance" value={snapshot.summary.currentBalanceLabel} />
-        <StatCard hint="configured billing methods on file" label="Payment methods" value={snapshot.summary.paymentMethodsCount} />
+        <StatCard hint="open + pending agent billing charges" label="Open / pending charges" value={`${snapshot.summary.openChargesCount} / ${snapshot.summary.pendingChargesCount}`} />
+        <StatCard hint="configured payment methods on file" label="Payment methods" value={snapshot.summary.paymentMethodsCount} />
+        <StatCard hint="current active goal snapshot" label="Goal progress" value={snapshot.summary.currentGoalSummary} />
       </section>
 
-      <SectionCard subtitle="Back-office profile, licensing, and commission-plan metadata for this agent membership." title="Profile basics">
+      <SectionCard subtitle="Back-office profile, licensing, commission-plan, and internal operating metadata for this agent membership." title="Profile basics">
         <form className="bm-detail-grid" onSubmit={handleProfileSave}>
           <FormField className="bm-detail-field" label="Display name">
             <TextInput onChange={(event) => setProfileField("displayName", event.target.value)} readOnly={!canManageAgents} value={profileState.displayName} />
@@ -462,19 +501,86 @@ export function AgentProfileClient({
           ) : null}
         </SectionCard>
 
-        <SectionCard subtitle="Live pipeline visibility derived from existing transactions." title="Current performance">
-          <div className="office-secondary-meta-list">
+        <SectionCard subtitle="Current pipeline, billing, and workload visibility derived from real transactions, tasks, and billing records." title="Operational summary">
+          <div className="office-agents-profile-summary-grid">
             {snapshot.summary.pipelineCounts.map((metric) => (
-              <div className="office-secondary-meta-row" key={metric.label}>
-                <dt>{metric.label}</dt>
-                <dd>{metric.count}</dd>
-              </div>
+              <StatCard hint="current pipeline count" key={metric.label} label={metric.label} value={metric.count} />
             ))}
+            <StatCard hint="current open charges in billing" label="Open charges" value={snapshot.summary.openChargesCount} />
+            <StatCard hint="not yet posted or due billing items" label="Pending charges" value={snapshot.summary.pendingChargesCount} />
+          </div>
+
+          <div className="office-detail-two-column office-agents-profile-secondary-columns">
+            <div className="office-secondary-meta-list">
+              <div className="office-secondary-meta-row">
+                <dt>Current goal summary</dt>
+                <dd>{snapshot.summary.currentGoalSummary}</dd>
+              </div>
+              <div className="office-secondary-meta-row">
+                <dt>Current balance</dt>
+                <dd>{snapshot.summary.currentBalanceLabel}</dd>
+              </div>
+              <div className="office-secondary-meta-row">
+                <dt>Payment methods</dt>
+                <dd>{snapshot.summary.paymentMethodsCount}</dd>
+              </div>
+              <div className="office-secondary-meta-row">
+                <dt>Membership status</dt>
+                <dd>{snapshot.profile.membershipStatus}</dd>
+              </div>
+            </div>
+
+            <div className="office-agents-agenda-panel">
+              <div className="office-agents-agenda-head">
+                <strong>Operational agenda</strong>
+                <span>{snapshot.operationalAgenda.length} current items</span>
+              </div>
+              <div className="office-agents-agenda-list">
+                {snapshot.operationalAgenda.map((item) => (
+                  <article className="office-agents-agenda-item" key={item.id}>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.kind}</p>
+                    </div>
+                    <div className="office-agents-agenda-item-meta">
+                      <StatusBadge tone={item.statusLabel === "Completed" ? "success" : item.statusLabel === "Pending" ? "warning" : "accent"}>
+                        {item.statusLabel}
+                      </StatusBadge>
+                      <small>{item.dueAtLabel}</small>
+                      {item.href ? <Link href={item.href}>Open</Link> : null}
+                    </div>
+                  </article>
+                ))}
+                {snapshot.operationalAgenda.length === 0 ? (
+                  <p className="office-form-helper">No urgent onboarding or transaction workload items right now.</p>
+                ) : null}
+              </div>
+            </div>
           </div>
         </SectionCard>
       </div>
 
-      <SectionCard subtitle="Back-office onboarding checklist for this agent. Completion updates the profile onboarding status automatically." title="Onboarding">
+      <section id="onboarding">
+        <SectionCard
+          actions={
+            <>
+              <Badge tone="neutral">{snapshot.onboarding.templateDefaultsCount} template defaults</Badge>
+              {canManageOnboarding ? (
+                <Button
+                  disabled={pendingAction === "apply-onboarding-template"}
+                  onClick={handleApplyOnboardingTemplate}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  {pendingAction === "apply-onboarding-template" ? "Applying..." : "Apply standard onboarding"}
+                </Button>
+              ) : null}
+            </>
+          }
+          subtitle="Back-office onboarding checklist for this agent. Completion updates the profile onboarding status automatically."
+          title="Onboarding"
+        >
         <div className="office-agents-onboarding-summary">
           <StatusBadge tone={snapshot.onboarding.statusLabel === "Complete" ? "success" : snapshot.onboarding.statusLabel === "In progress" ? "accent" : "warning"}>
             {snapshot.onboarding.statusLabel}
@@ -482,6 +588,24 @@ export function AgentProfileClient({
           <span>
             {snapshot.onboarding.completedCount} of {snapshot.onboarding.totalCount} items complete
           </span>
+        </div>
+
+        <div className="office-agents-template-list">
+          {snapshot.onboarding.templateDefaults.map((item) => (
+            <article className="office-agents-template-item" key={item.id}>
+              <div>
+                <strong>{item.title}</strong>
+                <p>
+                  {item.category}
+                  {item.description ? ` · ${item.description}` : ""}
+                </p>
+              </div>
+              <small>{item.dueDaysOffsetLabel}</small>
+            </article>
+          ))}
+          {snapshot.onboarding.templateDefaults.length === 0 ? (
+            <p className="office-form-helper">No reusable onboarding defaults configured for this office yet.</p>
+          ) : null}
         </div>
 
         <div className="office-agents-onboarding-list">
@@ -566,9 +690,11 @@ export function AgentProfileClient({
             </div>
           </form>
         ) : null}
-      </SectionCard>
+        </SectionCard>
+      </section>
 
-      <SectionCard subtitle="Simple performance goals with actuals derived from current transaction and billing data." title="Goals">
+      <section id="goals">
+        <SectionCard subtitle="Simple performance goals with actuals derived from current transaction and billing data." title="Goals">
         <div className="office-agents-goals-grid">
           {snapshot.goals.map((goal) => {
             const draft = goalDrafts[goal.id] ?? buildGoalDraft(goal);
@@ -691,7 +817,8 @@ export function AgentProfileClient({
             </div>
           </form>
         ) : null}
-      </SectionCard>
+        </SectionCard>
+      </section>
 
       <div className="office-detail-two-column">
         <SectionCard subtitle="Most recent transaction work currently owned by this agent." title="Recent transactions">

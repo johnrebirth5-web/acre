@@ -451,15 +451,23 @@ Trade-off：
   - `Team`
   - `TeamMembership`
   - `AgentOnboardingItem`
+  - `AgentOnboardingTemplateItem`
   - `AgentGoal`
 - `/office/agents` 是 roster 页面
 - `/office/agents/:membershipId` 是 profile/detail 页面
+- roster 现在承载管理型摘要，而不只是目录：
+  - membership status
+  - onboarding progress
+  - transaction summary
+  - goal progress
+  - billing summary
 - profile 页直接聚合：
   - transactions
   - tasks
   - billing summary
   - recent activity
 - onboarding 被独立建模，不和 transaction tasks 混成一套
+- onboarding 默认模板也被独立建模，允许按 office 上下文把标准 checklist 套到新 agent
 
 Trade-off：
 

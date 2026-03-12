@@ -223,15 +223,19 @@
     - role 过滤
     - team 过滤
     - onboarding status 过滤
+    - membership status 过滤
     - keyword search
+    - onboarding progress / goal progress / billing summary / workload 摘要
   - profile 页当前支持：
     - profile basics
     - team roster 管理
     - onboarding checklist create / edit / complete / reopen
+    - apply standard onboarding template
     - goal create / edit
     - recent transactions
-    - active tasks / billing summary / recent activity 聚合
+    - active tasks / operational agenda / billing summary / recent activity 聚合
   - onboarding 当前是 Back Office 可管理 checklist，不是 recruit/candidate pipeline
+  - onboarding 现在支持组织级默认模板条目，能按 office 上下文一键应用到 agent
   - goals 当前支持：
     - monthly
     - quarterly

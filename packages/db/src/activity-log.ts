@@ -22,6 +22,7 @@ export const activityLogActions = {
   agentOnboardingItemUpdated: "agent.onboarding_item_updated",
   agentOnboardingItemCompleted: "agent.onboarding_item_completed",
   agentOnboardingItemReopened: "agent.onboarding_item_reopened",
+  agentOnboardingTemplateApplied: "agent.onboarding_template_applied",
   agentGoalCreated: "agent.goal_created",
   agentGoalUpdated: "agent.goal_updated",
   transactionCreated: "transaction.created",
@@ -301,6 +302,7 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "agent.onboarding_item_updated": "Onboarding item updated",
   "agent.onboarding_item_completed": "Onboarding item completed",
   "agent.onboarding_item_reopened": "Onboarding item reopened",
+  "agent.onboarding_template_applied": "Onboarding template applied",
   "agent.goal_created": "Goal created",
   "agent.goal_updated": "Goal updated",
   "transaction.created": "Transaction created",
@@ -378,6 +380,7 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
       action === activityLogActions.agentOnboardingItemUpdated ||
       action === activityLogActions.agentOnboardingItemCompleted ||
       action === activityLogActions.agentOnboardingItemReopened ||
+      action === activityLogActions.agentOnboardingTemplateApplied ||
       action === activityLogActions.agentGoalCreated ||
       action === activityLogActions.agentGoalUpdated
   },
@@ -777,6 +780,8 @@ function getSummary(action: string, payload: ParsedActivityPayload) {
       return "completed an onboarding item";
     case activityLogActions.agentOnboardingItemReopened:
       return "reopened an onboarding item";
+    case activityLogActions.agentOnboardingTemplateApplied:
+      return "applied the standard onboarding template";
     case activityLogActions.agentGoalCreated:
       return "created an agent goal";
     case activityLogActions.agentGoalUpdated:

@@ -36,6 +36,36 @@ const onboardingStatusOptions = [
   { value: "complete", label: "Complete" }
 ] as const;
 
+const membershipStatusOptions = [
+  { value: "", label: "All member states" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" }
+] as const;
+
+function getMembershipTone(value: OfficeAgentsRosterSnapshot["rows"][number]["membershipStatusValue"]) {
+  if (value === "active") {
+    return "success" as const;
+  }
+
+  if (value === "invited") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
+
+function getOnboardingTone(value: string) {
+  if (value === "Complete") {
+    return "success" as const;
+  }
+
+  if (value === "In progress") {
+    return "accent" as const;
+  }
+
+  return "warning" as const;
+}
+
 export function OfficeAgentsClient({
   snapshot,
   canManageAgents,
@@ -113,10 +143,11 @@ export function OfficeAgentsClient({
 
   return (
     <div className="office-agents-layout">
-      <section className="office-kpi-grid">
+      <section className="office-kpi-grid office-agents-kpi-grid">
         <StatCard hint="currently visible in this roster scope" label="Rostered members" value={snapshot.summary.totalMembers} />
         <StatCard hint="members with the Agent role" label="Agents" value={snapshot.summary.agentCount} />
         <StatCard hint="members still progressing through onboarding" label="Onboarding in progress" value={snapshot.summary.onboardingInProgressCount} />
+        <StatCard hint="members currently not active" label="Inactive members" value={snapshot.summary.inactiveMemberCount} />
         <StatCard hint="currently active teams in this office scope" label="Active teams" value={snapshot.summary.activeTeamCount} />
       </section>
 
@@ -164,6 +195,15 @@ export function OfficeAgentsClient({
               ))}
             </SelectInput>
           </FilterField>
+          <FilterField label="Membership">
+            <SelectInput defaultValue={snapshot.filters.membershipStatus} name="membershipStatus">
+              {membershipStatusOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
           <div className="office-filter-actions">
             <Button type="submit">Apply filters</Button>
             <Link className="office-button office-button-secondary" href="/office/agents">
@@ -179,10 +219,12 @@ export function OfficeAgentsClient({
               <span>Office</span>
               <span>Role</span>
               <span>Team</span>
+              <span>Membership</span>
               <span>Onboarding</span>
-              <span>Active tasks</span>
-              <span>Open transactions</span>
-              <span>Billing balance</span>
+              <span>Workload</span>
+              <span>Transactions</span>
+              <span>Goals</span>
+              <span>Billing</span>
             </DataTableHeader>
             <DataTableBody>
               {snapshot.rows.map((row) => (
@@ -193,16 +235,35 @@ export function OfficeAgentsClient({
                       <small>{row.email}</small>
                     </span>
                     <span>{row.officeName}</span>
-                    <span>{row.role}</span>
-                    <span>{row.teamLabel}</span>
-                    <span>
-                      <StatusBadge tone={row.onboardingStatus === "Complete" ? "success" : row.onboardingStatus === "In progress" ? "accent" : "warning"}>
-                        {row.onboardingStatus}
-                      </StatusBadge>
+                    <span className="office-agents-roster-stack">
+                      <strong>{row.role}</strong>
+                      <small>{row.title}</small>
                     </span>
-                    <span>{row.activeTasksCount}</span>
-                    <span>{row.openTransactionCount}</span>
-                    <span>{row.billingBalanceLabel}</span>
+                    <span>{row.teamLabel}</span>
+                    <span className="office-agents-roster-stack">
+                      <StatusBadge tone={getMembershipTone(row.membershipStatusValue)}>{row.membershipStatus}</StatusBadge>
+                      <small>{row.membershipStatusValue === "active" ? "In roster" : "Needs review"}</small>
+                    </span>
+                    <span className="office-agents-roster-stack">
+                      <StatusBadge tone={getOnboardingTone(row.onboardingStatus)}>{row.onboardingStatus}</StatusBadge>
+                      <small>{row.onboardingProgressLabel}</small>
+                    </span>
+                    <span className="office-agents-roster-stack">
+                      <strong>{row.activeTasksCount} active</strong>
+                      <small>{row.activeTasksCount === 0 ? "No open workload" : "Tasks currently assigned"}</small>
+                    </span>
+                    <span className="office-agents-roster-stack">
+                      <strong>{row.transactionSummaryLabel}</strong>
+                      <small>{row.openTransactionCount} open pipeline</small>
+                    </span>
+                    <span className="office-agents-roster-stack">
+                      <strong>{row.goalProgressSummary}</strong>
+                      <small>{row.recentClosedTransactionCount} closed in 90d</small>
+                    </span>
+                    <span className="office-agents-roster-stack">
+                      <strong>{row.billingBalanceLabel}</strong>
+                      <small>{row.billingSummaryLabel}</small>
+                    </span>
                   </Link>
                 </DataTableRow>
               ))}
@@ -210,18 +271,14 @@ export function OfficeAgentsClient({
           </DataTable>
         ) : (
           <EmptyState
-            description="Try relaxing the current office, team, or onboarding filters."
+            description="Try relaxing the current office, team, onboarding, or membership filters."
             title="No agents matched the current roster filters"
           />
         )}
       </SectionCard>
 
       <SectionCard
-        actions={
-          canManageTeams ? (
-            <StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge>
-          ) : undefined
-        }
+        actions={canManageTeams ? <StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge> : undefined}
         subtitle="Teams are shared roster groupings for visibility and management. Create or rename them here, then manage membership inside each agent profile."
         title="Teams"
       >
@@ -264,6 +321,18 @@ export function OfficeAgentsClient({
                     <dt>Members</dt>
                     <dd>{team.memberCount}</dd>
                   </div>
+                  <div className="office-secondary-meta-row">
+                    <dt>Open tasks</dt>
+                    <dd>{team.openTaskCount}</dd>
+                  </div>
+                  <div className="office-secondary-meta-row">
+                    <dt>Open transactions</dt>
+                    <dd>{team.openTransactionCount}</dd>
+                  </div>
+                  <div className="office-secondary-meta-row">
+                    <dt>Onboarding in progress</dt>
+                    <dd>{team.onboardingInProgressCount}</dd>
+                  </div>
                 </div>
 
                 <ul className="office-agents-team-members">
@@ -279,11 +348,7 @@ export function OfficeAgentsClient({
                 {canManageTeams ? (
                   <div className="office-inline-form office-inline-form-compact">
                     <input name="isActive" type="hidden" value={String(team.isActive)} />
-                    <Button
-                      disabled={pendingAction === `save-team:${team.id}`}
-                      type="submit"
-                      variant="secondary"
-                    >
+                    <Button disabled={pendingAction === `save-team:${team.id}`} type="submit" variant="secondary">
                       {pendingAction === `save-team:${team.id}` ? "Saving..." : "Save team"}
                     </Button>
                     <Button

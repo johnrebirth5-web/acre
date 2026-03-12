@@ -1,5 +1,18 @@
-import { Prisma, type AgentGoalPeriodType, type AgentOnboardingItemStatus, type AgentOnboardingStatus, type TeamMembershipRole, type UserRole } from "@prisma/client";
-import { activityLogActions, recordActivityLogEvent, type ActivityLogAction, type ActivityLogChange } from "./activity-log";
+import {
+  Prisma,
+  type AgentGoalPeriodType,
+  type AgentOnboardingItemStatus,
+  type AgentOnboardingStatus,
+  type MembershipStatus,
+  type TeamMembershipRole,
+  type UserRole
+} from "@prisma/client";
+import {
+  activityLogActions,
+  recordActivityLogEvent,
+  type ActivityLogAction,
+  type ActivityLogChange
+} from "./activity-log";
 import { prisma } from "./client";
 
 const roleLabelMap: Record<UserRole, string> = {
@@ -12,6 +25,12 @@ const onboardingStatusLabelMap: Record<AgentOnboardingStatus, string> = {
   not_started: "Not started",
   in_progress: "In progress",
   complete: "Complete"
+};
+
+const membershipStatusLabelMap: Record<MembershipStatus, string> = {
+  active: "Active",
+  invited: "Invited",
+  disabled: "Inactive"
 };
 
 const onboardingItemStatusLabelMap: Record<AgentOnboardingItemStatus, string> = {
@@ -36,17 +55,20 @@ const defaultOnboardingItems = [
   {
     category: "Compliance",
     title: "Upload license and state ID",
-    description: "Provide your active license details and identity documents for office compliance review."
+    description: "Provide your active license details and identity documents for office compliance review.",
+    dueDaysOffset: 3
   },
   {
     category: "Operations",
     title: "Complete brokerage onboarding packet",
-    description: "Review commission setup, office policies, and brokerage-required agreements."
+    description: "Review commission setup, office policies, and brokerage-required agreements.",
+    dueDaysOffset: 5
   },
   {
     category: "Training",
     title: "Review transaction workflow basics",
-    description: "Walk through the Back Office transaction, document, and task flow before going live."
+    description: "Walk through the Back Office transaction, document, and task flow before going live.",
+    dueDaysOffset: 7
   }
 ] as const;
 
@@ -58,10 +80,17 @@ export type OfficeAgentRosterRow = {
   role: string;
   title: string;
   teamLabel: string;
+  membershipStatus: string;
+  membershipStatusValue: MembershipStatus;
   onboardingStatus: string;
+  onboardingProgressLabel: string;
   activeTasksCount: number;
   openTransactionCount: number;
+  recentClosedTransactionCount: number;
+  transactionSummaryLabel: string;
+  goalProgressSummary: string;
   billingBalanceLabel: string;
+  billingSummaryLabel: string;
   href: string;
 };
 
@@ -70,6 +99,7 @@ export type OfficeAgentRosterFilters = {
   role: string;
   teamId: string;
   onboardingStatus: string;
+  membershipStatus: string;
   q: string;
   officeOptions: Array<{ id: string; label: string }>;
   roleOptions: Array<{ value: string; label: string }>;
@@ -82,6 +112,9 @@ export type OfficeAgentTeamSummary = {
   slug: string;
   isActive: boolean;
   memberCount: number;
+  openTaskCount: number;
+  openTransactionCount: number;
+  onboardingInProgressCount: number;
   members: Array<{
     membershipId: string;
     label: string;
@@ -95,6 +128,7 @@ export type OfficeAgentsRosterSnapshot = {
     agentCount: number;
     onboardingInProgressCount: number;
     activeTeamCount: number;
+    inactiveMemberCount: number;
   };
   filters: OfficeAgentRosterFilters;
   rows: OfficeAgentRosterRow[];
@@ -144,6 +178,23 @@ export type OfficeAgentProfileActivityItem = {
   timestampLabel: string;
 };
 
+export type OfficeAgentOnboardingTemplateRecord = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  dueDaysOffsetLabel: string;
+};
+
+export type OfficeAgentOperationalAgendaItem = {
+  id: string;
+  kind: string;
+  title: string;
+  statusLabel: string;
+  dueAtLabel: string;
+  href: string | null;
+};
+
 export type OfficeAgentProfileSnapshot = {
   profile: {
     membershipId: string;
@@ -153,6 +204,8 @@ export type OfficeAgentProfileSnapshot = {
     email: string;
     officeName: string;
     role: string;
+    membershipStatus: string;
+    membershipStatusValue: MembershipStatus;
     title: string;
     bio: string;
     notes: string;
@@ -168,8 +221,13 @@ export type OfficeAgentProfileSnapshot = {
   summary: {
     activeTaskCount: number;
     openTransactionCount: number;
+    recentClosedTransactionCount: number;
     currentBalanceLabel: string;
     paymentMethodsCount: number;
+    openChargesCount: number;
+    pendingChargesCount: number;
+    currentGoalSummary: string;
+    operationalAgendaCount: number;
     pipelineCounts: Array<{ label: string; count: number }>;
   };
   teams: OfficeAgentProfileTeam[];
@@ -178,9 +236,12 @@ export type OfficeAgentProfileSnapshot = {
     totalCount: number;
     completedCount: number;
     statusLabel: string;
+    templateDefaultsCount: number;
+    templateDefaults: OfficeAgentOnboardingTemplateRecord[];
     items: OfficeAgentOnboardingItemRecord[];
   };
   goals: OfficeAgentGoalRecord[];
+  operationalAgenda: OfficeAgentOperationalAgendaItem[];
   recentTransactions: Array<{
     id: string;
     label: string;
@@ -198,6 +259,7 @@ export type GetOfficeAgentsRosterInput = {
   role?: string;
   teamId?: string;
   onboardingStatus?: string;
+  membershipStatus?: string;
   q?: string;
 };
 
@@ -265,6 +327,13 @@ export type CreateAgentOnboardingItemInput = {
   description?: string;
   category?: string;
   dueAt?: string;
+};
+
+export type ApplyAgentOnboardingTemplateInput = {
+  organizationId: string;
+  officeId?: string | null;
+  actorMembershipId: string;
+  membershipId: string;
 };
 
 export type UpdateAgentOnboardingItemInput = {
@@ -413,6 +482,91 @@ function normalizeOnboardingItemStatus(value: string | undefined): AgentOnboardi
   throw new Error("A valid onboarding status is required.");
 }
 
+function normalizeMembershipStatusFilter(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value === "active") {
+    return { status: "active" as MembershipStatus };
+  }
+
+  if (value === "inactive") {
+    return { status: { in: ["invited", "disabled"] as MembershipStatus[] } };
+  }
+
+  return undefined;
+}
+
+function formatDueDaysOffsetLabel(days: number | null | undefined) {
+  if (days === null || days === undefined) {
+    return "No default due date";
+  }
+
+  if (days === 0) {
+    return "Due on apply date";
+  }
+
+  return `Due in ${days} day${days === 1 ? "" : "s"}`;
+}
+
+function buildOnboardingProgressLabel(totalCount: number, completedCount: number) {
+  if (totalCount === 0) {
+    return "No checklist";
+  }
+
+  return `${completedCount}/${totalCount} complete`;
+}
+
+function buildTransactionSummaryLabel(openCount: number, recentClosedCount: number) {
+  return `${openCount} open · ${recentClosedCount} recent`;
+}
+
+function buildGoalProgressSummary(goal: OfficeAgentGoalRecord | null) {
+  if (!goal) {
+    return "No active goal";
+  }
+
+  const transactionTarget = goal.targetTransactionCount === "—" ? "—" : goal.targetTransactionCount;
+  return `${goal.actualTransactionCount}/${transactionTarget} tx · ${goal.actualClosedVolume}`;
+}
+
+function getCurrentOrLatestGoal(goalSnapshots: OfficeAgentGoalRecord[]) {
+  if (goalSnapshots.length === 0) {
+    return null;
+  }
+
+  const now = new Date();
+  const currentGoal =
+    goalSnapshots.find((goal) => {
+      const startsAt = new Date(goal.startsAt);
+      const endsAt = new Date(goal.endsAt);
+      return startsAt <= now && endsAt >= now;
+    }) ?? null;
+
+  return currentGoal ?? goalSnapshots[0];
+}
+
+function getDefaultOnboardingTemplateSeedData() {
+  return defaultOnboardingItems.map((item, index) => ({
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    dueDaysOffset: item.dueDaysOffset,
+    sortOrder: index
+  }));
+}
+
+function resolveOnboardingDueDate(baseDate: Date, dueDaysOffset: number | null | undefined) {
+  if (dueDaysOffset === null || dueDaysOffset === undefined) {
+    return null;
+  }
+
+  const dueDate = new Date(baseDate);
+  dueDate.setDate(dueDate.getDate() + dueDaysOffset);
+  return dueDate;
+}
+
 function getMembershipLabel(membership: {
   user: {
     firstName: string;
@@ -469,6 +623,8 @@ function getActivityActionLabel(action: string) {
       return "Onboarding item completed";
     case "agent.onboarding_item_reopened":
       return "Onboarding item reopened";
+    case "agent.onboarding_template_applied":
+      return "Onboarding template applied";
     case "agent.goal_created":
       return "Goal created";
     case "agent.goal_updated":
@@ -508,7 +664,6 @@ async function ensureMembershipExists(
     where: {
       id: membershipId,
       organizationId,
-      status: "active",
       ...(officeId ? { officeId } : {})
     },
     include: {
@@ -523,6 +678,118 @@ async function ensureMembershipExists(
   }
 
   return membership;
+}
+
+async function listActiveOnboardingTemplateItems(
+  tx: Pick<Prisma.TransactionClient, "agentOnboardingTemplateItem">,
+  organizationId: string,
+  officeId?: string | null
+) {
+  const templateItems = await tx.agentOnboardingTemplateItem.findMany({
+    where: {
+      organizationId,
+      isActive: true,
+      OR: [{ officeId: officeId ?? null }, { officeId: null }]
+    },
+    orderBy: [{ officeId: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }]
+  });
+
+  if (templateItems.length > 0) {
+    return templateItems;
+  }
+
+  return getDefaultOnboardingTemplateSeedData().map((item, index) => ({
+    id: `fallback-template-${index}`,
+    organizationId,
+    officeId: officeId ?? null,
+    title: item.title,
+    description: item.description,
+    category: item.category,
+    dueDaysOffset: item.dueDaysOffset,
+    sortOrder: item.sortOrder,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }));
+}
+
+async function applyOnboardingTemplateItems(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  membershipId: string,
+  officeId?: string | null
+) {
+  const [membership, profile, templateItems, existingItems] = await Promise.all([
+    ensureMembershipExists(tx, organizationId, membershipId, officeId),
+    tx.agentProfile.findUnique({
+      where: {
+        membershipId
+      }
+    }),
+    listActiveOnboardingTemplateItems(tx, organizationId, officeId),
+    tx.agentOnboardingItem.findMany({
+      where: {
+        organizationId,
+        membershipId,
+        ...(officeId ? { officeId } : {})
+      },
+      select: {
+        id: true,
+        templateItemId: true,
+        title: true,
+        category: true
+      }
+    })
+  ]);
+
+  const baseDate = profile?.startDate ?? new Date();
+  let appliedCount = 0;
+
+  for (const templateItem of templateItems) {
+    const existingItem = existingItems.find((item) => {
+      if (templateItem.id.startsWith("fallback-template-")) {
+        return item.title === templateItem.title && item.category === templateItem.category;
+      }
+
+      return item.templateItemId === templateItem.id || (item.title === templateItem.title && item.category === templateItem.category);
+    });
+
+    if (existingItem) {
+      if (!existingItem.templateItemId && !templateItem.id.startsWith("fallback-template-")) {
+        await tx.agentOnboardingItem.update({
+          where: {
+            id: existingItem.id
+          },
+          data: {
+            templateItemId: templateItem.id
+          }
+        });
+      }
+
+      continue;
+    }
+
+    await tx.agentOnboardingItem.create({
+      data: {
+        organizationId,
+        officeId: membership.officeId,
+        membershipId,
+        templateItemId: templateItem.id.startsWith("fallback-template-") ? null : templateItem.id,
+        title: templateItem.title,
+        description: templateItem.description,
+        category: templateItem.category,
+        dueAt: resolveOnboardingDueDate(baseDate, templateItem.dueDaysOffset),
+        sortOrder: templateItem.sortOrder
+      }
+    });
+    appliedCount += 1;
+  }
+
+  return {
+    membership,
+    appliedCount,
+    templateItems
+  };
 }
 
 async function syncAgentProfileOnboardingStatus(
@@ -601,17 +868,7 @@ async function ensureAgentProfileFoundation(
       });
 
       if (existingCount === 0) {
-        await tx.agentOnboardingItem.createMany({
-          data: defaultOnboardingItems.map((item, index) => ({
-            organizationId,
-            officeId: membership.officeId,
-            membershipId,
-            title: item.title,
-            description: item.description,
-            category: item.category,
-            sortOrder: index
-          }))
-        });
+        await applyOnboardingTemplateItems(tx, organizationId, membershipId, officeId);
       }
     }
 
@@ -632,7 +889,15 @@ async function getBillingSummaryByMembership(
   officeId?: string | null
 ) {
   if (membershipIds.length === 0) {
-    return new Map<string, { currentBalance: Prisma.Decimal; paymentMethodsCount: number }>();
+    return new Map<
+      string,
+      {
+        currentBalance: Prisma.Decimal;
+        paymentMethodsCount: number;
+        openChargesCount: number;
+        pendingChargesCount: number;
+      }
+    >();
   }
 
   const [transactions, paymentMethods] = await Promise.all([
@@ -670,12 +935,22 @@ async function getBillingSummaryByMembership(
     })
   ]);
 
-  const balances = new Map<string, { currentBalance: Prisma.Decimal; paymentMethodsCount: number }>();
+  const balances = new Map<
+    string,
+    {
+      currentBalance: Prisma.Decimal;
+      paymentMethodsCount: number;
+      openChargesCount: number;
+      pendingChargesCount: number;
+    }
+  >();
 
   for (const membershipId of membershipIds) {
     balances.set(membershipId, {
       currentBalance: new Prisma.Decimal(0),
-      paymentMethodsCount: 0
+      paymentMethodsCount: 0,
+      openChargesCount: 0,
+      pendingChargesCount: 0
     });
   }
 
@@ -692,7 +967,14 @@ async function getBillingSummaryByMembership(
       continue;
     }
 
-    current.currentBalance = current.currentBalance.plus(outstandingAmount.greaterThan(0) ? outstandingAmount : new Prisma.Decimal(0));
+    const positiveOutstanding = outstandingAmount.greaterThan(0) ? outstandingAmount : new Prisma.Decimal(0);
+    current.currentBalance = current.currentBalance.plus(positiveOutstanding);
+
+    if (transaction.status === "draft") {
+      current.pendingChargesCount += 1;
+    } else if (positiveOutstanding.greaterThan(0)) {
+      current.openChargesCount += 1;
+    }
   }
 
   for (const method of paymentMethods) {
@@ -709,12 +991,13 @@ async function getBillingSummaryByMembership(
 }
 
 export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRosterInput): Promise<OfficeAgentsRosterSnapshot> {
+  const membershipStatusFilter = normalizeMembershipStatusFilter(input.membershipStatus);
+  const scopedOfficeId = input.officeFilterId || input.officeId || undefined;
   const memberships = await prisma.membership.findMany({
     where: {
       organizationId: input.organizationId,
-      status: "active",
-      ...(input.officeId ? { officeId: input.officeId } : {}),
-      ...(input.officeFilterId ? { officeId: input.officeFilterId } : {}),
+      ...(membershipStatusFilter ?? {}),
+      ...(scopedOfficeId ? { officeId: scopedOfficeId } : {}),
       ...(input.role ? { role: input.role as UserRole } : {}),
       ...(input.teamId
         ? {
@@ -752,7 +1035,10 @@ export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRoster
   });
 
   const membershipIds = memberships.map((membership) => membership.id);
-  const [offices, teams, openTaskCounts, openTransactionCounts, billingSummary] = await Promise.all([
+  const recentClosedCutoff = new Date();
+  recentClosedCutoff.setDate(recentClosedCutoff.getDate() - 90);
+
+  const [offices, teams, onboardingItems, openTaskCounts, allTransactions, goals, billingSummary] = await Promise.all([
     prisma.office.findMany({
       where: {
         organizationId: input.organizationId,
@@ -778,6 +1064,19 @@ export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRoster
       },
       orderBy: [{ name: "asc" }]
     }),
+    prisma.agentOnboardingItem.findMany({
+      where: {
+        organizationId: input.organizationId,
+        membershipId: {
+          in: membershipIds
+        },
+        ...(input.officeId ? { officeId: input.officeId } : {})
+      },
+      select: {
+        membershipId: true,
+        status: true
+      }
+    }),
     prisma.transactionTask.groupBy({
       by: ["assigneeMembershipId"],
       where: {
@@ -798,44 +1097,177 @@ export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRoster
         _all: true
       }
     }),
-    prisma.transaction.groupBy({
-      by: ["ownerMembershipId"],
+    prisma.transaction.findMany({
       where: {
         organizationId: input.organizationId,
         ownerMembershipId: {
           in: membershipIds
         },
-        ...(input.officeId ? { officeId: input.officeId } : {}),
-        status: {
-          in: ["opportunity", "active", "pending"]
-        }
+        ...(scopedOfficeId ? { officeId: scopedOfficeId } : {})
       },
-      _count: {
-        _all: true
+      select: {
+        ownerMembershipId: true,
+        status: true,
+        price: true,
+        officeNet: true,
+        agentNet: true,
+        closingDate: true,
+        updatedAt: true,
+        createdAt: true
       }
+    }),
+    prisma.agentGoal.findMany({
+      where: {
+        organizationId: input.organizationId,
+        membershipId: {
+          in: membershipIds
+        },
+        ...(scopedOfficeId ? { officeId: scopedOfficeId } : {})
+      },
+      orderBy: [{ endsAt: "desc" }, { createdAt: "desc" }]
     }),
     getBillingSummaryByMembership(input.organizationId, membershipIds, input.officeId)
   ]);
 
   const openTaskCountMap = new Map(openTaskCounts.map((item) => [item.assigneeMembershipId ?? "", item._count._all]));
-  const openTransactionCountMap = new Map(
-    openTransactionCounts.map((item) => [item.ownerMembershipId ?? "", item._count._all])
-  );
+  const openTransactionCountMap = new Map<string, number>();
+  const recentClosedCountMap = new Map<string, number>();
+  const onboardingProgressMap = new Map<
+    string,
+    {
+      totalCount: number;
+      completedCount: number;
+      status: AgentOnboardingStatus;
+    }
+  >();
+  const goalProgressSummaryMap = new Map<string, string>();
+
+  for (const transaction of allTransactions) {
+    const membershipId = transaction.ownerMembershipId ?? "";
+    if (!membershipId) {
+      continue;
+    }
+
+    if (transaction.status === "opportunity" || transaction.status === "active" || transaction.status === "pending") {
+      openTransactionCountMap.set(membershipId, (openTransactionCountMap.get(membershipId) ?? 0) + 1);
+    }
+
+    if (transaction.status === "closed" && getGoalProgressSourceDate(transaction) >= recentClosedCutoff) {
+      recentClosedCountMap.set(membershipId, (recentClosedCountMap.get(membershipId) ?? 0) + 1);
+    }
+  }
+
+  for (const item of onboardingItems) {
+    const current = onboardingProgressMap.get(item.membershipId) ?? {
+      totalCount: 0,
+      completedCount: 0,
+      status: "not_started" as AgentOnboardingStatus
+    };
+    current.totalCount += 1;
+    if (item.status === "completed") {
+      current.completedCount += 1;
+    }
+    onboardingProgressMap.set(item.membershipId, current);
+  }
+
+  for (const membership of memberships) {
+    const current = onboardingProgressMap.get(membership.id) ?? {
+      totalCount: 0,
+      completedCount: 0,
+      status: membership.agentProfile?.onboardingStatus ?? "not_started"
+    };
+    current.status = normalizeOnboardingStatus(
+      membership.agentProfile?.onboardingStatus ?? "not_started",
+      Array.from({ length: current.totalCount }, (_, index) => ({
+        status:
+          index < current.completedCount
+            ? ("completed" as AgentOnboardingItemStatus)
+            : ("pending" as AgentOnboardingItemStatus)
+      }))
+    );
+    onboardingProgressMap.set(membership.id, current);
+  }
+
+  const transactionsByMembership = new Map<string, typeof allTransactions>();
+  for (const membershipId of membershipIds) {
+    transactionsByMembership.set(
+      membershipId,
+      allTransactions.filter((transaction) => transaction.ownerMembershipId === membershipId)
+    );
+  }
+
+  const goalsByMembership = new Map<string, typeof goals>();
+  for (const goal of goals) {
+    const list = goalsByMembership.get(goal.membershipId) ?? [];
+    list.push(goal);
+    goalsByMembership.set(goal.membershipId, list);
+  }
+
+  for (const membership of memberships) {
+    const membershipGoals = goalsByMembership.get(membership.id) ?? [];
+    if (membershipGoals.length === 0) {
+      goalProgressSummaryMap.set(membership.id, "No active goal");
+      continue;
+    }
+
+    const goalSnapshots = membershipGoals.map((goal) => {
+      const goalTransactions = (transactionsByMembership.get(membership.id) ?? []).filter(
+        (transaction) => transaction.createdAt >= goal.startsAt && transaction.createdAt <= goal.endsAt
+      );
+
+      const closedTransactions = goalTransactions.filter(
+        (transaction) =>
+          transaction.status === "closed" &&
+          getGoalProgressSourceDate(transaction) >= goal.startsAt &&
+          getGoalProgressSourceDate(transaction) <= goal.endsAt
+      );
+
+      const closedVolume = closedTransactions.reduce((sum, transaction) => sum.plus(transaction.price ?? 0), new Prisma.Decimal(0));
+      const officeNet = closedTransactions.reduce((sum, transaction) => sum.plus(transaction.officeNet ?? 0), new Prisma.Decimal(0));
+      const agentNet = closedTransactions.reduce((sum, transaction) => sum.plus(transaction.agentNet ?? 0), new Prisma.Decimal(0));
+
+      return {
+        id: goal.id,
+        periodType: goalPeriodLabelMap[goal.periodType],
+        startsAt: formatDateValue(goal.startsAt),
+        endsAt: formatDateValue(goal.endsAt),
+        targetTransactionCount: goal.targetTransactionCount ? String(goal.targetTransactionCount) : "—",
+        targetClosedVolume: goal.targetClosedVolume ? formatCurrency(goal.targetClosedVolume) : "—",
+        targetOfficeNet: goal.targetOfficeNet ? formatCurrency(goal.targetOfficeNet) : "—",
+        targetAgentNet: goal.targetAgentNet ? formatCurrency(goal.targetAgentNet) : "—",
+        actualTransactionCount: String(goalTransactions.length),
+        actualClosedVolume: formatCurrency(closedVolume),
+        actualOfficeNet: formatCurrency(officeNet),
+        actualAgentNet: formatCurrency(agentNet),
+        notes: goal.notes ?? ""
+      } satisfies OfficeAgentGoalRecord;
+    });
+
+    goalProgressSummaryMap.set(membership.id, buildGoalProgressSummary(getCurrentOrLatestGoal(goalSnapshots)));
+  }
 
   let filteredMemberships = memberships;
 
   if (input.onboardingStatus) {
     filteredMemberships = filteredMemberships.filter((membership) => {
-      const status = membership.agentProfile?.onboardingStatus ?? "not_started";
-      return status === input.onboardingStatus;
+      const onboardingProgress = onboardingProgressMap.get(membership.id);
+      const status = onboardingProgress?.status ?? membership.agentProfile?.onboardingStatus ?? "not_started";
+      return status === (input.onboardingStatus as AgentOnboardingStatus);
     });
   }
 
   const rows = filteredMemberships.map((membership) => {
     const balance = billingSummary.get(membership.id);
+    const onboardingProgress = onboardingProgressMap.get(membership.id) ?? {
+      totalCount: 0,
+      completedCount: 0,
+      status: membership.agentProfile?.onboardingStatus ?? "not_started"
+    };
     const teamLabels = membership.teamMemberships
       .filter((teamMembership) => teamMembership.team.isActive)
       .map((teamMembership) => teamMembership.team.name);
+    const openTransactionCount = openTransactionCountMap.get(membership.id) ?? 0;
+    const recentClosedTransactionCount = recentClosedCountMap.get(membership.id) ?? 0;
 
     return {
       membershipId: membership.id,
@@ -845,10 +1277,20 @@ export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRoster
       role: roleLabelMap[membership.role],
       title: membership.title ?? "—",
       teamLabel: teamLabels.length ? teamLabels.join(", ") : "No team",
-      onboardingStatus: onboardingStatusLabelMap[membership.agentProfile?.onboardingStatus ?? "not_started"],
+      membershipStatus: membershipStatusLabelMap[membership.status],
+      membershipStatusValue: membership.status,
+      onboardingStatus: onboardingStatusLabelMap[onboardingProgress.status],
+      onboardingProgressLabel: buildOnboardingProgressLabel(
+        onboardingProgress.totalCount,
+        onboardingProgress.completedCount
+      ),
       activeTasksCount: openTaskCountMap.get(membership.id) ?? 0,
-      openTransactionCount: openTransactionCountMap.get(membership.id) ?? 0,
+      openTransactionCount,
+      recentClosedTransactionCount,
+      transactionSummaryLabel: buildTransactionSummaryLabel(openTransactionCount, recentClosedTransactionCount),
+      goalProgressSummary: goalProgressSummaryMap.get(membership.id) ?? "No active goal",
       billingBalanceLabel: formatCurrency(balance?.currentBalance ?? 0),
+      billingSummaryLabel: `${formatCurrency(balance?.currentBalance ?? 0)} · ${balance?.openChargesCount ?? 0} open`,
       href: `/office/agents/${membership.id}`
     };
   });
@@ -861,13 +1303,15 @@ export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRoster
       totalMembers: rows.length,
       agentCount: rows.filter((row) => row.role === "Agent").length,
       onboardingInProgressCount,
-      activeTeamCount
+      activeTeamCount,
+      inactiveMemberCount: rows.filter((row) => row.membershipStatusValue !== "active").length
     },
     filters: {
-      officeId: input.officeFilterId ?? input.officeId ?? "",
+      officeId: scopedOfficeId ?? "",
       role: input.role ?? "",
       teamId: input.teamId ?? "",
       onboardingStatus: input.onboardingStatus ?? "",
+      membershipStatus: input.membershipStatus ?? "",
       q: input.q?.trim() ?? "",
       officeOptions: offices.map((office) => ({
         id: office.id,
@@ -890,6 +1334,18 @@ export async function getOfficeAgentsRosterSnapshot(input: GetOfficeAgentsRoster
       slug: team.slug,
       isActive: team.isActive,
       memberCount: team.memberships.length,
+      openTaskCount: team.memberships.reduce(
+        (sum, teamMembership) => sum + (openTaskCountMap.get(teamMembership.membershipId) ?? 0),
+        0
+      ),
+      openTransactionCount: team.memberships.reduce(
+        (sum, teamMembership) => sum + (openTransactionCountMap.get(teamMembership.membershipId) ?? 0),
+        0
+      ),
+      onboardingInProgressCount: team.memberships.reduce((sum, teamMembership) => {
+        const progress = onboardingProgressMap.get(teamMembership.membershipId);
+        return sum + (progress?.status === "in_progress" ? 1 : 0);
+      }, 0),
       members: team.memberships.map((teamMembership) => ({
         membershipId: teamMembership.membershipId,
         label: getMembershipLabel(teamMembership.membership),
@@ -906,7 +1362,6 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
     where: {
       id: input.membershipId,
       organizationId: input.organizationId,
-      status: "active",
       ...(input.officeId ? { officeId: input.officeId } : {})
     },
     include: {
@@ -925,7 +1380,18 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
     return null;
   }
 
-  const [onboardingItems, goals, recentTransactions, activeTaskCount, billingSummaryMap, recentActivity, availableTeams] =
+  const [
+    onboardingItems,
+    goals,
+    recentTransactions,
+    activeTaskCount,
+    billingSummaryMap,
+    recentActivity,
+    availableTeams,
+    templateDefaults,
+    openTransactionTasks,
+    allTransactionsForSummary
+  ] =
     await Promise.all([
       prisma.agentOnboardingItem.findMany({
         where: {
@@ -988,6 +1454,48 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
           ...(input.officeId ? { officeId: input.officeId } : {})
         },
         orderBy: [{ name: "asc" }]
+      }),
+      listActiveOnboardingTemplateItems(prisma, input.organizationId, input.officeId),
+      prisma.transactionTask.findMany({
+        where: {
+          organizationId: input.organizationId,
+          assigneeMembershipId: input.membershipId,
+          status: {
+            in: ["todo", "in_progress", "review_requested", "reopened"]
+          },
+          transaction: input.officeId
+            ? {
+                officeId: input.officeId
+              }
+            : undefined
+        },
+        include: {
+          transaction: {
+            select: {
+              id: true,
+              title: true,
+              address: true
+            }
+          }
+        },
+        orderBy: [{ dueAt: "asc" }, { updatedAt: "desc" }],
+        take: 6
+      }),
+      prisma.transaction.findMany({
+        where: {
+          organizationId: input.organizationId,
+          ownerMembershipId: input.membershipId,
+          ...(input.officeId ? { officeId: input.officeId } : {})
+        },
+        select: {
+          status: true,
+          price: true,
+          officeNet: true,
+          agentNet: true,
+          closingDate: true,
+          updatedAt: true,
+          createdAt: true
+        }
       })
     ]);
 
@@ -1055,8 +1563,34 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
   );
 
   const completedOnboardingCount = onboardingItems.filter((item) => item.status === "completed").length;
+  const recentClosedCutoff = new Date();
+  recentClosedCutoff.setDate(recentClosedCutoff.getDate() - 90);
+  const recentClosedTransactionCount = allTransactionsForSummary.filter(
+    (transaction) => transaction.status === "closed" && getGoalProgressSourceDate(transaction) >= recentClosedCutoff
+  ).length;
   const profileStatus = normalizeOnboardingStatus(membership.agentProfile?.onboardingStatus, onboardingItems);
   const billingSummary = billingSummaryMap.get(input.membershipId);
+  const currentGoalSummary = buildGoalProgressSummary(getCurrentOrLatestGoal(goalSnapshots));
+  const onboardingAgenda = onboardingItems
+    .filter((item) => item.status !== "completed")
+    .slice(0, 4)
+    .map((item) => ({
+      id: `onboarding-${item.id}`,
+      kind: "Onboarding",
+      title: item.title,
+      statusLabel: onboardingItemStatusLabelMap[item.status],
+      dueAtLabel: formatDateLabel(item.dueAt),
+      href: `/office/agents/${input.membershipId}#onboarding`
+    }));
+  const taskAgenda = openTransactionTasks.map((task) => ({
+    id: `task-${task.id}`,
+    kind: "Transaction task",
+    title: task.title,
+    statusLabel: task.status,
+    dueAtLabel: formatDateLabel(task.dueAt),
+    href: `/office/transactions/${task.transactionId}#tasks`
+  }));
+  const operationalAgenda = [...onboardingAgenda, ...taskAgenda].slice(0, 8);
 
   return {
     profile: {
@@ -1068,6 +1602,8 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
       email: membership.user.email,
       officeName: membership.office?.name ?? "Unassigned",
       role: roleLabelMap[membership.role],
+      membershipStatus: membershipStatusLabelMap[membership.status],
+      membershipStatusValue: membership.status,
       title: membership.title ?? "",
       bio: membership.agentProfile?.bio ?? "",
       notes: membership.agentProfile?.notes ?? "",
@@ -1085,8 +1621,13 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
       openTransactionCount: pipelineTransactions
         .filter((item) => item.status !== "closed" && item.status !== "cancelled")
         .reduce((sum, item) => sum + item._count._all, 0),
+      recentClosedTransactionCount,
       currentBalanceLabel: formatCurrency(billingSummary?.currentBalance ?? 0),
       paymentMethodsCount: billingSummary?.paymentMethodsCount ?? 0,
+      openChargesCount: billingSummary?.openChargesCount ?? 0,
+      pendingChargesCount: billingSummary?.pendingChargesCount ?? 0,
+      currentGoalSummary,
+      operationalAgendaCount: operationalAgenda.length,
       pipelineCounts: [
         { label: "Opportunity", count: pipelineTransactions.find((item) => item.status === "opportunity")?._count._all ?? 0 },
         { label: "Active", count: pipelineTransactions.find((item) => item.status === "active")?._count._all ?? 0 },
@@ -1109,6 +1650,14 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
       totalCount: onboardingItems.length,
       completedCount: completedOnboardingCount,
       statusLabel: onboardingStatusLabelMap[profileStatus],
+      templateDefaultsCount: templateDefaults.length,
+      templateDefaults: templateDefaults.map((item) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description ?? "",
+        category: item.category,
+        dueDaysOffsetLabel: formatDueDaysOffsetLabel(item.dueDaysOffset)
+      })),
       items: onboardingItems.map((item) => ({
         id: item.id,
         title: item.title,
@@ -1122,6 +1671,7 @@ export async function getOfficeAgentProfileSnapshot(input: GetOfficeAgentProfile
       }))
     },
     goals: goalSnapshots,
+    operationalAgenda,
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,
       label: `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`,
@@ -1211,6 +1761,37 @@ export async function saveAgentProfile(input: SaveAgentProfileInput) {
     });
 
     return savedProfile;
+  });
+}
+
+export async function applyAgentOnboardingTemplate(input: ApplyAgentOnboardingTemplateInput) {
+  return prisma.$transaction(async (tx) => {
+    const { membership, appliedCount } = await applyOnboardingTemplateItems(
+      tx,
+      input.organizationId,
+      input.membershipId,
+      input.officeId
+    );
+
+    await syncAgentProfileOnboardingStatus(tx, input.organizationId, input.membershipId, input.officeId);
+
+    await recordActivityLogEvent(tx, {
+      organizationId: input.organizationId,
+      membershipId: input.actorMembershipId,
+      entityType: "agent_onboarding_item",
+      entityId: input.membershipId,
+      action: activityLogActions.agentOnboardingTemplateApplied,
+      payload: {
+        officeId: membership.officeId,
+        objectLabel: `${getMembershipLabel(membership)} · Standard onboarding`,
+        contextHref: `/office/agents/${input.membershipId}#onboarding`,
+        details: [`Applied ${appliedCount} template item${appliedCount === 1 ? "" : "s"}`]
+      }
+    });
+
+    return {
+      appliedCount
+    };
   });
 }
 

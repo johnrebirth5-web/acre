@@ -5823,7 +5823,28 @@ a {
 
 .office-agents-roster-head,
 .office-agents-roster-row {
-  grid-template-columns: minmax(240px, 1.8fr) minmax(120px, 1fr) minmax(110px, 0.8fr) minmax(130px, 1fr) minmax(140px, 0.95fr) minmax(90px, 0.65fr) minmax(120px, 0.8fr) minmax(130px, 0.9fr);
+  min-width: 1520px;
+  grid-template-columns:
+    minmax(240px, 2fr)
+    minmax(128px, 0.95fr)
+    minmax(118px, 0.9fr)
+    minmax(168px, 1.1fr)
+    minmax(138px, 0.95fr)
+    minmax(156px, 1.05fr)
+    minmax(140px, 0.95fr)
+    minmax(158px, 1.05fr)
+    minmax(168px, 1.15fr)
+    minmax(156px, 1.05fr);
+}
+
+.office-agents-roster-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.office-agents-roster-stack small {
+  color: var(--office-text-muted);
+  font-size: 0.82rem;
 }
 
 .office-agents-team-grid {
@@ -5911,6 +5932,81 @@ a {
 
 .office-agents-goals-grid {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.office-agents-profile-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.office-agents-profile-secondary-columns {
+  margin-top: 16px;
+}
+
+.office-agents-agenda-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.office-agents-agenda-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.office-agents-agenda-head strong {
+  color: var(--office-text);
+  font-size: 0.94rem;
+}
+
+.office-agents-agenda-head span {
+  color: var(--office-text-muted);
+  font-size: 0.82rem;
+}
+
+.office-agents-agenda-list,
+.office-agents-template-list {
+  display: grid;
+  gap: 12px;
+}
+
+.office-agents-agenda-item,
+.office-agents-template-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--office-border);
+  border-radius: 12px;
+  background: var(--office-bg-muted);
+}
+
+.office-agents-agenda-item p,
+.office-agents-template-item p {
+  margin: 4px 0 0;
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-agents-agenda-item-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  text-align: right;
+}
+
+.office-agents-agenda-item-meta small,
+.office-agents-template-item small {
+  color: var(--office-text-muted);
+  font-size: 0.8rem;
+}
+
+.office-agents-agenda-item-meta a {
+  color: var(--office-accent);
+  font-weight: 700;
 }
 
 .office-agents-goal-card-head {
@@ -6057,7 +6153,8 @@ a {
   .office-pipeline-history-buckets,
   .bm-dashboard-status-strip,
   .office-agents-team-grid,
-  .office-agents-goals-grid {
+  .office-agents-goals-grid,
+  .office-agents-profile-summary-grid {
     grid-template-columns: 1fr;
   }
 

@@ -46,6 +46,7 @@ export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnaps
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
 export {
+  applyAgentOnboardingTemplate,
   addAgentToTeam,
   createAgentGoal,
   createAgentOnboardingItem,
@@ -142,6 +143,7 @@ export {
 export type { SessionMembershipContext } from "./auth";
 export type {
   AddAgentToTeamInput,
+  ApplyAgentOnboardingTemplateInput,
   CreateAgentGoalInput,
   CreateAgentOnboardingItemInput,
   CreateAgentTeamInput,
@@ -149,6 +151,8 @@ export type {
   GetOfficeAgentsRosterInput,
   OfficeAgentGoalRecord,
   OfficeAgentOnboardingItemRecord,
+  OfficeAgentOnboardingTemplateRecord,
+  OfficeAgentOperationalAgendaItem,
   OfficeAgentProfileSnapshot,
   OfficeAgentProfileTeam,
   OfficeAgentRosterFilters,

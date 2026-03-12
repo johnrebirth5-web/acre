@@ -366,11 +366,19 @@
    - tasks awaiting your review
    - tasks awaiting second review
    - rejected tasks needing action
-31. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal`，并聚合 transactions / tasks / billing / activity 数据形成 roster snapshot
-32. `/office/agents/:membershipId` 读取 profile snapshot，展示 basics、teams、onboarding、goals、recent transactions、recent activity
-33. `/api/office/agents/*` 负责 profile、team、onboarding、goal 的最小 create / update 写入，并同步写入 `AuditLog`
-34. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
-35. 其他页面仍然直接把静态 DTO 渲染成后台 UI
+31. `/office/agents` 读取 `AgentProfile / Team / TeamMembership / AgentOnboardingItem / AgentGoal / AgentOnboardingTemplateItem`，并聚合 transactions / tasks / billing / activity 数据形成更接近管理工作台的 roster snapshot
+32. roster snapshot 当前会额外提供：
+   - membership status
+   - onboarding progress label
+   - open / recent closed transaction rollups
+   - goal progress summary
+   - billing summary label
+   - team-level open task / open transaction / onboarding in-progress counts
+33. `/office/agents/:membershipId` 读取 profile snapshot，展示 basics、teams、onboarding、goals、recent transactions、recent activity，并额外聚合 operational agenda、current goal summary、open/pending charges
+34. `/api/office/agents/*` 负责 profile、team、onboarding、goal 的最小 create / update 写入，并同步写入 `AuditLog`
+35. `/api/office/agents/:membershipId/onboarding-template` 会把 office 范围内的默认 onboarding 模板条目实例化到具体 agent
+36. Dashboard 的 weekly updates / useful links / training links 仍使用静态内容
+37. 其他页面仍然直接把静态 DTO 渲染成后台 UI
 
 当前唯一已经走数据库的最小读路径是：
 
@@ -652,8 +660,10 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
   - bio / notes
 - `Team / TeamMembership` 提供最小 team roster foundation
 - `AgentOnboardingItem` 作为独立 onboarding checklist，不和 transaction tasks 混成一套
+- `AgentOnboardingTemplateItem` 作为组织级/office 级默认 onboarding 模板条目，避免每个 agent 从零创建 checklist
 - `AgentGoal` 提供月 / 季 / 年目标，并尽量从 transactions / accounting 派生实际进度
-- `/office/agents/:membershipId` 聚合 profile basics、teams、onboarding、goals、recent transactions、billing summary、recent activity
+- `/office/agents` 作为管理 roster，会集中展示 onboarding progress、goal progress、transaction summary、billing summary、membership status
+- `/office/agents/:membershipId` 聚合 profile basics、teams、onboarding、goals、recent transactions、billing summary、recent activity，并额外展示 operational agenda 和 template defaults
 
 当前明确没做的部分：
 

@@ -304,6 +304,7 @@ model Organization {
   agentProfiles   AgentProfile[]
   teams           Team[]
   teamMemberships TeamMembership[]
+  agentOnboardingTemplateItems AgentOnboardingTemplateItem[]
   agentOnboardingItems AgentOnboardingItem[]
   agentGoals      AgentGoal[]
 }
@@ -341,6 +342,7 @@ model Office {
   agentProfiles   AgentProfile[]
   teams           Team[]
   teamMemberships TeamMembership[]
+  agentOnboardingTemplateItems AgentOnboardingTemplateItem[]
   agentOnboardingItems AgentOnboardingItem[]
   agentGoals      AgentGoal[]
 
@@ -1165,6 +1167,7 @@ model AgentOnboardingItem {
   organizationId        String
   officeId              String?
   membershipId          String
+  templateItemId        String?
   title                 String
   description           String?
   category              String                    @default("General")
@@ -1178,11 +1181,32 @@ model AgentOnboardingItem {
   organization          Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office                Office?                   @relation(fields: [officeId], references: [id], onDelete: SetNull)
   membership            Membership                @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  templateItem          AgentOnboardingTemplateItem? @relation(fields: [templateItemId], references: [id], onDelete: SetNull)
   completedByMembership Membership?              @relation("AgentOnboardingCompletedBy", fields: [completedByMembershipId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, officeId, membershipId])
   @@index([organizationId, membershipId, status])
   @@index([organizationId, dueAt])
+}
+
+model AgentOnboardingTemplateItem {
+  id             String        @id @default(cuid())
+  organizationId String
+  officeId       String?
+  title          String
+  description    String?
+  category       String        @default("General")
+  dueDaysOffset  Int?
+  sortOrder      Int           @default(0)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office         Office?       @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  onboardingItems AgentOnboardingItem[]
+
+  @@index([organizationId, officeId, isActive])
+  @@index([organizationId, sortOrder])
 }
 
 model AgentGoal {

@@ -17,6 +17,7 @@ type OfficeAgentsPageProps = {
     role?: string;
     teamId?: string;
     onboardingStatus?: string;
+    membershipStatus?: string;
     q?: string;
   }>;
 };
@@ -36,6 +37,7 @@ export default async function OfficeAgentsPage(props: OfficeAgentsPageProps) {
     role: searchParams.role,
     teamId: searchParams.teamId,
     onboardingStatus: searchParams.onboardingStatus,
+    membershipStatus: searchParams.membershipStatus,
     q: searchParams.q
   });
 
