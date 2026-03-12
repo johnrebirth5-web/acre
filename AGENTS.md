@@ -94,6 +94,8 @@ If Prisma schema changed, also run:
 - Unless the user explicitly asks not to sync to GitHub in the current task, push the completed commit(s) to `origin`.
 - Treat GitHub push and DigitalOcean deployment as separate steps.
 - Even when GitHub push is required, do not deploy or run production commands unless the user explicitly asks for deployment.
+- Do not run `vercel`, do not trigger Vercel deployments or redeploys, and do not use Vercel as a delivery target in Codex tasks.
+- If GitHub is still externally connected to Vercel auto-deploy, note that repository rules alone do not disable that integration; it must be turned off in Vercel / GitHub settings.
 
 ## Documentation rules
 
@@ -118,7 +120,7 @@ For large or multi-module tasks:
 
 For deployment or production-sync work:
 
-0. Do not deploy, sync to DigitalOcean, or run production commands unless the user explicitly asks for deployment in the current task.
+0. Do not deploy, sync to Vercel or DigitalOcean, or run production commands unless the user explicitly asks for deployment in the current task.
 1. Read [docs/deployment.md](/Users/openclaw_john/工作文件夹/Acre/docs/deployment.md) first.
 2. Follow the documented server paths, service names, and sync flow exactly.
 3. Do not guess production hostnames, process managers, or environment file locations.

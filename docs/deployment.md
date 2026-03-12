@@ -9,8 +9,10 @@
 - Codex 在日常功能开发任务里只做本地实现、文档更新和本地验证
 - 对于 Codex 在仓库内完成的代码或文档改动，默认应在任务收尾时 `git commit` 并 `git push origin <branch>`
 - 如果用户在当前任务里明确要求不要同步到 GitHub，才可以只保留本地提交或本地变更
+- 不要运行 `vercel`，不要触发 Vercel deployment / redeploy，也不要把 Vercel 当作 Codex 的交付目标
 - 除非用户在当前任务里明确要求，否则不要自动同步到 `DigitalOcean`
 - GitHub 同步不等于 `DigitalOcean` 部署；两者必须分开判断
+- 如果 GitHub 仍在平台侧连着 Vercel 自动部署，必须去 Vercel / GitHub 设置里关闭；仓库守则本身不会物理关闭外部自动化
 - 不要把“本地验证通过”“代码已提交”或“任务已完成”解释成可以自动部署
 - 如果用户没有明确要求部署，最终汇报里只需要说明本地验证结果，不要自行执行任何生产命令
 
@@ -240,7 +242,7 @@ nginx -t
 
 - 本地开发可运行
 - GitHub 仓库已存在并已推送
-- Vercel 已配置，并已连接 GitHub 仓库
+- 仓库历史上存在 Vercel 配置，但 Codex 当前守则禁止把 Vercel 作为同步目标
 - 已有生产部署实例
 - 没有 staging 环境实例
 - 已有最小本地 auth/session，但生产 auth 仍未正式设计
@@ -289,7 +291,7 @@ npm run db:seed
 当前的推荐方案是：
 
 - `GitHub` 作为代码源
-- `Vercel` 部署 `apps/web`
+- `DigitalOcean` 作为当前唯一允许的 Codex 部署目标
 - `PostgreSQL` 作为外部数据库
 
 但注意：
@@ -336,19 +338,19 @@ git commit -m "your message"
 git push origin main
 ```
 
-### 发布到 Vercel
+### Vercel（禁用，不作为 Codex 同步目标）
 
-当前真实状态：
+当前守则要求：
 
-- Vercel 项目已经存在
-- GitHub 自动部署已经接通
-- `main` 分支 push 会自动触发生产部署
+- Codex 不得运行 `vercel`
+- Codex 不得把任何任务收尾动作定义为“同步到 Vercel”
+- Codex 不得把 Vercel 当作生产验证目标
 
-后续维护时需要继续确认：
+如果平台侧仍保留了 GitHub -> Vercel 自动部署：
 
-1. Vercel 项目的 root 设置仍然指向 `apps/web`
-2. 需要的环境变量已在 Vercel 中配置
-3. 数据库相关路由上线前，生产 `DATABASE_URL` 可连接
+1. 需要在 Vercel / GitHub 设置中显式关闭
+2. 不要把“GitHub 已 push”解释成“Vercel 应该同步”
+3. 在外部设置关闭之前，任何 push 都可能仍由平台自动触发，这不属于仓库守则可直接消除的行为
 
 ## 依赖的平台和服务
 
@@ -362,7 +364,7 @@ git push origin main
 
 - PostgreSQL
 - Prisma
-- Vercel
+- Vercel（守则中禁用，不作为 Codex 同步目标）
 
 ### 未来大概率需要，但当前未实现
 

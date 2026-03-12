@@ -592,7 +592,7 @@
   - `Agent Management` 的 profile / team / onboarding / goal write flows
 - 其余模块仍未实现真实 CRUD
 - 未实现测试体系
-- Vercel 项目已绑定 GitHub 仓库，`main` 分支 push 会自动触发生产部署
+- 仓库历史上存在 Vercel 绑定，但当前守则禁止 Codex 同步到 Vercel；如果平台侧仍开启 GitHub 自动部署，需要在 Vercel / GitHub 设置中关闭
 - 未实现对象存储、异步任务、AI 工作流、文件上传、OCR、第三方集成
 
 这几项在文档里都会明确以“未实现 / 暂定方案”处理，不应误认为已经完成。
