@@ -613,6 +613,17 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                 <Link className="bm-view-toggle" href={selectedDocument.downloadUrl} target="_blank">
                   Download
                 </Link>
+                {canManageLibrary ? (
+                  <Button
+                    disabled={pendingAction === "delete-document"}
+                    onClick={handleDeleteDocument}
+                    size="sm"
+                    type="button"
+                    variant="danger"
+                  >
+                    {pendingAction === "delete-document" ? "Deleting..." : "Delete"}
+                  </Button>
+                ) : null}
                 <button
                   aria-label="Close document preview"
                   className="office-library-preview-close"
@@ -720,15 +731,6 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
                       <div className="office-library-side-actions">
                         <Button disabled={pendingAction === "save-document"} size="sm" type="submit">
                           {pendingAction === "save-document" ? "Saving..." : "Save document"}
-                        </Button>
-                        <Button
-                          disabled={pendingAction === "delete-document"}
-                          onClick={handleDeleteDocument}
-                          size="sm"
-                          type="button"
-                          variant="danger"
-                        >
-                          {pendingAction === "delete-document" ? "Deleting..." : "Delete"}
                         </Button>
                       </div>
                     </form>
