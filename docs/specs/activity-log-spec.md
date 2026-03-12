@@ -23,6 +23,7 @@ Provide a real account activity + operational alerts module for Back Office, wit
   - agent management
   - settings/admin
 - `Approve Docs` queue actions write the same task approval events, with structured source metadata so queue-driven review actions remain readable in the shared log
+- approval invalidation caused by missing required documents or signature rollback writes the same `transaction_task` reopen event family, with structured workflow-reason metadata for readable audit summaries
 
 ## Current gaps
 

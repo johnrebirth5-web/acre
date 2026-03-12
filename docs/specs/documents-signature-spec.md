@@ -29,7 +29,8 @@ Provide a real transaction-centered document workflow with structured documents,
   - signed
   - declined
   - canceled
-- document / form / signature changes re-evaluate linked task approval state and can reopen invalidated approvals when required files disappear or signatures are no longer complete
+- document / form / signature changes re-evaluate linked task approval state and can reopen invalidated approvals when required files disappear, submitted review evidence is no longer valid, or signatures are no longer complete
+- linked document deletion/unlink now explicitly reopens affected approval tasks with a `missing required document`-style workflow reason when that is the real blocker
 - incoming updates support review states:
   - pending_review
   - accepted

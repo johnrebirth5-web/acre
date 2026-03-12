@@ -13,7 +13,7 @@ Provide a real Back Office task list for transaction workflow, approvals, compli
   - `All transactions`
 - document approval queue views now include:
   - `All open review items`
-  - `Awaiting my review`
+  - `Awaiting my review` (current-user actionable review work, including second review when the current reviewer is eligible)
   - `Awaiting second review`
   - `Rejected`
   - `Waiting for signatures`
@@ -25,6 +25,8 @@ Provide a real Back Office task list for transaction workflow, approvals, compli
   - request review
   - approve / reject
   - secondary approval
+- queue review actions reuse the same task workflow API and do not create a second approval system
+- second approval continues to enforce a different reviewer from the first approver
 - task workflow can reflect:
   - pending upload
   - uploaded / not submitted

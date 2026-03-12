@@ -56,6 +56,8 @@ This file is the high-level product map for the current `Office / Back Office` s
   - operational task list, transaction tasks, checklist workflows, review/compliance workflow, approval states, and the dedicated `Approve Docs` reviewer queue.
 - Current maturity:
   - `strong MVP`
+- Current notable behavior:
+  - `Approve Docs` uses the same `TransactionTask` review workflow as task list and transaction detail, including current-user actionable review filtering and explicit secondary-approval separation.
 - Follow-up work:
   - richer template application
   - reminder/notification automation

@@ -243,6 +243,8 @@ export type ListOfficeTasksInput = {
 export type ListOfficeDocumentApprovalQueueInput = {
   organizationId: string;
   officeId?: string | null;
+  membershipId: string;
+  canSecondaryReviewTasks?: boolean;
   queue?: string;
   assigneeMembershipId?: string;
   dueWindow?: string;
@@ -1287,10 +1289,33 @@ function getDocumentApprovalQueueState(
 }
 
 function matchesDocumentApprovalQueueView(
-  queueState: OfficeDocumentApprovalQueueState,
-  view: OfficeDocumentApprovalQueueView
+  item: Pick<OfficeDocumentApprovalQueueItem, "queueState" | "task">,
+  view: OfficeDocumentApprovalQueueView,
+  actorContext: {
+    membershipId: string;
+    canSecondaryReviewTasks: boolean;
+  }
 ) {
-  return view === "all_open_review_items" ? true : queueState === view;
+  if (view === "all_open_review_items") {
+    return true;
+  }
+
+  if (view === "awaiting_my_review") {
+    if (!item.task.canApprove) {
+      return false;
+    }
+
+    if (item.queueState === "awaiting_second_review") {
+      return (
+        item.task.firstApprovedByMembershipId !== actorContext.membershipId &&
+        actorContext.canSecondaryReviewTasks
+      );
+    }
+
+    return item.queueState === "awaiting_my_review";
+  }
+
+  return item.queueState === view;
 }
 
 function pluralizeQueueArtifact(count: number, singular: string, plural: string) {
@@ -1613,6 +1638,41 @@ function getTaskMissingWorkflowReason(task: TaskWithRelations, evidence: TaskWor
   return null;
 }
 
+function getTaskWorkflowInvalidationReason(task: TaskWithRelations, evidence: TaskWorkflowEvidence) {
+  if (taskRequiresDocumentWorkflow(task) && !evidence.hasAnyLinkedDocument) {
+    return {
+      workflowReason: "missing_required_document",
+      detail: "Missing required document caused reopen"
+    };
+  }
+
+  if (taskNeedsReview(task) && !evidence.hasSubmittedDocument) {
+    return {
+      workflowReason: "review_submission_missing",
+      detail: "Submitted document is no longer available for review"
+    };
+  }
+
+  if (evidence.hasPendingSignature) {
+    return {
+      workflowReason: "signatures_pending",
+      detail: "Pending signatures caused reopen"
+    };
+  }
+
+  if (evidence.hasAnySignatureRequest && !evidence.allSignatureRequestsSigned) {
+    return {
+      workflowReason: "signatures_incomplete",
+      detail: "Incomplete signatures caused reopen"
+    };
+  }
+
+  return {
+    workflowReason: "document_workflow_invalidated",
+    detail: "Document workflow conditions caused reopen"
+  };
+}
+
 async function syncTaskLinkedDocumentStatuses(
   tx: Prisma.TransactionClient,
   input: {
@@ -1696,6 +1756,7 @@ export async function reconcileTransactionTaskDocumentWorkflow(
   }
 
   const resetState = getTaskWorkflowResetState(taskNeedsReview(existingTask));
+  const invalidation = getTaskWorkflowInvalidationReason(existingTask, evidence);
   const nextStatus: TransactionTaskStatus = existingTask.status === "todo" ? "todo" : "reopened";
   const reopenedAt = new Date();
 
@@ -1728,8 +1789,12 @@ export async function reconcileTransactionTaskDocumentWorkflow(
     actorMembershipId: input.actorMembershipId ?? null,
     action: activityLogActions.transactionTaskReopened,
     task: updated,
-    workflowReason: "document_workflow_invalidated",
-    details: [input.reason, "Task reopened because required workflow conditions are no longer satisfied"],
+    workflowReason: invalidation.workflowReason,
+    details: [
+      input.reason,
+      invalidation.detail,
+      "Task reopened because required workflow conditions are no longer satisfied"
+    ],
     changes: [
       buildTaskChange("Workflow status", getDbTaskStatusLabel(existingTask.status), getDbTaskStatusLabel(updated.status)),
       buildTaskChange("Review status", reviewStatusLabelMap[existingTask.reviewStatus], reviewStatusLabelMap[updated.reviewStatus]),
@@ -2023,6 +2088,10 @@ export async function listOfficeDocumentApprovalQueue(
   input: ListOfficeDocumentApprovalQueueInput
 ): Promise<OfficeDocumentApprovalQueueSnapshot> {
   const limit = input.limit ?? defaultDocumentApprovalQueueLimit;
+  const actorContext = {
+    membershipId: input.membershipId,
+    canSecondaryReviewTasks: input.canSecondaryReviewTasks ?? false
+  };
   const filters: OfficeDocumentApprovalQueueFilters = {
     queue: normalizeDocumentApprovalQueueView(input.queue),
     assigneeMembershipId: typeof input.assigneeMembershipId === "string" ? input.assigneeMembershipId : "",
@@ -2158,7 +2227,26 @@ export async function listOfficeDocumentApprovalQueue(
   const summary = queueItems.reduce<OfficeDocumentApprovalQueueSummary>(
     (accumulator, item) => {
       accumulator.all_open_review_items += 1;
-      accumulator[item.queueState] += 1;
+      if (matchesDocumentApprovalQueueView(item, "awaiting_my_review", actorContext)) {
+        accumulator.awaiting_my_review += 1;
+      }
+
+      if (item.queueState === "awaiting_second_review") {
+        accumulator.awaiting_second_review += 1;
+      }
+
+      if (item.queueState === "rejected") {
+        accumulator.rejected += 1;
+      }
+
+      if (item.queueState === "waiting_for_signatures") {
+        accumulator.waiting_for_signatures += 1;
+      }
+
+      if (item.queueState === "missing_required_document") {
+        accumulator.missing_required_document += 1;
+      }
+
       return accumulator;
     },
     {
@@ -2171,7 +2259,7 @@ export async function listOfficeDocumentApprovalQueue(
     }
   );
   const visibleItems = sortDocumentApprovalQueue(
-    queueItems.filter((item) => matchesDocumentApprovalQueueView(item.queueState, filters.queue))
+    queueItems.filter((item) => matchesDocumentApprovalQueueView(item, filters.queue, actorContext))
   ).slice(0, limit);
 
   return {

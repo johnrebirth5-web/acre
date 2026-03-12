@@ -213,7 +213,7 @@ export function OfficeApproveDocsClient({
       </section>
 
       <SectionCard
-        subtitle="按审批状态、责任人和截止时间聚焦当前文档审阅工作。"
+        subtitle="按审批状态、责任人和截止时间聚焦当前文档审阅工作；Awaiting my review 会按当前登录 reviewer 的可执行动作计算。"
         title="Queue filters"
       >
         <FilterBar as="form" className="office-approval-filter-bar" method="get">

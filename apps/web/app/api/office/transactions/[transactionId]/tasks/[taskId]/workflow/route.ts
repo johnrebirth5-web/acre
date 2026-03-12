@@ -1,4 +1,5 @@
 import {
+  canAccessOfficeDocumentApprovals,
   canApproveOfficeDocuments,
   canManageOfficeTasks,
   canReviewOfficeTasks,
@@ -22,10 +23,6 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!canManageOfficeTasks(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Task list access required." }, { status: 403 });
-  }
-
   const { transactionId, taskId } = await params;
   const body = (await request.json().catch(() => null)) as
     | { action?: string; rejectionReason?: string; source?: string }
@@ -33,9 +30,27 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const action = body?.action?.trim();
   const rejectionReason = body?.rejectionReason?.trim();
   const activitySource = body?.source === "approve_docs_queue" ? body.source : undefined;
+  const role = context.currentMembership.role;
+  const canManageTasks = canManageOfficeTasks(role);
+  const canReviewTasks = canReviewOfficeTasks(role);
+  const canApproveDocuments = canApproveOfficeDocuments(role);
+  const canSecondaryReviewTasks = canSecondaryReviewOfficeTasks(role);
+  const canAccessDocumentApprovals = canAccessOfficeDocumentApprovals(role);
 
   if (!action) {
     return NextResponse.json({ error: "Workflow action is required." }, { status: 400 });
+  }
+
+  if (action === "request_review" && !canManageTasks) {
+    return NextResponse.json({ error: "Task management permission required." }, { status: 403 });
+  }
+
+  if ((action === "approve" || action === "reject") && (!canReviewTasks || !canApproveDocuments)) {
+    return NextResponse.json({ error: "Document review permission required." }, { status: 403 });
+  }
+
+  if ((action === "complete" || action === "reopen") && !canManageTasks && !canAccessDocumentApprovals) {
+    return NextResponse.json({ error: "Document approval queue access required." }, { status: 403 });
   }
 
   try {
@@ -65,20 +80,20 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                 activitySource
               })
             : action === "approve"
-              ? canReviewOfficeTasks(context.currentMembership.role) &&
-                canApproveOfficeDocuments(context.currentMembership.role)
+              ? canReviewTasks &&
+                canApproveDocuments
                 ? await approveTransactionTask({
                     organizationId: context.currentOrganization.id,
                     transactionId,
                     taskId,
                     actorMembershipId: context.currentMembership.id,
-                    allowSecondaryApproval: canSecondaryReviewOfficeTasks(context.currentMembership.role),
+                    allowSecondaryApproval: canSecondaryReviewTasks,
                     activitySource
                   })
                 : null
               : action === "reject"
-                ? canReviewOfficeTasks(context.currentMembership.role) &&
-                  canApproveOfficeDocuments(context.currentMembership.role)
+                ? canReviewTasks &&
+                  canApproveDocuments
                   ? await rejectTransactionTask({
                       organizationId: context.currentOrganization.id,
                       transactionId,
@@ -89,13 +104,6 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                     })
                   : null
                 : null;
-
-    if (
-      (action === "approve" || action === "reject") &&
-      (!canReviewOfficeTasks(context.currentMembership.role) || !canApproveOfficeDocuments(context.currentMembership.role))
-    ) {
-      return NextResponse.json({ error: "Document review permission required." }, { status: 403 });
-    }
 
     if (!task) {
       return NextResponse.json({ error: "Task not found or workflow action failed." }, { status: 404 });

@@ -30,6 +30,8 @@ export default async function OfficeApproveDocsPage(props: OfficeApproveDocsPage
   const snapshot = await listOfficeDocumentApprovalQueue({
     organizationId: context.currentOrganization.id,
     officeId: context.currentOffice?.id ?? null,
+    membershipId: context.currentMembership.id,
+    canSecondaryReviewTasks: canSecondaryReviewOfficeTasks(context.currentMembership.role),
     queue: searchParams.queue,
     assigneeMembershipId: searchParams.assigneeMembershipId,
     dueWindow: searchParams.dueWindow,

@@ -174,10 +174,14 @@
 - `Approve Docs` 现在也已落成真实 Back Office 审批队列：
   - 路由：`/office/approve-docs`
   - 使用与 `Task list` / transaction detail 相同的 `TransactionTask` 审核工作流作为唯一状态来源
+  - 页面访问权限复用当前 Back Office 审核权限：
+    - `tasks:review`
+    - `documents:approve`
+    - `tasks:review:secondary` 仅用于 second approval
   - 只展示文档审批相关任务，不混入普通非文档任务
   - 当前支持的队列过滤包括：
     - `All open review items`
-    - `Awaiting my review`
+    - `Awaiting my review`（按当前登录 reviewer 当前真实可执行的一审/二审动作计算）
     - `Awaiting second review`
     - `Rejected`
     - `Waiting for signatures`
@@ -191,7 +195,7 @@
     - reopen
     - complete（仅在真实满足条件时可见）
   - 队列动作会继续写入同一套 `AuditLog` 任务事件；从队列触发的动作会带上 `Approve Docs queue` source
-  - linked document 删除、unlink 或 signature 状态回退时，会重新评估任务并把不再满足条件的审批任务拉回 queue
+  - linked document 删除、unlink 或 signature 状态回退时，会重新评估任务并把不再满足条件的审批任务拉回 queue；缺少 required document 时会明确 reopen 并留下对应 activity reason
 - `Contacts` 现在也已接入真实数据库：
   - 列表页使用 PostgreSQL / Prisma 读取真实 client 数据
   - 列表页现在使用 URL 驱动的服务端查询：
