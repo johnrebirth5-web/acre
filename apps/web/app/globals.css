@@ -4475,18 +4475,29 @@ a {
 .office-dashboard-main,
 .office-dashboard-sidebar,
 .office-page-shell,
+.office-section-card,
+.office-detail-section,
+.office-form-section,
 .bm-page,
 .bm-transactions-page,
 .bm-transaction-detail-page,
 .office-page-header,
 .office-page-heading,
 .office-page-actions,
+.office-section-actions,
 .office-section-copy,
 .office-section-body,
 .acre-panel-body,
 .office-detail-section-body,
 .office-form-section-body,
 .office-side-stack,
+.office-task-filter-form,
+.office-task-filter-grid,
+.office-task-view-save-row,
+.office-task-view-save-controls,
+.office-filter-field,
+.office-report-filter,
+.office-kpi-card,
 .bm-table-card,
 .bm-detail-card,
 .office-pipeline-rail,
@@ -4681,13 +4692,35 @@ a {
 }
 
 .office-page-actions,
+.office-section-actions,
+.office-filter-actions,
+.office-report-filter-actions,
+.office-task-view-save-controls,
+.office-task-filter-actions,
+.office-task-create-actions,
+.office-task-edit-actions,
 .office-button-row,
-.bm-toolbar-actions {
+.bm-toolbar-actions,
+.bm-filter-strip,
+.bm-activity-filter-actions,
+.bm-accounting-form-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.office-page-actions,
+.office-section-actions,
+.office-filter-actions,
+.office-report-filter-actions,
+.office-task-view-save-controls,
+.office-task-filter-actions,
+.office-task-create-actions,
+.office-task-edit-actions,
+.bm-accounting-form-actions {
+  align-items: end;
 }
 
 .office-list-page,
@@ -5247,7 +5280,6 @@ a {
 .office-report-filters,
 .bm-transactions-toolbar,
 .bm-contacts-toolbar,
-.bm-activity-filter-grid,
 .bm-transaction-status-form {
   display: flex;
   flex-wrap: wrap;
@@ -5259,9 +5291,9 @@ a {
 .office-report-filters > *,
 .bm-transactions-toolbar > *,
 .bm-contacts-toolbar > *,
-.bm-activity-filter-grid > *,
 .bm-transaction-status-form > * {
   min-width: min(220px, 100%);
+  flex: 1 1 180px;
 }
 
 .office-report-filter,
@@ -5270,13 +5302,29 @@ a {
   min-width: 168px;
 }
 
-.office-filter-bar > * {
-  flex: 1 1 180px;
+.bm-activity-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.bm-activity-filter-grid > * {
+  min-width: 0;
 }
 
 .office-filter-bar > .office-button,
-.office-filter-bar > .office-button-secondary {
+.office-filter-bar > .office-button-secondary,
+.office-report-filters > .office-report-filter-actions,
+.office-report-filters > .office-filter-actions,
+.bm-transactions-toolbar > .office-button,
+.bm-transactions-toolbar > .office-button-secondary,
+.bm-contacts-toolbar > .office-button,
+.bm-contacts-toolbar > .office-button-secondary,
+.bm-transaction-status-form > .office-button,
+.bm-transaction-status-form > .office-button-secondary {
   flex: 0 0 auto;
+  min-width: 0;
 }
 
 .office-data-table,
@@ -5290,10 +5338,14 @@ a {
   border: 1px solid var(--office-border);
   border-radius: var(--office-radius-lg);
   background: var(--office-surface);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
 }
 
 .office-data-table-head,
@@ -5340,6 +5392,11 @@ a {
   width: max-content;
   min-width: 100%;
   box-sizing: border-box;
+}
+
+.office-data-table-body {
+  display: grid;
+  min-width: 100%;
 }
 
 .bm-transactions-columns,
@@ -5423,6 +5480,19 @@ a {
 .bm-transaction-row:hover,
 .office-pipeline-row:hover {
   background: var(--office-bg-muted);
+}
+
+.office-data-table-head > *,
+.office-table-header > *,
+.bm-transactions-columns > *,
+.bm-transaction-header > *,
+.office-pipeline-table-head > *,
+.office-data-table-row > *,
+.office-table-row > *,
+.bm-transactions-row > *,
+.bm-transaction-row > *,
+.office-pipeline-row > * {
+  min-width: 0;
 }
 
 .office-table-primary strong,
@@ -6131,7 +6201,6 @@ a {
 }
 
 @media (max-width: 1120px) {
-  .office-kpi-grid,
   .office-dashboard-grid,
   .office-dashboard-grid-wide,
   .bm-card-grid,
@@ -6197,26 +6266,49 @@ a {
   }
 
   .office-dashboard-grid-shell {
-    grid-template-columns: 188px minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .office-dashboard-main {
-    padding: 16px 14px 88px;
+    padding: 16px 14px 112px;
   }
 
-  .office-company-switcher {
+  .office-dashboard-sidebar {
+    display: none;
+  }
+
+  .office-mobile-rail {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(78px, max-content);
+    justify-content: start;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 20px;
+    background: rgba(244, 247, 251, 0.96);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(18px);
+    scrollbar-width: none;
+  }
+
+  .office-mobile-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .office-mobile-rail a,
+  .office-mobile-rail span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
     padding: 0 12px;
-    font-size: 0.8rem;
-  }
-
-  .office-bm-groups {
-    padding: 14px 8px 24px;
-  }
-
-  .office-bm-link {
-    min-height: 32px;
-    padding-left: 30px;
-    font-size: 0.88rem;
+    border-radius: 14px;
+    white-space: nowrap;
   }
 
   .office-kpi-grid {

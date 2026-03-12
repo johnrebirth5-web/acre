@@ -62,3 +62,5 @@ Back Office UI / design-system changes should also update:
   - prefer horizontal table overflow over squeezed columns
   - make filter/action bars wrap instead of compressing controls
   - stack split-pane layouts at the documented breakpoints instead of forcing side-by-side layouts too long
+  - at narrower laptop widths, prefer collapsing the Office shell to the shared mobile rail rather than squeezing content beside the sidebar
+  - implement responsive fixes in shared `globals.css` / `@acre/ui` patterns first; avoid page-only media-query patches unless the issue is truly unique

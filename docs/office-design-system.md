@@ -197,6 +197,76 @@
 - 必要时收成 1 列
 - 不要让卡片为了保留列数而被压成不稳定高度或极窄内容块
 
+## Responsive 实施细则
+
+这一轮不是补充“原则”，而是把原则真正落到了共享层和关键页面上。
+
+### Office shell
+
+- `<= 980px`
+  - `Office` 侧边栏不再继续强撑桌面双栏
+  - 主内容改成单列
+  - 使用 `office-mobile-rail` 保持主要导航可达
+- 目标不是手机优先，而是避免窄笔记本把主内容压坏
+
+### 表格实现策略
+
+- `DataTable / office-table / bm-office-table` 统一使用局部横向滚动
+- 规则：
+  - 容器自己滚动
+  - 不允许整页跟着横向滚动
+  - 行和表头保留明确 `min-width`
+  - 重要 dense 表格不改成 stacked cards
+- 当前已明确加固：
+  - Transactions
+  - Contacts
+  - Tasks
+  - Accounting
+  - Agent Billing ledger
+  - Reports tables
+  - Pipeline list/table
+  - Agents roster
+
+### Filter / action bar 实施策略
+
+- 过滤条、操作条、页头 action 区统一允许换行
+- 输入控件保持合理最小宽度
+- action buttons 保持 `flex: 0 0 auto`
+- 复杂表单页继续优先使用共享 class：
+  - `office-filter-bar`
+  - `office-report-filters`
+  - `office-page-actions`
+  - `office-section-actions`
+  - `office-filter-actions`
+
+### 双栏 / side-panel 实施策略
+
+- 以下布局在 laptop 宽度下优先堆叠，而不是继续横向硬挤：
+  - Accounting
+  - Activity
+  - Pipeline
+  - detail pages with secondary panel
+- 共享 class：
+  - `office-detail-two-column`
+  - `bm-accounting-grid`
+  - `bm-activity-layout`
+  - `office-pipeline-layout`
+
+### 已重点加固的页面
+
+- `/office/dashboard`
+- `/office/transactions`
+- `/office/contacts`
+- `/office/tasks`
+- `/office/activity`
+- `/office/accounting`
+- `/office/reports`
+- `/office/pipeline`
+- transaction detail
+- contact detail
+
+如果新增 `Office` 页面也落在这些结构类型里，优先复用这些共享 class，不要重新写页面级媒体查询。
+
 ## 详情 section 规则
 
 - section 表面统一用浅色 surface + 细边框
