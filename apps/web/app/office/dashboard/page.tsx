@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { officeTrainingLinks, officeUsefulLinks, officeWeeklyUpdates } from "@acre/backoffice";
 import { getOfficeDashboardBusinessSnapshot } from "@acre/db";
 import { Badge, PageHeader, PageShell, StatCard } from "@acre/ui";
 import { getSessionAccess, requireOfficeSession } from "../../../lib/auth-session";
@@ -126,67 +125,6 @@ export default async function OfficeDashboardPage() {
             </aside>
           </div>
         </div>
-      </section>
-
-      <section className="bm-card-grid">
-        <section className="bm-info-card">
-          <div className="bm-card-head">
-            <h3>WEEKLY UPDATES</h3>
-            <span>✎</span>
-          </div>
-          <div className="bm-update-list">
-            {officeWeeklyUpdates.map((update) => (
-              <article className="bm-update-item" key={update.id}>
-                <strong>
-                  {update.timeLabel} {update.title}
-                </strong>
-                {update.details.map((detail) =>
-                  detail.startsWith("https://") ? (
-                    <a className="bm-text-link" href={detail} key={detail}>
-                      {detail}
-                    </a>
-                  ) : (
-                    <p key={detail}>{detail}</p>
-                  )
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="bm-info-card">
-          <div className="bm-card-head">
-            <h3>ACRE USEFUL LINKS</h3>
-            <span>✎</span>
-          </div>
-          <div className="bm-link-list">
-            {officeUsefulLinks.map((link) => (
-              <article className="bm-link-row" key={link.id}>
-                <span className="bm-link-icon">⛓</span>
-                <a className="bm-link-label" href="#">
-                  {link.label}
-                </a>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="bm-info-card">
-          <div className="bm-card-head">
-            <h3>BACK OFFICE AGENT TRAINING LINKS</h3>
-            <span>✎</span>
-          </div>
-          <div className="bm-link-list">
-            {officeTrainingLinks.map((link) => (
-              <article className="bm-link-row" key={link.id}>
-                <span className="bm-link-icon">⛓</span>
-                <a className="bm-link-label" href="#">
-                  {link.label}
-                </a>
-              </article>
-            ))}
-          </div>
-        </section>
       </section>
 
       <section className="bm-transactions-card">
