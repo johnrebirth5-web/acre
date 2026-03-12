@@ -3,7 +3,7 @@
 `Acre` 是一个面向房地产经纪公司内部团队的 Web 工作台。当前仓库实现的是 `Acre Agent OS` 的第一版工程骨架，服务对象是：
 
 - `Agent`：一线经纪人，使用 listings、轻 CRM、活动通知、资源库、AI 工具
-- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Notifications / Account / Activity / Library / Accounting`
+- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Notifications / Account / Billing / Activity / Library / Accounting`
 
 这不是客户前台网站。客户前台后续会是独立 surface，复用这里的 listings 和后台数据能力。
 
@@ -25,6 +25,7 @@
   - `Reports`
   - `Notifications`
   - `Account / My Profile`
+  - `Billing / My Billing`
   - `Activity`
   - `Library`
   - `Accounting`
@@ -252,6 +253,7 @@
     - `Collections / payments received`
     - `Credit memo application`
     - `Statement` on-screen summary
+  - `Accounting` 仍然是 admin / operations workspace；当前用户的 self-service billing view 在独立的 `/office/billing`
   - 支持 accounting transaction types：
     - `invoice`
     - `bill`
@@ -446,6 +448,34 @@
     - 当前没有 2-step verification flow
     - 当前 session 仍是 HTTP-only cookie + 12 hour max age
   - 当前页面会把 profile update 和 notification preference change 写入 `Activity Log`
+- `Billing / My Billing` 现在也已落成真实 Back Office 自助账务页：
+  - 路由：`/office/billing`
+  - 这是当前登录 membership 的 self-service billing page，不是 admin-facing `Accounting / Agent Billing`
+  - 当前页面按当前登录 membership scope 展示：
+    - outstanding balance
+    - open / pending charges
+    - recent payments
+    - credit / adjustments
+    - monthly statement summaries
+    - payment-method references
+    - recent billing activity
+  - 当前页面继续复用现有 `AccountingTransaction / AccountingTransactionApplication / AgentRecurringChargeRule / AgentPaymentMethod`
+  - statement 当前是 live on-screen monthly summaries，不是 durable statement snapshot，也没有 PDF download
+  - `Payment methods` 当前只保存 masked/internal reference：
+    - type
+    - label
+    - provider
+    - masked last4
+    - default / auto-pay flags
+    - status
+    - 当前不会存 raw card / bank credentials
+  - 当前允许当前 membership 自助 add / update / remove 自己的 payment-method reference
+  - 当前不会伪造：
+    - pay-now checkout
+    - ACH execution
+    - external gateway capture
+    - email / SMS billing delivery
+  - payment-method self-service change 继续写入 `Activity Log`
 - `Activity` 现在也已接入真实数据库：
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源

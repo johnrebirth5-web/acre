@@ -482,6 +482,32 @@ Trade-off：
   - full brokerage billing suite
 - 好处是后续接真实 payment provider 时，不需要把 agent ledger / statement / invoice 模型推翻重做
 
+## 关键决策 9.25：`/office/billing` 做成当前用户自助账务页，但继续复用同一套 Accounting / Agent Billing foundation
+
+原因：
+
+- 当前用户确实需要看到自己欠费、已收费、已付款、credit 和 statement context
+- 但这不应该再复制一套 billing store、statement store 或 payment-method store
+- admin-side `Accounting / Agent Billing` 和 self-service `My Billing` 的差别主要是页面视角和权限边界，不是数据源
+
+影响：
+
+- `/office/billing` 只读取当前 session membership 自己的账务数据
+- 继续复用：
+  - `AccountingTransaction`
+  - `AccountingTransactionApplication`
+  - `AgentRecurringChargeRule`
+  - `AgentPaymentMethod`
+  - `AuditLog`
+- payment-method 自助编辑只允许当前 membership 操作自己的记录
+- statement 当前先做 live-generated monthly on-screen summaries，不提前引入 PDF 或 gateway integration
+
+Trade-off：
+
+- 当前 statement 不是 durable snapshot
+- 当前没有 `Pay now` checkout
+- 但这样能先把真实自助账务体验和透明度做出来，同时不把 admin accounting 模块和 self-service 模块分叉
+
 ## 关键决策 9.5：Commission Management 直接建立在 Transaction Finance + Accounting + Agent Billing 之上
 
 原因：

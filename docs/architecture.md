@@ -8,12 +8,12 @@
 
 - 前端已经可运行
 - API 已经存在
-- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Notifications`、`Office Account / My Profile`、`Office Activity Log`、`Office Library`、`Office Accounting`、`Office Agent Management` 和 `Office Admin / Settings` 已经切到 Prisma
+- API 当前以 `@acre/backoffice` 的内存数据为主，但 `Office Dashboard` 的业务指标、`Office Pipeline`、`Office Transactions`、`Office Contacts`、`Office Tasks`、`Office Reports`、`Office Notifications`、`Office Account / My Profile`、`Office Billing / My Billing`、`Office Activity Log`、`Office Library`、`Office Accounting`、`Office Agent Management` 和 `Office Admin / Settings` 已经切到 Prisma
 - 数据库 schema、Prisma client、migration、seed 已接入
 - 数据库现在已经覆盖主要 `Office / Back Office` 模块，但 agent/resource feed 和部分次级路径仍保留 mock 或过渡数据
 - 权限模型存在，且当前已经接入一个最小本地 session
 - 但还没有复杂权限管理或数据级权限
-- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Approve Docs`、`Reports`、`Notifications`、`Account`、`Activity`、`Library` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
+- `Office / Back Office` 的页面主线已经开始按 `Brokermint` 的后台结构收敛，其中 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Approve Docs`、`Reports`、`Notifications`、`Account`、`Billing`、`Activity`、`Library` 已经切到真实数据库，其他页面仍主要由静态示例数据驱动
 - `Transaction detail` 现在已经进入真实 workflow 阶段，除 overview / status / contacts / finance / tasks 外，还包含：
   - offers
   - documents
@@ -137,6 +137,18 @@
     - `AgentProfile` 做 avatar / license / extension / onboarding context
     - `MembershipNotificationPreference` 做当前 membership 的 inbox preference state
   - 当前 security section 只反映真实本地 auth 现状，不伪造 password reset、email delivery 或 2-step flows
+- 当前 `Office Billing / My Billing` 也已通过 Prisma service 和 route handlers 落地到：
+  - `/office/billing`
+  - `/api/office/billing/payment-methods`
+  - `/api/office/billing/payment-methods/:paymentMethodId`
+  - 核心复用：
+    - `AccountingTransaction` 做 charge / payment / credit ledger
+    - `AccountingTransactionApplication` 做 payment / credit 对 invoice 的应用关系
+    - `AgentRecurringChargeRule` 做 future recurring visibility
+    - `AgentPaymentMethod` 做 masked payment-method reference foundation
+    - `AuditLog` 做 billing-related recent activity
+  - 当前 statements 是 live-generated monthly summaries，不是 durable statement snapshots，也没有 PDF download
+  - 当前 payment-method self-service 只允许当前 membership 操作自己的方法记录，不允许跨成员编辑
 - 当前已有最小本地登录 / 登出 / cookie session
 - 当前已经有 transaction、contact、task、activity、library、accounting、agent management、settings 等模块的 service-to-db 数据访问层
 - 当前 dashboard 业务指标也已有最小查询 service

@@ -110,11 +110,14 @@ export {
   applyAgentBillingCreditMemo,
   createAgentBillingCharges,
   createAgentPaymentMethod,
+  createOfficeBillingPaymentMethod,
   createAgentRecurringChargeRule,
   generateDueAgentBillingCharges,
   getOfficeAgentBillingSnapshot,
+  getOfficeBillingSnapshot,
   recordAgentBillingPayment,
   updateAgentPaymentMethod,
+  updateOfficeBillingPaymentMethod,
   updateAgentRecurringChargeRule
 } from "./agent-billing";
 export { getOfficeDashboardBusinessSnapshot } from "./dashboard";
@@ -262,9 +265,17 @@ export type {
   ApplyAgentBillingCreditMemoInput,
   CreateAgentBillingChargesInput,
   CreateAgentPaymentMethodInput,
+  CreateOfficeBillingPaymentMethodInput,
   CreateAgentRecurringChargeRuleInput,
   GenerateDueAgentBillingChargesInput,
   GetOfficeAgentBillingSnapshotInput,
+  GetOfficeBillingSnapshotInput,
+  OfficeBillingActivityItem,
+  OfficeBillingNotice,
+  OfficeBillingSnapshot,
+  OfficeBillingStatementRow,
+  OfficeBillingSummary,
+  OfficeBillingUpcomingChargeRow,
   OfficeAgentBillingCreditMemoOption,
   OfficeAgentBillingFilters,
   OfficeAgentBillingInvoiceOption,
@@ -280,6 +291,7 @@ export type {
   OfficeAgentStatementSnapshot,
   RecordAgentBillingPaymentInput,
   UpdateAgentPaymentMethodInput,
+  UpdateOfficeBillingPaymentMethodInput,
   UpdateAgentRecurringChargeRuleInput
 } from "./agent-billing";
 export type {

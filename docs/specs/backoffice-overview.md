@@ -114,6 +114,23 @@ This file is the high-level product map for the current `Office / Back Office` s
   - revisit password / 2-step actions only when real auth support lands
   - extend notification preference granularity only when new real inbox families exist
 
+### Billing / My Billing
+
+- What it is for:
+  - signed-in user self-service billing page for outstanding balances, charges, payments, statement visibility, payment-method references, and recent billing activity.
+- Current maturity:
+  - `MVP`
+- Current notable behavior:
+  - `/office/billing` is now a real user-scoped route inside the Office shell.
+  - it reuses the existing agent billing / accounting foundation instead of introducing a second billing store.
+  - statements are live-generated monthly on-screen summaries; PDF downloads are not implemented.
+  - payment methods remain masked internal references only and do not imply live card or ACH processing.
+  - self-service payment-method changes are scoped to the current membership and continue writing into `AuditLog`.
+- Follow-up work:
+  - add durable statement snapshots only when statement finalization becomes a real workflow
+  - add billing notifications only when real inbox notification families exist
+  - revisit self-service payment actions only when real processor support exists
+
 ### Activity Log
 
 - What it is for:
@@ -148,6 +165,9 @@ This file is the high-level product map for the current `Office / Back Office` s
   - transaction-side accounting, chart of accounts, accounting transactions, EMD, agent billing, commission management.
 - Current maturity:
   - `MVP`
+- Current notable behavior:
+  - `/office/accounting` remains the admin/operations accounting workspace.
+  - `/office/billing` now provides the current signed-in user's self-service billing view on top of the same accounting and agent-billing records.
 - Follow-up work:
   - stronger reporting
   - deeper posting/reconciliation workflows

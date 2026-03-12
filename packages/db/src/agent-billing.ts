@@ -8,7 +8,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { accountingSystemAccountCodes, saveAccountingTransactionInternal } from "./accounting";
-import { activityLogActions, recordActivityLogEvent } from "./activity-log";
+import { activityLogActions, recordActivityLogEvent, type ActivityLogAction } from "./activity-log";
 import { prisma } from "./client";
 
 export type OfficeAgentBillingLedgerStatus = "all" | "open" | "pending" | "paid" | "void";
@@ -156,6 +156,82 @@ export type GetOfficeAgentBillingSnapshotInput = {
   q?: string;
 };
 
+export type OfficeBillingSummary = {
+  outstandingBalanceLabel: string;
+  openChargesCount: number;
+  pendingChargesLabel: string;
+  pendingChargesCount: number;
+  recentPaymentsLabel: string;
+  recentPaymentsWindowLabel: string;
+  creditBalanceLabel: string;
+  creditBalanceCount: number;
+  paymentMethodIssueCount: number;
+  latestStatementPeriodLabel: string;
+  latestStatementBalanceLabel: string;
+  latestStatementGeneratedAtLabel: string;
+};
+
+export type OfficeBillingNotice = {
+  tone: "neutral" | "accent" | "success" | "warning" | "danger";
+  title: string;
+  description: string;
+};
+
+export type OfficeBillingUpcomingChargeRow = {
+  id: string;
+  dueDate: string;
+  sourceType: "Pending invoice" | "Recurring rule";
+  description: string;
+  amountLabel: string;
+  status: string;
+  linkedTransactionLabel: string;
+  linkedTransactionHref: string | null;
+};
+
+export type OfficeBillingStatementRow = {
+  id: string;
+  periodLabel: string;
+  generatedAtLabel: string;
+  totalChargesLabel: string;
+  totalPaymentsLabel: string;
+  creditsLabel: string;
+  currentBalanceLabel: string;
+  entryCount: number;
+};
+
+export type OfficeBillingActivityItem = {
+  id: string;
+  actionLabel: string;
+  actorDisplayName: string;
+  summary: string;
+  objectLabel: string;
+  href: string | null;
+  timestampLabel: string;
+  detailSummary: string[];
+};
+
+export type OfficeBillingSnapshot = {
+  summary: OfficeBillingSummary;
+  notices: OfficeBillingNotice[];
+  outstandingChargeRows: OfficeAgentBillingLedgerRow[];
+  pendingChargeRows: OfficeAgentBillingLedgerRow[];
+  upcomingChargeRows: OfficeBillingUpcomingChargeRow[];
+  ledgerRows: OfficeAgentBillingLedgerRow[];
+  recentPaymentRows: OfficeAgentBillingLedgerRow[];
+  creditRows: OfficeAgentBillingLedgerRow[];
+  statements: OfficeBillingStatementRow[];
+  latestStatement: OfficeBillingStatementRow | null;
+  paymentMethods: OfficeAgentPaymentMethodRecord[];
+  recentActivity: OfficeBillingActivityItem[];
+  limitations: string[];
+};
+
+export type GetOfficeBillingSnapshotInput = {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+};
+
 export type CreateAgentBillingChargesInput = {
   organizationId: string;
   officeId?: string | null;
@@ -229,6 +305,7 @@ export type CreateAgentPaymentMethodInput = {
   externalReferenceId?: string;
   status?: string;
   actorMembershipId: string;
+  activityContextHref?: string;
 };
 
 export type UpdateAgentPaymentMethodInput = {
@@ -245,6 +322,7 @@ export type UpdateAgentPaymentMethodInput = {
   externalReferenceId?: string;
   status?: string;
   actorMembershipId: string;
+  activityContextHref?: string;
 };
 
 export type RecordAgentBillingPaymentInput = {
@@ -268,6 +346,34 @@ export type ApplyAgentBillingCreditMemoInput = {
   invoiceId: string;
   amount?: string;
   memo?: string;
+  actorMembershipId: string;
+};
+
+export type CreateOfficeBillingPaymentMethodInput = {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  type: string;
+  label: string;
+  provider?: string;
+  last4?: string;
+  isDefault?: boolean;
+  autoPayEnabled?: boolean;
+  actorMembershipId: string;
+};
+
+export type UpdateOfficeBillingPaymentMethodInput = {
+  organizationId: string;
+  officeId?: string | null;
+  membershipId: string;
+  paymentMethodId: string;
+  type?: string;
+  label?: string;
+  provider?: string;
+  last4?: string;
+  isDefault?: boolean;
+  autoPayEnabled?: boolean;
+  remove?: boolean;
   actorMembershipId: string;
 };
 
@@ -354,6 +460,16 @@ type AgentPaymentMethodRecord = Prisma.AgentPaymentMethodGetPayload<{
   };
 }>;
 
+type BillingAuditLogRecord = Prisma.AuditLogGetPayload<{
+  include: {
+    membership: {
+      include: {
+        user: true;
+      };
+    };
+  };
+}>;
+
 const accountingTypeLabelMap: Record<AccountingTransactionType, string> = {
   invoice: "Invoice",
   bill: "Bill",
@@ -391,6 +507,17 @@ const agentPaymentMethodStatusLabelMap: Record<AgentPaymentMethodStatus, string>
   removed: "Removed"
 };
 
+const billingActivityActionLabelMap: Partial<Record<ActivityLogAction, string>> = {
+  [activityLogActions.accountingAgentChargeCreated]: "Charge added",
+  [activityLogActions.accountingCreditMemoCreated]: "Credit memo added",
+  [activityLogActions.accountingPaymentReceived]: "Payment recorded",
+  [activityLogActions.accountingAgentCreditApplied]: "Credit applied",
+  [activityLogActions.accountingPaymentMethodAdded]: "Payment method added",
+  [activityLogActions.accountingPaymentMethodUpdated]: "Payment method updated",
+  [activityLogActions.accountingPaymentMethodRemoved]: "Payment method removed",
+  [activityLogActions.accountingTransactionUpdated]: "Billing transaction updated"
+};
+
 function buildScopedOfficeWhere(officeId?: string | null) {
   return officeId
     ? {
@@ -410,6 +537,20 @@ function formatCurrency(value: Prisma.Decimal | number | string | null | undefin
 
 function formatDateValue(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
+}
+
+function formatDateTimeValue(value: Date | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  return value.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
 }
 
 function parseOptionalText(value: string | undefined | null) {
@@ -870,6 +1011,77 @@ function matchesBillingStatus(transaction: AgentBillingTransactionRecord, status
   return status === "all" ? true : deriveLedgerStatus(transaction) === status;
 }
 
+function buildStatementPeriodKey(value: Date) {
+  return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatStatementPeriodLabel(key: string) {
+  const [year, month] = key.split("-");
+  const parsedYear = Number(year);
+  const parsedMonth = Number(month);
+
+  if (!Number.isFinite(parsedYear) || !Number.isFinite(parsedMonth)) {
+    return key;
+  }
+
+  return new Date(Date.UTC(parsedYear, parsedMonth - 1, 1)).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
+function getBillingActivitySummary(record: BillingAuditLogRecord) {
+  const payload = record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
+    ? (record.payload as Prisma.JsonObject)
+    : null;
+  const objectLabel = typeof payload?.objectLabel === "string" ? payload.objectLabel : null;
+  const details = Array.isArray(payload?.details)
+    ? payload.details.filter((value): value is string => typeof value === "string")
+    : [];
+
+  switch (record.action) {
+    case activityLogActions.accountingAgentChargeCreated:
+      return `Added a billing charge${objectLabel ? ` for ${objectLabel}` : ""}.`;
+    case activityLogActions.accountingCreditMemoCreated:
+      return `Added a credit memo${objectLabel ? ` for ${objectLabel}` : ""}.`;
+    case activityLogActions.accountingPaymentReceived:
+      return `Recorded a payment${details[0] ? ` · ${details[0]}` : ""}.`;
+    case activityLogActions.accountingAgentCreditApplied:
+      return details[2] ? `Applied credit · ${details[2]}.` : "Applied a credit against an open charge.";
+    case activityLogActions.accountingPaymentMethodAdded:
+      return `Added a payment method${objectLabel ? ` · ${objectLabel}` : ""}.`;
+    case activityLogActions.accountingPaymentMethodUpdated:
+      return `Updated a payment method${objectLabel ? ` · ${objectLabel}` : ""}.`;
+    case activityLogActions.accountingPaymentMethodRemoved:
+      return `Removed a payment method${objectLabel ? ` · ${objectLabel}` : ""}.`;
+    case activityLogActions.accountingTransactionUpdated:
+      return `Updated a billing transaction${objectLabel ? ` · ${objectLabel}` : ""}.`;
+    default:
+      return billingActivityActionLabelMap[record.action as ActivityLogAction] ?? "Billing activity updated";
+  }
+}
+
+function mapBillingActivityItem(record: BillingAuditLogRecord): OfficeBillingActivityItem {
+  const payload = record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
+    ? (record.payload as Prisma.JsonObject)
+    : null;
+  const detailSummary = Array.isArray(payload?.details)
+    ? payload.details.filter((value): value is string => typeof value === "string").slice(0, 3)
+    : [];
+
+  return {
+    id: record.id,
+    actionLabel: billingActivityActionLabelMap[record.action as ActivityLogAction] ?? "Billing activity",
+    actorDisplayName: record.membership ? `${record.membership.user.firstName} ${record.membership.user.lastName}` : "System",
+    summary: getBillingActivitySummary(record),
+    objectLabel: typeof payload?.objectLabel === "string" ? payload.objectLabel : "Billing record",
+    href: typeof payload?.contextHref === "string" ? payload.contextHref : "/office/billing",
+    timestampLabel: formatDateTimeValue(record.createdAt),
+    detailSummary
+  };
+}
+
 export async function getOfficeAgentBillingSnapshot(input: GetOfficeAgentBillingSnapshotInput): Promise<OfficeAgentBillingSnapshot> {
   const [memberships, transactionOptions, recurringRules, paymentMethods, billingTransactions] = await Promise.all([
     getActiveAgentMemberships(input.organizationId, input.officeId),
@@ -1085,6 +1297,335 @@ export async function getOfficeAgentBillingSnapshot(input: GetOfficeAgentBilling
       label: `${transaction.referenceNumber ?? transaction.counterpartyName ?? transaction.id} · ${formatMembershipLabel(transaction.relatedMembership!)}`,
       remainingAmountLabel: formatCurrency(getSourceRemainingAmount(transaction))
     }))
+  };
+}
+
+export async function getOfficeBillingSnapshot(input: GetOfficeBillingSnapshotInput): Promise<OfficeBillingSnapshot | null> {
+  const membership = await prisma.membership.findFirst({
+    where: {
+      id: input.membershipId,
+      organizationId: input.organizationId
+    },
+    include: {
+      user: true
+    }
+  });
+
+  if (!membership) {
+    return null;
+  }
+
+  const now = new Date();
+  const recentPaymentsCutoff = new Date();
+  recentPaymentsCutoff.setDate(recentPaymentsCutoff.getDate() - 90);
+
+  const [billingTransactions, allPaymentMethods, recurringRules] = await Promise.all([
+    prisma.accountingTransaction.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...buildScopedOfficeWhere(input.officeId),
+        isAgentBilling: true,
+        relatedMembershipId: membership.id,
+        status: {
+          not: "void"
+        }
+      },
+      include: agentBillingTransactionInclude,
+      orderBy: [{ accountingDate: "desc" }, { createdAt: "desc" }],
+      take: 400
+    }),
+    prisma.agentPaymentMethod.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...buildScopedOfficeWhere(input.officeId),
+        membershipId: membership.id
+      },
+      include: {
+        membership: {
+          include: {
+            user: true
+          }
+        }
+      },
+      orderBy: [{ status: "asc" }, { isDefault: "desc" }, { createdAt: "desc" }]
+    }),
+    prisma.agentRecurringChargeRule.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...buildScopedOfficeWhere(input.officeId),
+        membershipId: membership.id,
+        isActive: true
+      },
+      include: {
+        membership: {
+          include: {
+            user: true
+          }
+        }
+      },
+      orderBy: [{ nextDueDate: "asc" }]
+    })
+  ]);
+
+  const ledgerRows = billingTransactions.map(mapLedgerRow);
+  const outstandingChargeTransactions = billingTransactions.filter(
+    (transaction) => transaction.type === "invoice" && getInvoiceOutstandingAmount(transaction).greaterThan(0) && !isFutureDated(transaction)
+  );
+  const pendingChargeTransactions = billingTransactions.filter(
+    (transaction) =>
+      transaction.type === "invoice" &&
+      getInvoiceOutstandingAmount(transaction).greaterThan(0) &&
+      (transaction.status === "draft" || isFutureDated(transaction))
+  );
+  const recentPaymentTransactions = billingTransactions
+    .filter((transaction) => transaction.type === "received_payment")
+    .slice(0, 8);
+  const creditTransactions = billingTransactions.filter((transaction) => transaction.type === "credit_memo");
+
+  const pendingRecurringRules = recurringRules.filter((rule) => {
+    if (rule.nextDueDate <= now) {
+      return false;
+    }
+
+    return !pendingChargeTransactions.some((transaction) => {
+      const transactionDueDate = transaction.dueDate ?? transaction.accountingDate;
+      return (
+        transaction.billingCategory === rule.chargeType &&
+        transaction.totalAmount.equals(rule.amount) &&
+        transactionDueDate.getUTCFullYear() === rule.nextDueDate.getUTCFullYear() &&
+        transactionDueDate.getUTCMonth() === rule.nextDueDate.getUTCMonth()
+      );
+    });
+  });
+
+  const outstandingBalance = outstandingChargeTransactions.reduce(
+    (sum, transaction) => sum.plus(getInvoiceOutstandingAmount(transaction)),
+    new Prisma.Decimal(0)
+  );
+  const pendingChargeTotal = pendingChargeTransactions.reduce(
+    (sum, transaction) => sum.plus(getInvoiceOutstandingAmount(transaction)),
+    new Prisma.Decimal(0)
+  ).plus(pendingRecurringRules.reduce((sum, rule) => sum.plus(rule.amount), new Prisma.Decimal(0)));
+  const recentPaymentsTotal = billingTransactions
+    .filter((transaction) => transaction.type === "received_payment" && transaction.accountingDate >= recentPaymentsCutoff)
+    .reduce((sum, transaction) => sum.plus(transaction.totalAmount), new Prisma.Decimal(0));
+  const creditBalance = creditTransactions.reduce(
+    (sum, transaction) => sum.plus(getSourceRemainingAmount(transaction)),
+    new Prisma.Decimal(0)
+  );
+  const paymentMethods = allPaymentMethods.filter((method) => method.status !== "removed");
+  const paymentMethodIssueCount = paymentMethods.filter((method) => method.status === "invalid" || method.status === "expired").length;
+
+  const statementGroups = new Map<
+    string,
+    {
+      totalCharges: Prisma.Decimal;
+      totalPayments: Prisma.Decimal;
+      totalCredits: Prisma.Decimal;
+      currentBalance: Prisma.Decimal;
+      entryCount: number;
+    }
+  >();
+
+  for (const transaction of billingTransactions) {
+    const key = buildStatementPeriodKey(transaction.accountingDate);
+    const current =
+      statementGroups.get(key) ??
+      {
+        totalCharges: new Prisma.Decimal(0),
+        totalPayments: new Prisma.Decimal(0),
+        totalCredits: new Prisma.Decimal(0),
+        currentBalance: new Prisma.Decimal(0),
+        entryCount: 0
+      };
+
+    current.entryCount += 1;
+
+    if (transaction.type === "invoice") {
+      current.totalCharges = current.totalCharges.plus(transaction.totalAmount);
+      current.currentBalance = current.currentBalance.plus(getInvoiceOutstandingAmount(transaction));
+    } else if (transaction.type === "received_payment") {
+      current.totalPayments = current.totalPayments.plus(transaction.totalAmount);
+    } else if (transaction.type === "credit_memo") {
+      current.totalCredits = current.totalCredits.plus(transaction.totalAmount);
+    }
+
+    statementGroups.set(key, current);
+  }
+
+  const generatedAtLabel = formatDateTimeValue(now);
+  const statements = Array.from(statementGroups.entries())
+    .sort(([left], [right]) => right.localeCompare(left))
+    .map(([key, value]) => ({
+      id: key,
+      periodLabel: formatStatementPeriodLabel(key),
+      generatedAtLabel,
+      totalChargesLabel: formatCurrency(value.totalCharges),
+      totalPaymentsLabel: formatCurrency(value.totalPayments),
+      creditsLabel: formatCurrency(value.totalCredits),
+      currentBalanceLabel: formatCurrency(value.currentBalance),
+      entryCount: value.entryCount
+    }));
+  const latestStatement = statements[0] ?? null;
+
+  const transactionIds = billingTransactions.map((transaction) => transaction.id);
+  const paymentMethodIds = allPaymentMethods.map((method) => method.id);
+  const auditScopeClauses: Prisma.AuditLogWhereInput[] = [];
+
+  if (transactionIds.length) {
+    auditScopeClauses.push({
+      entityType: "accounting_transaction",
+      entityId: {
+        in: transactionIds
+      },
+      action: {
+        in: [
+          activityLogActions.accountingAgentChargeCreated,
+          activityLogActions.accountingCreditMemoCreated,
+          activityLogActions.accountingPaymentReceived,
+          activityLogActions.accountingAgentCreditApplied,
+          activityLogActions.accountingTransactionUpdated
+        ]
+      }
+    });
+  }
+
+  if (paymentMethodIds.length) {
+    auditScopeClauses.push({
+      entityType: "agent_payment_method",
+      entityId: {
+        in: paymentMethodIds
+      },
+      action: {
+        in: [
+          activityLogActions.accountingPaymentMethodAdded,
+          activityLogActions.accountingPaymentMethodUpdated,
+          activityLogActions.accountingPaymentMethodRemoved
+        ]
+      }
+    });
+  }
+
+  const recentActivity = auditScopeClauses.length
+    ? (
+        await prisma.auditLog.findMany({
+          where: {
+            organizationId: input.organizationId,
+            OR: auditScopeClauses
+          },
+          include: {
+            membership: {
+              include: {
+                user: true
+              }
+            }
+          },
+          orderBy: [{ createdAt: "desc" }],
+          take: 10
+        })
+      ).map(mapBillingActivityItem)
+    : [];
+
+  const notices: OfficeBillingNotice[] = [];
+
+  if (outstandingBalance.greaterThan(0)) {
+    notices.push({
+      tone: "warning",
+      title: "Outstanding balance recorded",
+      description: `You currently have ${formatCurrency(outstandingBalance)} in open charges. Self-service checkout is not implemented; office accounting records payments manually.`
+    });
+  }
+
+  if (paymentMethodIssueCount > 0) {
+    notices.push({
+      tone: "danger",
+      title: "Payment method needs attention",
+      description: `${paymentMethodIssueCount} stored payment method${paymentMethodIssueCount === 1 ? "" : "s"} ${paymentMethodIssueCount === 1 ? "shows" : "show"} an invalid or expired state.`
+    });
+  } else if (paymentMethods.length === 0) {
+    notices.push({
+      tone: "neutral",
+      title: "No payment method on file",
+      description: "You can store a masked payment-method reference below, but no live card or ACH processing is connected in this MVP."
+    });
+  }
+
+  if (statements.length > 0) {
+    notices.push({
+      tone: "accent",
+      title: "Monthly statement summaries available",
+      description: "Statements are generated live from the current billing ledger below. Downloadable PDFs are not implemented yet."
+    });
+  }
+
+  return {
+    summary: {
+      outstandingBalanceLabel: formatCurrency(outstandingBalance),
+      openChargesCount: outstandingChargeTransactions.length,
+      pendingChargesLabel: formatCurrency(pendingChargeTotal),
+      pendingChargesCount: pendingChargeTransactions.length + pendingRecurringRules.length,
+      recentPaymentsLabel: formatCurrency(recentPaymentsTotal),
+      recentPaymentsWindowLabel: "Last 90 days",
+      creditBalanceLabel: formatCurrency(creditBalance),
+      creditBalanceCount: creditTransactions.filter((transaction) => getSourceRemainingAmount(transaction).greaterThan(0)).length,
+      paymentMethodIssueCount,
+      latestStatementPeriodLabel: latestStatement?.periodLabel ?? "No statements yet",
+      latestStatementBalanceLabel: latestStatement?.currentBalanceLabel ?? formatCurrency(0),
+      latestStatementGeneratedAtLabel: latestStatement?.generatedAtLabel ?? "Not available"
+    },
+    notices,
+    outstandingChargeRows: outstandingChargeTransactions.map(mapLedgerRow),
+    pendingChargeRows: pendingChargeTransactions.map(mapLedgerRow),
+    upcomingChargeRows: [
+      ...pendingChargeTransactions.map((transaction) => ({
+        id: transaction.id,
+        dueDate: formatDateValue(transaction.dueDate ?? transaction.accountingDate),
+        sourceType: "Pending invoice" as const,
+        description: transaction.memo ?? transaction.billingCategory ?? accountingTypeLabelMap[transaction.type],
+        amountLabel: formatCurrency(getInvoiceOutstandingAmount(transaction)),
+        status: formatLedgerStatusLabel(transaction),
+        linkedTransactionLabel: transaction.relatedTransaction
+          ? `${transaction.relatedTransaction.title} · ${transaction.relatedTransaction.address}, ${transaction.relatedTransaction.city}`
+          : "—",
+        linkedTransactionHref: transaction.relatedTransaction ? `/office/transactions/${transaction.relatedTransaction.id}` : null
+      })),
+      ...pendingRecurringRules.map((rule) => ({
+        id: rule.id,
+        dueDate: formatDateValue(rule.nextDueDate),
+        sourceType: "Recurring rule" as const,
+        description: rule.description ?? rule.name,
+        amountLabel: formatCurrency(rule.amount),
+        status: "Scheduled",
+        linkedTransactionLabel: "Generated from recurring billing rule",
+        linkedTransactionHref: null
+      }))
+    ],
+    ledgerRows,
+    recentPaymentRows: recentPaymentTransactions.map(mapLedgerRow),
+    creditRows: creditTransactions.map(mapLedgerRow),
+    statements,
+    latestStatement,
+    paymentMethods: paymentMethods.map((method) => ({
+      id: method.id,
+      membershipId: method.membershipId,
+      memberLabel: formatMembershipLabel(method.membership),
+      type: agentPaymentMethodTypeLabelMap[method.type],
+      typeValue: method.type,
+      label: method.label,
+      provider: method.provider,
+      maskedReference: method.last4 ? `•••• ${method.last4}` : "Configured",
+      last4: method.last4 ?? "",
+      isDefault: method.isDefault,
+      autoPayEnabled: method.autoPayEnabled,
+      status: agentPaymentMethodStatusLabelMap[method.status],
+      statusValue: method.status
+    })),
+    recentActivity,
+    limitations: [
+      "Self-service checkout and ACH capture are not implemented. Payments are recorded through office accounting workflows.",
+      "Statements below are live on-screen monthly summaries. Downloadable PDFs are not available in this MVP.",
+      "Payment methods store only masked references and auto-pay flags. Raw card or bank credentials are never stored here."
+    ]
   };
 }
 
@@ -1509,7 +2050,7 @@ export async function createAgentPaymentMethod(input: CreateAgentPaymentMethodIn
       payload: {
         officeId: paymentMethod.officeId,
         objectLabel: `${formatMembershipLabel(membership)} · ${paymentMethod.label}`,
-        contextHref: "/office/accounting#agent-billing",
+        contextHref: input.activityContextHref ?? "/office/accounting#agent-billing",
         details: [
           `Type: ${agentPaymentMethodTypeLabelMap[paymentMethod.type]}`,
           `Provider: ${paymentMethod.provider}`,
@@ -1588,7 +2129,7 @@ export async function updateAgentPaymentMethod(input: UpdateAgentPaymentMethodIn
       payload: {
         officeId: saved.officeId,
         objectLabel: `${formatMembershipLabel(existing.membership)} · ${saved.label}`,
-        contextHref: "/office/accounting#agent-billing",
+        contextHref: input.activityContextHref ?? "/office/accounting#agent-billing",
         details: [
           `Type: ${agentPaymentMethodTypeLabelMap[saved.type]}`,
           `Status: ${agentPaymentMethodStatusLabelMap[saved.status]}`,
@@ -1598,6 +2139,52 @@ export async function updateAgentPaymentMethod(input: UpdateAgentPaymentMethodIn
     });
 
     return saved.id;
+  });
+}
+
+export async function createOfficeBillingPaymentMethod(input: CreateOfficeBillingPaymentMethodInput) {
+  return createAgentPaymentMethod({
+    organizationId: input.organizationId,
+    officeId: input.officeId,
+    membershipId: input.membershipId,
+    type: input.type,
+    label: input.label,
+    provider: input.provider,
+    last4: input.last4,
+    isDefault: input.isDefault,
+    autoPayEnabled: input.autoPayEnabled,
+    actorMembershipId: input.actorMembershipId,
+    activityContextHref: "/office/billing"
+  });
+}
+
+export async function updateOfficeBillingPaymentMethod(input: UpdateOfficeBillingPaymentMethodInput) {
+  const existing = await prisma.agentPaymentMethod.findFirst({
+    where: {
+      id: input.paymentMethodId,
+      organizationId: input.organizationId,
+      membershipId: input.membershipId
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  return updateAgentPaymentMethod({
+    organizationId: input.organizationId,
+    paymentMethodId: existing.id,
+    officeId: input.officeId ?? existing.officeId,
+    membershipId: input.membershipId,
+    type: input.type,
+    label: input.label,
+    provider: input.provider,
+    last4: input.last4,
+    isDefault: input.isDefault,
+    autoPayEnabled: input.autoPayEnabled,
+    status: input.remove ? "removed" : undefined,
+    actorMembershipId: input.actorMembershipId,
+    activityContextHref: "/office/billing"
   });
 }
 

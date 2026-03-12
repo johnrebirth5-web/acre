@@ -22,6 +22,12 @@
   - truthful security section for current local auth limitations
   - lightweight personal summary built from real tasks, transactions, and notifications
   - account-related activity log coverage for profile and preference changes
+- Office Billing / My Billing MVP:
+  - real `/office/billing`
+  - self-scoped billing summary built from accounting + agent billing records
+  - outstanding charges, pending charges, recent payments, credit balance, and live monthly statement summaries
+  - self-service payment-method references for the current membership only
+  - truthful limitations around live checkout, ACH, and statement PDFs
 - Company Library / Internal Document Library MVP:
   - real `/office/library`
   - `LibraryFolder` / `LibraryDocument`
@@ -64,7 +70,7 @@
 - strengthen storage strategy beyond local filesystem MVP
 - expand Activity Log coverage for newer modules
 - improve office-level admin automation and checklist application behavior
-- strengthen statement/export/report outputs across accounting, commissions, and billing
+- strengthen durable statement/export/report outputs across accounting, commissions, and billing
 - continue filling any remaining module-level specs before future large feature prompts depend on chat history
 
 ## Key product and engineering decisions

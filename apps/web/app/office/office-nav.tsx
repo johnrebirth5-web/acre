@@ -49,7 +49,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Notifications", href: "/office/notifications" },
       { label: "Account", href: "/office/account" },
-      { label: "Billing" },
+      { label: "Billing", href: "/office/billing" },
       { label: "Add-ons" },
       { label: "Sign out" }
     ]

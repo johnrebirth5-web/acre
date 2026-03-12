@@ -18,6 +18,11 @@ Provide a durable Back Office accounting foundation focused on transaction-side 
   - payment methods foundation
   - collections / payments
   - statement summary
+- self-service billing exists:
+  - `/office/billing`
+  - current-membership summary / ledger / statement list
+  - masked payment-method reference maintenance
+  - no live gateway or ACH execution
 - commission management exists inside accounting
 
 ## Current gaps
