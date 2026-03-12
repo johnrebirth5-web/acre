@@ -102,7 +102,7 @@ export default async function OfficeDashboardPage() {
                 ))}
               </div>
               <div className="bm-chart-line-shell">
-                <svg aria-hidden="true" className="bm-chart-series" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
+                <svg aria-hidden="true" className="bm-chart-series" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} width={chartWidth}>
                   <path d={chartPath} />
                   {snapshot.chart.points.map((point, index) => {
                     const x = snapshot.chart.points.length > 1 ? (index / (snapshot.chart.points.length - 1)) * chartWidth : chartWidth / 2;
