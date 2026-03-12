@@ -293,6 +293,8 @@ export type { SeededMembershipSnapshot, SeededWorkspaceSnapshot } from "./bootst
 export type { OfficeDashboardBusinessSnapshot, OfficeDashboardChartPoint, OfficeDashboardRecentTransaction, OfficeDashboardStatusMetric } from "./dashboard";
 export type {
   CalculateTransactionCommissionInput,
+  OfficeCommissionAssignmentSourceType,
+  OfficeCommissionAssignmentTargetType,
   GenerateCommissionStatementSnapshotInput,
   GetOfficeCommissionManagementSnapshotInput,
   OfficeAgentCommissionSummary,
@@ -305,6 +307,7 @@ export type {
   OfficeCommissionPlanOption,
   OfficeCommissionPlanRecord,
   OfficeCommissionPlanRuleRecord,
+  OfficeCommissionTeamOption,
   OfficeCommissionStatementLine,
   OfficeCommissionStatementSnapshot,
   OfficeTransactionCommissionSnapshot,

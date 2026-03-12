@@ -56,10 +56,20 @@ export type OfficeCommissionPlanOption = {
   label: string;
 };
 
+export type OfficeCommissionTeamOption = {
+  id: string;
+  label: string;
+};
+
+export type OfficeCommissionAssignmentTargetType = "agent" | "team";
+export type OfficeCommissionAssignmentSourceType = "membership" | "team";
+
 export type OfficeCommissionAssignmentRecord = {
   id: string;
   membershipId: string;
-  memberLabel: string;
+  teamId: string;
+  targetType: OfficeCommissionAssignmentTargetType;
+  targetLabel: string;
   commissionPlanId: string;
   commissionPlanLabel: string;
   effectiveFrom: string;
@@ -128,12 +138,14 @@ export type OfficeCommissionManagementSnapshot = {
   overview: OfficeCommissionManagementOverview;
   filters: {
     membershipId: string;
+    teamId: string;
     commissionPlanId: string;
     status: string;
     transactionId: string;
     startDate: string;
     endDate: string;
     memberOptions: Array<{ id: string; label: string }>;
+    teamOptions: OfficeCommissionTeamOption[];
     commissionPlanOptions: OfficeCommissionPlanOption[];
     transactionOptions: Array<{ id: string; label: string }>;
   };
@@ -148,6 +160,7 @@ export type OfficeTransactionCommissionSnapshot = {
   planLabel: string;
   planId: string;
   planSourceLabel: string;
+  planSourceValue: OfficeCommissionAssignmentSourceType | "manual";
   availablePlans: OfficeCommissionPlanOption[];
   calculations: OfficeCommissionCalculationRow[];
   summary: {
@@ -164,6 +177,7 @@ export type OfficeTransactionCommissionSnapshot = {
 export type OfficeAgentCommissionSummary = {
   activePlanId: string;
   activePlanLabel: string;
+  activePlanSourceLabel: string;
   calculatedCount: number;
   statementReadyLabel: string;
   payableLabel: string;
@@ -175,6 +189,7 @@ export type GetOfficeCommissionManagementSnapshotInput = {
   organizationId: string;
   officeId?: string | null;
   membershipId?: string;
+  teamId?: string;
   commissionPlanId?: string;
   status?: string;
   transactionId?: string;
@@ -213,7 +228,8 @@ export type SaveCommissionPlanInput = {
 export type SaveCommissionPlanAssignmentInput = {
   organizationId: string;
   officeId?: string | null;
-  membershipId: string;
+  membershipId?: string;
+  teamId?: string;
   commissionPlanId: string;
   effectiveFrom: string;
   effectiveTo?: string;
@@ -253,6 +269,25 @@ type CommissionPlanWithRules = Prisma.CommissionPlanGetPayload<{
 }>;
 
 type ScopedPrismaClient = Prisma.TransactionClient | typeof prisma;
+
+type ResolvedCommissionPlanAssignment = Prisma.CommissionPlanAssignmentGetPayload<{
+  include: {
+    commissionPlan: {
+      include: {
+        rules: true;
+      };
+    };
+    membership: {
+      include: {
+        user: true;
+      };
+    };
+    team: true;
+  };
+}> & {
+  sourceType: OfficeCommissionAssignmentSourceType;
+  sourceLabel: string;
+};
 
 const commissionCalculationStatusLabelMap: Record<CommissionCalculationStatus, OfficeCommissionCalculationStatusLabel> = {
   draft: "Draft",
@@ -359,6 +394,44 @@ function buildTransactionLabel(transaction: {
   state: string;
 }) {
   return `${transaction.title} · ${transaction.address}, ${transaction.city}, ${transaction.state}`;
+}
+
+function getAssignmentTargetLabel(assignment: {
+  membership?: { user: { firstName: string; lastName: string } } | null;
+  team?: { name: string } | null;
+}) {
+  if (assignment.membership) {
+    return `${assignment.membership.user.firstName} ${assignment.membership.user.lastName}`;
+  }
+
+  if (assignment.team) {
+    return assignment.team.name;
+  }
+
+  return "Unassigned target";
+}
+
+function compareAssignmentPriority(
+  left: { officeId: string | null; effectiveFrom: Date; updatedAt: Date; createdAt: Date },
+  right: { officeId: string | null; effectiveFrom: Date; updatedAt: Date; createdAt: Date },
+  officeId?: string | null
+) {
+  const leftOfficeScore = left.officeId === officeId ? 2 : left.officeId ? 1 : 0;
+  const rightOfficeScore = right.officeId === officeId ? 2 : right.officeId ? 1 : 0;
+
+  if (leftOfficeScore !== rightOfficeScore) {
+    return rightOfficeScore - leftOfficeScore;
+  }
+
+  if (left.effectiveFrom.getTime() !== right.effectiveFrom.getTime()) {
+    return right.effectiveFrom.getTime() - left.effectiveFrom.getTime();
+  }
+
+  if (left.updatedAt.getTime() !== right.updatedAt.getTime()) {
+    return right.updatedAt.getTime() - left.updatedAt.getTime();
+  }
+
+  return right.createdAt.getTime() - left.createdAt.getTime();
 }
 
 function parseCommissionCalculationStatus(value: string | undefined | null): CommissionCalculationStatus | null {
@@ -487,6 +560,33 @@ function mapCommissionCalculationRow(calculation: Prisma.CommissionCalculationGe
   };
 }
 
+function mapCommissionAssignmentRecord(
+  assignment: Prisma.CommissionPlanAssignmentGetPayload<{
+    include: {
+      membership: { include: { user: true } };
+      team: true;
+      commissionPlan: true;
+    };
+  }>
+): OfficeCommissionAssignmentRecord {
+  const targetType: OfficeCommissionAssignmentTargetType = assignment.membershipId ? "agent" : "team";
+
+  return {
+    id: assignment.id,
+    membershipId: assignment.membershipId ?? "",
+    teamId: assignment.teamId ?? "",
+    targetType,
+    targetLabel: getAssignmentTargetLabel({
+      membership: assignment.membership,
+      team: assignment.team
+    }),
+    commissionPlanId: assignment.commissionPlanId,
+    commissionPlanLabel: assignment.commissionPlan.name,
+    effectiveFrom: formatDateValue(assignment.effectiveFrom),
+    effectiveTo: formatDateValue(assignment.effectiveTo)
+  };
+}
+
 async function listCommissionPlanOptions(organizationId: string, officeId?: string | null) {
   const plans = await prisma.commissionPlan.findMany({
     where: {
@@ -515,29 +615,39 @@ async function resolveActiveCommissionPlanAssignment(
     membershipId: string;
     effectiveAt?: Date | null;
   }
-) {
+) : Promise<ResolvedCommissionPlanAssignment | null> {
   const effectiveAt = input.effectiveAt ?? new Date();
-  const assignments = await tx.commissionPlanAssignment.findMany({
+  const activeAssignmentWindow: Prisma.CommissionPlanAssignmentWhereInput = {
+    effectiveFrom: {
+      lte: effectiveAt
+    },
+    AND: [
+      {
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveAt } }]
+      },
+      ...(input.officeId
+        ? [
+            {
+              OR: [{ officeId: input.officeId }, { officeId: null }]
+            }
+          ]
+        : [])
+    ]
+  };
+
+  const directAssignments = await tx.commissionPlanAssignment.findMany({
     where: {
       organizationId: input.organizationId,
       membershipId: input.membershipId,
-      effectiveFrom: {
-        lte: effectiveAt
-      },
-      AND: [
-        {
-          OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveAt } }]
-        },
-        ...(input.officeId
-          ? [
-              {
-                OR: [{ officeId: input.officeId }, { officeId: null }]
-              }
-            ]
-          : [])
-      ]
+      ...activeAssignmentWindow
     },
     include: {
+      membership: {
+        include: {
+          user: true
+        }
+      },
+      team: true,
       commissionPlan: {
         include: {
           rules: {
@@ -551,22 +661,73 @@ async function resolveActiveCommissionPlanAssignment(
     }
   });
 
-  if (assignments.length === 0) {
+  if (directAssignments.length > 0) {
+    directAssignments.sort((left, right) => compareAssignmentPriority(left, right, input.officeId));
+
+    return {
+      ...directAssignments[0],
+      sourceType: "membership",
+      sourceLabel: "Assigned directly to agent"
+    };
+  }
+
+  const teamMemberships = await tx.teamMembership.findMany({
+    where: {
+      organizationId: input.organizationId,
+      membershipId: input.membershipId,
+      ...(input.officeId ? { OR: [{ officeId: input.officeId }, { officeId: null }] } : {}),
+      team: {
+        isActive: true
+      }
+    },
+    select: {
+      teamId: true
+    }
+  });
+
+  if (teamMemberships.length === 0) {
     return null;
   }
 
-  assignments.sort((left, right) => {
-    const leftOfficeScore = left.officeId === input.officeId ? 2 : left.officeId ? 1 : 0;
-    const rightOfficeScore = right.officeId === input.officeId ? 2 : right.officeId ? 1 : 0;
-
-    if (leftOfficeScore !== rightOfficeScore) {
-      return rightOfficeScore - leftOfficeScore;
+  const teamAssignments = await tx.commissionPlanAssignment.findMany({
+    where: {
+      organizationId: input.organizationId,
+      teamId: {
+        in: teamMemberships.map((teamMembership) => teamMembership.teamId)
+      },
+      ...activeAssignmentWindow
+    },
+    include: {
+      membership: {
+        include: {
+          user: true
+        }
+      },
+      team: true,
+      commissionPlan: {
+        include: {
+          rules: {
+            where: {
+              isActive: true
+            },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
+          }
+        }
+      }
     }
-
-    return right.effectiveFrom.getTime() - left.effectiveFrom.getTime();
   });
 
-  return assignments[0];
+  if (teamAssignments.length === 0) {
+    return null;
+  }
+
+  teamAssignments.sort((left, right) => compareAssignmentPriority(left, right, input.officeId));
+
+  return {
+    ...teamAssignments[0],
+    sourceType: "team",
+    sourceLabel: `Assigned via team ${teamAssignments[0].team?.name ?? ""}`.trim()
+  };
 }
 
 function computeRuleAmount(
@@ -893,17 +1054,38 @@ export async function assignCommissionPlanToMembership(input: SaveCommissionPlan
   }
 
   return prisma.$transaction(async (tx) => {
-    const [membership, plan] = await Promise.all([
-      tx.membership.findFirst({
-        where: {
-          id: input.membershipId,
-          organizationId: input.organizationId
-        },
-        include: {
-          user: true,
-          agentProfile: true
-        }
-      }),
+    const normalizedMembershipId = input.membershipId?.trim() || null;
+    const normalizedTeamId = input.teamId?.trim() || null;
+
+    if (!normalizedMembershipId && !normalizedTeamId) {
+      throw new Error("Select an agent or a team for the commission assignment.");
+    }
+
+    if (normalizedMembershipId && normalizedTeamId) {
+      throw new Error("Commission assignments can target either an agent or a team, not both.");
+    }
+
+    const [membership, team, plan] = await Promise.all([
+      normalizedMembershipId
+        ? tx.membership.findFirst({
+            where: {
+              id: normalizedMembershipId,
+              organizationId: input.organizationId
+            },
+            include: {
+              user: true,
+              agentProfile: true
+            }
+          })
+        : Promise.resolve(null),
+      normalizedTeamId
+        ? tx.team.findFirst({
+            where: {
+              id: normalizedTeamId,
+              organizationId: input.organizationId
+            }
+          })
+        : Promise.resolve(null),
       tx.commissionPlan.findFirst({
         where: {
           id: input.commissionPlanId,
@@ -912,8 +1094,12 @@ export async function assignCommissionPlanToMembership(input: SaveCommissionPlan
       })
     ]);
 
-    if (!membership) {
+    if (normalizedMembershipId && !membership) {
       throw new Error("Selected agent was not found.");
+    }
+
+    if (normalizedTeamId && !team) {
+      throw new Error("Selected team was not found.");
     }
 
     if (!plan) {
@@ -923,7 +1109,7 @@ export async function assignCommissionPlanToMembership(input: SaveCommissionPlan
     await tx.commissionPlanAssignment.updateMany({
       where: {
         organizationId: input.organizationId,
-        membershipId: membership.id,
+        ...(membership ? { membershipId: membership.id } : { teamId: team!.id }),
         OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveFrom } }]
       },
       data: {
@@ -934,28 +1120,31 @@ export async function assignCommissionPlanToMembership(input: SaveCommissionPlan
     const assignment = await tx.commissionPlanAssignment.create({
       data: {
         organizationId: input.organizationId,
-        officeId: input.officeId ?? membership.officeId ?? null,
-        membershipId: membership.id,
+        officeId: input.officeId ?? membership?.officeId ?? team?.officeId ?? null,
+        membershipId: membership?.id ?? null,
+        teamId: team?.id ?? null,
         commissionPlanId: plan.id,
         effectiveFrom,
         effectiveTo
       }
     });
 
-    await tx.agentProfile.upsert({
-      where: {
-        membershipId: membership.id
-      },
-      update: {
-        commissionPlanName: plan.name
-      },
-      create: {
-        organizationId: input.organizationId,
-        officeId: input.officeId ?? membership.officeId ?? null,
-        membershipId: membership.id,
-        commissionPlanName: plan.name
-      }
-    });
+    if (membership) {
+      await tx.agentProfile.upsert({
+        where: {
+          membershipId: membership.id
+        },
+        update: {
+          commissionPlanName: plan.name
+        },
+        create: {
+          organizationId: input.organizationId,
+          officeId: input.officeId ?? membership.officeId ?? null,
+          membershipId: membership.id,
+          commissionPlanName: plan.name
+        }
+      });
+    }
 
     await recordActivityLogEvent(tx, {
       organizationId: input.organizationId,
@@ -964,12 +1153,12 @@ export async function assignCommissionPlanToMembership(input: SaveCommissionPlan
       entityId: assignment.id,
       action: activityLogActions.commissionPlanAssigned,
       payload: {
-        officeId: input.officeId ?? membership.officeId ?? null,
-        objectLabel: `${plan.name} · ${membership.user.firstName} ${membership.user.lastName}`,
-        contextHref: `/office/agents/${membership.id}`,
+        officeId: input.officeId ?? membership?.officeId ?? team?.officeId ?? null,
+        objectLabel: `${plan.name} · ${membership ? `${membership.user.firstName} ${membership.user.lastName}` : team?.name ?? "Assignment target"}`,
+        contextHref: membership ? `/office/agents/${membership.id}` : "/office/accounting#commissions",
         details: [
           `Plan: ${plan.name}`,
-          `Agent: ${membership.user.firstName} ${membership.user.lastName}`,
+          `${membership ? "Agent" : "Team"}: ${membership ? `${membership.user.firstName} ${membership.user.lastName}` : team?.name ?? "—"}`,
           `Effective from: ${formatDateValue(effectiveFrom)}`
         ]
       }
@@ -1374,6 +1563,30 @@ export async function getOfficeCommissionManagementSnapshot(
     calculationWhere.membershipId = input.membershipId;
   }
 
+  if (input.teamId?.trim()) {
+    const membershipFilterId = input.membershipId?.trim() || "";
+    const teamMemberships = await prisma.teamMembership.findMany({
+      where: {
+        organizationId: input.organizationId,
+        teamId: input.teamId.trim(),
+        ...(input.officeId ? { OR: [{ officeId: input.officeId }, { officeId: null }] } : {})
+      },
+      select: {
+        membershipId: true
+      }
+    });
+
+    const teamMembershipIds = teamMemberships.map((row) => row.membershipId);
+    const filteredMembershipIds =
+      membershipFilterId
+        ? teamMembershipIds.filter((membershipId) => membershipId === membershipFilterId)
+        : teamMembershipIds;
+
+    calculationWhere.membershipId = {
+      in: filteredMembershipIds.length > 0 ? filteredMembershipIds : ["__no_membership__"]
+    };
+  }
+
   const parsedStatus = parseCommissionCalculationStatus(input.status);
   if (parsedStatus) {
     calculationWhere.status = parsedStatus;
@@ -1396,7 +1609,33 @@ export async function getOfficeCommissionManagementSnapshot(
     };
   }
 
-  const [plans, assignments, calculations, memberships, transactions] = await Promise.all([
+  const assignmentWhere: Prisma.CommissionPlanAssignmentWhereInput = {
+    organizationId: input.organizationId,
+    AND: [
+      ...(input.officeId
+        ? [
+            {
+              OR: [{ officeId: input.officeId }, { officeId: null }]
+            }
+          ]
+        : []),
+      ...(
+        input.membershipId?.trim() && input.teamId?.trim()
+          ? [
+              {
+                OR: [{ membershipId: input.membershipId.trim() }, { teamId: input.teamId.trim() }]
+              }
+            ]
+          : input.membershipId?.trim()
+            ? [{ membershipId: input.membershipId.trim() }]
+            : input.teamId?.trim()
+              ? [{ teamId: input.teamId.trim() }]
+              : []
+      )
+    ]
+  };
+
+  const [plans, assignments, calculations, memberships, teams, transactions] = await Promise.all([
     prisma.commissionPlan.findMany({
       where: {
         organizationId: input.organizationId,
@@ -1411,16 +1650,14 @@ export async function getOfficeCommissionManagementSnapshot(
       orderBy: [{ isActive: "desc" }, { name: "asc" }]
     }),
     prisma.commissionPlanAssignment.findMany({
-      where: {
-        organizationId: input.organizationId,
-        ...(input.officeId ? { OR: [{ officeId: input.officeId }, { officeId: null }] } : {})
-      },
+      where: assignmentWhere,
       include: {
         membership: {
           include: {
             user: true
           }
         },
+        team: true,
         commissionPlan: true
       },
       orderBy: [{ effectiveFrom: "desc" }, { createdAt: "desc" }],
@@ -1451,6 +1688,17 @@ export async function getOfficeCommissionManagementSnapshot(
         user: true
       },
       orderBy: [{ user: { firstName: "asc" } }]
+    }),
+    prisma.team.findMany({
+      where: {
+        organizationId: input.organizationId,
+        ...(input.officeId ? { OR: [{ officeId: input.officeId }, { officeId: null }] } : {})
+      },
+      orderBy: [{ isActive: "desc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true
+      }
     }),
     prisma.transaction.findMany({
       where: {
@@ -1491,6 +1739,7 @@ export async function getOfficeCommissionManagementSnapshot(
     },
     filters: {
       membershipId: input.membershipId ?? "",
+      teamId: input.teamId ?? "",
       commissionPlanId: input.commissionPlanId ?? "",
       status: parsedStatus ?? "",
       transactionId: input.transactionId ?? "",
@@ -1499,6 +1748,10 @@ export async function getOfficeCommissionManagementSnapshot(
       memberOptions: memberships.map((membership) => ({
         id: membership.id,
         label: `${membership.user.firstName} ${membership.user.lastName}`
+      })),
+      teamOptions: teams.map((team) => ({
+        id: team.id,
+        label: team.name
       })),
       commissionPlanOptions: plans.map((plan) => ({
         id: plan.id,
@@ -1520,15 +1773,7 @@ export async function getOfficeCommissionManagementSnapshot(
       assignmentCount: plan.assignments.length,
       rules: plan.rules.map(mapCommissionRule)
     })),
-    assignments: assignments.map((assignment) => ({
-      id: assignment.id,
-      membershipId: assignment.membershipId,
-      memberLabel: `${assignment.membership.user.firstName} ${assignment.membership.user.lastName}`,
-      commissionPlanId: assignment.commissionPlanId,
-      commissionPlanLabel: assignment.commissionPlan.name,
-      effectiveFrom: formatDateValue(assignment.effectiveFrom),
-      effectiveTo: formatDateValue(assignment.effectiveTo)
-    })),
+    assignments: assignments.map(mapCommissionAssignmentRecord),
     calculations: calculations.map(mapCommissionCalculationRow),
     statement
   };
@@ -1601,7 +1846,8 @@ export async function getTransactionCommissionSnapshot(
     transactionId: transaction.id,
     planLabel,
     planId: calculations[0]?.commissionPlanId ?? assignment?.commissionPlanId ?? "",
-    planSourceLabel: calculations[0]?.commissionPlanId ? "Used for latest calculation" : assignment ? "Assigned to transaction owner" : "Manual / no plan assignment",
+    planSourceLabel: calculations[0]?.commissionPlanId ? "Used for latest calculation" : assignment?.sourceLabel ?? "Manual / no plan assignment",
+    planSourceValue: calculations[0]?.commissionPlanId ? "manual" : assignment?.sourceType ?? "manual",
     availablePlans: plans,
     calculations: calculations.map(mapCommissionCalculationRow),
     summary: {
@@ -1635,6 +1881,7 @@ export async function getAgentCommissionSummary(input: {
     return {
       activePlanId: "",
       activePlanLabel: "",
+      activePlanSourceLabel: "",
       calculatedCount: 0,
       statementReadyLabel: formatCurrency(0),
       payableLabel: formatCurrency(0),
@@ -1690,6 +1937,7 @@ export async function getAgentCommissionSummary(input: {
   return {
     activePlanId: assignment?.commissionPlanId ?? "",
     activePlanLabel: assignment?.commissionPlan.name ?? membership.agentProfile?.commissionPlanName ?? "",
+    activePlanSourceLabel: assignment?.sourceLabel ?? "",
     calculatedCount: totalCount,
     statementReadyLabel: formatCurrency(getStatusTotal("statement_ready")),
     payableLabel: formatCurrency(getStatusTotal("payable")),

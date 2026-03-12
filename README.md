@@ -222,6 +222,10 @@
   - 当前 commission management 已支持：
     - commission plan create / update
     - membership / agent plan assignment
+    - team-level plan assignment
+    - precedence rule:
+      - direct agent assignment overrides team assignment
+      - team assignment applies when no active direct assignment exists
     - transaction-level persisted commission calculations
     - plan rule types:
       - `base split`
@@ -238,9 +242,11 @@
     - accounting 内的 commission management 区块：
       - plans
       - assignments
+      - team filter
       - calculated rows / queue
       - statement snapshot generation
     - agent profile 的 commission summary
+      - active plan source visibility
   - 当前 commission workflow 状态包括：
     - `draft`
     - `calculated`

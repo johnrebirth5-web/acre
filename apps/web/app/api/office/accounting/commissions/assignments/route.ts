@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     const assignmentId = await assignCommissionPlanToMembership({
       organizationId: context.currentOrganization.id,
       officeId: context.currentOffice?.id ?? null,
-      membershipId: typeof body?.membershipId === "string" ? body.membershipId : "",
+      membershipId: typeof body?.membershipId === "string" ? body.membershipId : undefined,
+      teamId: typeof body?.teamId === "string" ? body.teamId : undefined,
       commissionPlanId: typeof body?.commissionPlanId === "string" ? body.commissionPlanId : "",
       effectiveFrom: typeof body?.effectiveFrom === "string" ? body.effectiveFrom : "",
       effectiveTo: typeof body?.effectiveTo === "string" ? body.effectiveTo : "",

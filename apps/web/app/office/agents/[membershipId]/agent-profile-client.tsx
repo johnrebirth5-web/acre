@@ -568,6 +568,10 @@ export function AgentProfileClient({
           <StatCard hint="rows already marked paid in the commission workflow" label="Paid" value={snapshot.commissions.paidLabel} />
         </div>
 
+        {snapshot.commissions.activePlanSourceLabel ? (
+          <p className="office-form-helper">Plan source: {snapshot.commissions.activePlanSourceLabel}</p>
+        ) : null}
+
         <div className="office-note-list">
           {snapshot.commissions.recentCalculations.map((calculation) => (
             <article className="office-note-item" key={calculation.id}>

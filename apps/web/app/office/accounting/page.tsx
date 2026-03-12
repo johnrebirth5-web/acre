@@ -31,6 +31,7 @@ type OfficeAccountingPageProps = {
     billingTransactionId?: string;
     billingQ?: string;
     commissionMembershipId?: string;
+    commissionTeamId?: string;
     commissionPlanId?: string;
     commissionStatus?: string;
     commissionTransactionId?: string;
@@ -76,6 +77,7 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
           organizationId: context.currentOrganization.id,
           officeId: context.currentOffice?.id ?? null,
           membershipId: searchParams.commissionMembershipId,
+          teamId: searchParams.commissionTeamId,
           commissionPlanId: searchParams.commissionPlanId,
           status: searchParams.commissionStatus,
           transactionId: searchParams.commissionTransactionId,

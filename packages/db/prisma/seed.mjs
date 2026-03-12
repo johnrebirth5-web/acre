@@ -3251,8 +3251,8 @@ async function main() {
       effectiveTo: null
     },
     {
-      id: "seed-commission-assignment-naomi",
-      membershipEmail: "naomi@acre.com",
+      id: "seed-commission-assignment-ops-team",
+      teamId: "seed-team-operations",
       commissionPlanId: "seed-commission-plan-senior",
       effectiveFrom: new Date("2025-01-01T00:00:00.000Z"),
       effectiveTo: null
@@ -3260,9 +3260,10 @@ async function main() {
   ];
 
   for (const assignment of seededCommissionAssignments) {
-    const membership = membershipByEmail.get(assignment.membershipEmail) ?? null;
+    const membership = assignment.membershipEmail ? membershipByEmail.get(assignment.membershipEmail) ?? null : null;
+    const teamId = assignment.teamId ?? null;
 
-    if (!membership) {
+    if (!membership && !teamId) {
       continue;
     }
 
@@ -3271,7 +3272,8 @@ async function main() {
       update: {
         organizationId: organization.id,
         officeId: office.id,
-        membershipId: membership.id,
+        membershipId: membership?.id ?? null,
+        teamId,
         commissionPlanId: assignment.commissionPlanId,
         effectiveFrom: assignment.effectiveFrom,
         effectiveTo: assignment.effectiveTo
@@ -3280,7 +3282,8 @@ async function main() {
         id: assignment.id,
         organizationId: organization.id,
         officeId: office.id,
-        membershipId: membership.id,
+        membershipId: membership?.id ?? null,
+        teamId,
         commissionPlanId: assignment.commissionPlanId,
         effectiveFrom: assignment.effectiveFrom,
         effectiveTo: assignment.effectiveTo

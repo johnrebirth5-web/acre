@@ -1288,6 +1288,7 @@ model Team {
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office         Office?          @relation(fields: [officeId], references: [id], onDelete: SetNull)
   memberships    TeamMembership[]
+  commissionPlanAssignments CommissionPlanAssignment[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, officeId, isActive])
@@ -1482,7 +1483,8 @@ model CommissionPlanAssignment {
   id               String         @id @default(cuid())
   organizationId   String
   officeId         String?
-  membershipId     String
+  membershipId     String?
+  teamId           String?
   commissionPlanId String
   effectiveFrom    DateTime
   effectiveTo      DateTime?
@@ -1490,10 +1492,12 @@ model CommissionPlanAssignment {
   updatedAt        DateTime       @updatedAt
   organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office           Office?        @relation(fields: [officeId], references: [id], onDelete: SetNull)
-  membership       Membership     @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  membership       Membership?    @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  team             Team?          @relation(fields: [teamId], references: [id], onDelete: Cascade)
   commissionPlan   CommissionPlan @relation(fields: [commissionPlanId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, officeId, membershipId])
+  @@index([organizationId, officeId, teamId])
   @@index([organizationId, commissionPlanId])
   @@index([organizationId, effectiveFrom, effectiveTo])
 }

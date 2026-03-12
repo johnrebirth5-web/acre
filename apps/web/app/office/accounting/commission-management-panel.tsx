@@ -15,6 +15,7 @@ type CommissionManagementPanelProps = {
 
 type CommissionFilterState = {
   membershipId: string;
+  teamId: string;
   commissionPlanId: string;
   status: string;
   transactionId: string;
@@ -39,7 +40,9 @@ type CommissionPlanFormState = {
 };
 
 type CommissionAssignmentFormState = {
+  targetType: "agent" | "team";
   membershipId: string;
+  teamId: string;
   commissionPlanId: string;
   effectiveFrom: string;
   effectiveTo: string;
@@ -78,6 +81,10 @@ function buildFilterHref(pathname: string, filters: CommissionFilterState) {
 
   if (filters.membershipId.trim()) {
     params.set("commissionMembershipId", filters.membershipId.trim());
+  }
+
+  if (filters.teamId.trim()) {
+    params.set("commissionTeamId", filters.teamId.trim());
   }
 
   if (filters.commissionPlanId.trim()) {
@@ -163,6 +170,7 @@ export function CommissionManagementPanel({
 
   const [filterState, setFilterState] = useState<CommissionFilterState>(() => ({
     membershipId: snapshot?.filters.membershipId ?? "",
+    teamId: snapshot?.filters.teamId ?? "",
     commissionPlanId: snapshot?.filters.commissionPlanId ?? "",
     status: snapshot?.filters.status ?? "",
     transactionId: snapshot?.filters.transactionId ?? "",
@@ -181,12 +189,14 @@ export function CommissionManagementPanel({
       },
       filters: {
         membershipId: "",
+        teamId: "",
         commissionPlanId: "",
         status: "",
         transactionId: "",
         startDate: "",
         endDate: "",
         memberOptions: [],
+        teamOptions: [],
         commissionPlanOptions: [],
         transactionOptions: []
       },
@@ -197,7 +207,9 @@ export function CommissionManagementPanel({
     })
   );
   const [assignmentFormState, setAssignmentFormState] = useState<CommissionAssignmentFormState>({
+    targetType: "agent",
     membershipId: snapshot?.filters.memberOptions[0]?.id ?? "",
+    teamId: snapshot?.filters.teamOptions[0]?.id ?? "",
     commissionPlanId: snapshot?.plans[0]?.id ?? "",
     effectiveFrom: new Date().toISOString().slice(0, 10),
     effectiveTo: ""
@@ -221,6 +233,7 @@ export function CommissionManagementPanel({
 
     setFilterState({
       membershipId: snapshot.filters.membershipId,
+      teamId: snapshot.filters.teamId,
       commissionPlanId: snapshot.filters.commissionPlanId,
       status: snapshot.filters.status,
       transactionId: snapshot.filters.transactionId,
@@ -235,6 +248,7 @@ export function CommissionManagementPanel({
     snapshot?.filters.commissionPlanId,
     snapshot?.filters.endDate,
     snapshot?.filters.membershipId,
+    snapshot?.filters.teamId,
     snapshot?.filters.startDate,
     snapshot?.filters.status,
     snapshot?.filters.transactionId
@@ -249,6 +263,7 @@ export function CommissionManagementPanel({
     const nextUrl = new URL(nextHref, "http://localhost");
 
     params.delete("commissionMembershipId");
+    params.delete("commissionTeamId");
     params.delete("commissionPlanId");
     params.delete("commissionStatus");
     params.delete("commissionTransactionId");
@@ -265,6 +280,7 @@ export function CommissionManagementPanel({
   function resetFilters() {
     setFilterState({
       membershipId: "",
+      teamId: "",
       commissionPlanId: "",
       status: "",
       transactionId: "",
@@ -274,6 +290,7 @@ export function CommissionManagementPanel({
 
     const params = new URLSearchParams(currentSearchParams.toString());
     params.delete("commissionMembershipId");
+    params.delete("commissionTeamId");
     params.delete("commissionPlanId");
     params.delete("commissionStatus");
     params.delete("commissionTransactionId");
@@ -368,12 +385,27 @@ export function CommissionManagementPanel({
     setError("");
 
     try {
+      const assignmentPayload =
+        assignmentFormState.targetType === "team"
+          ? {
+              teamId: assignmentFormState.teamId,
+              commissionPlanId: assignmentFormState.commissionPlanId,
+              effectiveFrom: assignmentFormState.effectiveFrom,
+              effectiveTo: assignmentFormState.effectiveTo
+            }
+          : {
+              membershipId: assignmentFormState.membershipId,
+              commissionPlanId: assignmentFormState.commissionPlanId,
+              effectiveFrom: assignmentFormState.effectiveFrom,
+              effectiveTo: assignmentFormState.effectiveTo
+            };
+
       const response = await fetch("/api/office/accounting/commissions/assignments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(assignmentFormState)
+        body: JSON.stringify(assignmentPayload)
       });
 
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -466,7 +498,7 @@ export function CommissionManagementPanel({
       <SectionCard subtitle="Commission plans, assignments, calculated rows, and statement-ready visibility." title="Commission management">
         <div className="office-kpi-grid office-commission-kpi-grid">
           <StatCard hint="active plans configured for this office scope" label="Active plans" value={snapshot.overview.activePlansCount} />
-          <StatCard hint="active plan assignments across memberships" label="Assignments" value={snapshot.overview.activeAssignmentsCount} />
+          <StatCard hint="active plan assignments across agents and teams" label="Assignments" value={snapshot.overview.activeAssignmentsCount} />
           <StatCard hint="persisted commission rows in the current filter window" label="Calculated rows" value={snapshot.overview.calculatedRowsCount} />
           <StatCard hint="rows ready for statement packaging" label="Statement ready" value={snapshot.overview.statementReadyLabel} />
           <StatCard hint="rows marked payable" label="Payable" value={snapshot.overview.payableLabel} />
@@ -485,6 +517,18 @@ export function CommissionManagementPanel({
             <select onChange={(event) => setFilterState((current) => ({ ...current, membershipId: event.target.value }))} value={filterState.membershipId}>
               <option value="">All agents</option>
               {snapshot.filters.memberOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="office-report-filter">
+            <span>Team</span>
+            <select onChange={(event) => setFilterState((current) => ({ ...current, teamId: event.target.value }))} value={filterState.teamId}>
+              <option value="">All teams</option>
+              {snapshot.filters.teamOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
@@ -697,16 +741,45 @@ export function CommissionManagementPanel({
               </div>
             </SectionCard>
 
-            <SectionCard subtitle="Attach active commission plans to memberships with effective dates." title="Plan assignments">
+            <SectionCard subtitle="Attach active commission plans to agents or teams with explicit precedence." title="Plan assignments">
               <form className="office-inline-form office-inline-form-wrap" onSubmit={handleAssignPlan}>
-                <FormField label="Agent">
+                <FormField label="Assign to">
                   <SelectInput
                     disabled={!canManageCommissions}
+                    onChange={(event) =>
+                      setAssignmentFormState((current) => ({
+                        ...current,
+                        targetType: event.target.value === "team" ? "team" : "agent"
+                      }))
+                    }
+                    value={assignmentFormState.targetType}
+                  >
+                    <option value="agent">Agent</option>
+                    <option value="team">Team</option>
+                  </SelectInput>
+                </FormField>
+                <FormField label="Agent">
+                  <SelectInput
+                    disabled={!canManageCommissions || assignmentFormState.targetType !== "agent"}
                     onChange={(event) => setAssignmentFormState((current) => ({ ...current, membershipId: event.target.value }))}
                     value={assignmentFormState.membershipId}
                   >
                     <option value="">Select agent</option>
                     {snapshot.filters.memberOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </FormField>
+                <FormField label="Team">
+                  <SelectInput
+                    disabled={!canManageCommissions || assignmentFormState.targetType !== "team"}
+                    onChange={(event) => setAssignmentFormState((current) => ({ ...current, teamId: event.target.value }))}
+                    value={assignmentFormState.teamId}
+                  >
+                    <option value="">Select team</option>
+                    {snapshot.filters.teamOptions.map((option) => (
                       <option key={option.id} value={option.id}>
                         {option.label}
                       </option>
@@ -752,16 +825,22 @@ export function CommissionManagementPanel({
                 ) : null}
               </form>
 
+              <p className="office-helper-copy">
+                Direct agent assignments override team assignments. Team assignments apply only when no active direct assignment exists.
+              </p>
+
               <div className="office-table">
                 <div className="office-table-header office-table-row office-table-row-commission-assignments">
-                  <span>Agent</span>
+                  <span>Target</span>
+                  <span>Type</span>
                   <span>Plan</span>
                   <span>Effective from</span>
                   <span>Effective to</span>
                 </div>
                 {snapshot.assignments.map((assignment) => (
                   <div className="office-table-row office-table-row-commission-assignments" key={assignment.id}>
-                    <span>{assignment.memberLabel}</span>
+                    <span>{assignment.targetLabel}</span>
+                    <span>{assignment.targetType === "team" ? "Team" : "Agent"}</span>
                     <span>{assignment.commissionPlanLabel}</span>
                     <span>{assignment.effectiveFrom}</span>
                     <span>{assignment.effectiveTo || "Open-ended"}</span>

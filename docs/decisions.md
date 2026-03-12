@@ -478,6 +478,12 @@ Trade-off：
   - `CommissionPlanAssignment`
   - `CommissionPlanRule`
   - `CommissionCalculation`
+- `CommissionPlanAssignment` 允许绑定到：
+  - `membership`
+  - `team`
+- precedence rule 明确为：
+  - direct agent assignment > team assignment
+  - 没有 active direct assignment 时才回退到 team assignment
 - commission plan 不单独做成新 app，而是嵌在：
   - `/office/accounting`
   - transaction detail finance / commission context

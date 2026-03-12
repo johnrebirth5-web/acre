@@ -711,6 +711,12 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
   - `CommissionPlanAssignment`
   - `CommissionPlanRule`
   - `CommissionCalculation`
+- `CommissionPlanAssignment` 现在可绑定到：
+  - `Membership`
+  - `Team`
+- precedence：
+  - direct agent assignment 优先
+  - team assignment 作为 fallback
 - 基础 rule types：
   - `base_split`
   - `brokerage_fee`
@@ -725,10 +731,13 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - `/office/accounting` 提供 commission management area：
   - plan list
   - assignment list
+  - team-aware assignment targets
+  - team filter
   - calculation queue
   - statement snapshot
 - agent profile 提供 commission summary：
   - active plan
+  - active plan source
   - recent calculations
   - statement-ready totals
   - payable / paid totals
@@ -740,6 +749,7 @@ CRM 当前已经开始从 `Office Contacts` 落地最小真实实现，但整体
 - `reviewed`
 - `statement_ready`
 - `payable`
+- `paid`
 - `paid`
 
 当前明确没做的部分：
