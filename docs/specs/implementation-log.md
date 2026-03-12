@@ -15,6 +15,13 @@
   - read / unread state
   - actionable deep links into task review, offers, signatures, incoming updates, follow-up, and onboarding
   - notification write paths wired into existing workflow services
+- Office Account / My Profile MVP:
+  - real `/office/account`
+  - self-scoped profile editing for safe user/profile fields
+  - explicit membership notification preferences for the real in-app inbox
+  - truthful security section for current local auth limitations
+  - lightweight personal summary built from real tasks, transactions, and notifications
+  - account-related activity log coverage for profile and preference changes
 - Company Library / Internal Document Library MVP:
   - real `/office/library`
   - `LibraryFolder` / `LibraryDocument`
@@ -78,6 +85,7 @@
   - QuickBooks sync
   - ACH payout execution
   - email/SMS delivery
+- Office account security is still limited to local seeded auth; there is still no real password reset or 2-step verification flow
 - some modules are still `MVP`, not full product parity
 - some workflow automation remains manual or manager-driven
 - time-based notification reminders currently reconcile on inbox load, not via background jobs

@@ -7247,7 +7247,190 @@ a {
   justify-self: end;
 }
 
+.office-account-page {
+  display: grid;
+  gap: 18px;
+}
+
+.office-account-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.office-account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.office-account-main-column,
+.office-account-side-column {
+  display: grid;
+  gap: 18px;
+}
+
+.office-account-profile-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.office-account-avatar-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--office-border);
+  border-radius: var(--office-radius-md);
+  background: var(--office-surface-muted);
+}
+
+.office-account-avatar-image,
+.office-account-avatar-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.office-account-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--office-accent) 18%, #ffffff);
+  color: var(--office-accent-strong);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.office-account-avatar-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.office-account-avatar-copy strong {
+  color: var(--office-text);
+  font-size: 1rem;
+}
+
+.office-account-avatar-copy span {
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-account-team-section {
+  display: grid;
+  gap: 12px;
+}
+
+.office-account-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.office-account-subhead strong {
+  color: var(--office-text);
+  font-size: 0.92rem;
+}
+
+.office-account-subhead span {
+  color: var(--office-text-muted);
+  font-size: 0.8rem;
+}
+
+.office-account-team-list,
+.office-account-preference-list,
+.office-account-channel-list,
+.office-account-security-list {
+  display: grid;
+  gap: 12px;
+}
+
+.office-account-team-row,
+.office-account-channel-row,
+.office-account-security-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--office-border);
+  border-radius: var(--office-radius-md);
+  background: #ffffff;
+}
+
+.office-account-team-row strong,
+.office-account-channel-row strong,
+.office-account-security-row strong {
+  color: var(--office-text);
+  font-size: 0.9rem;
+}
+
+.office-account-team-row p,
+.office-account-channel-row p,
+.office-account-security-row p,
+.office-account-empty-note,
+.office-account-security-note {
+  margin: 6px 0 0;
+  color: var(--office-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.office-account-toggle {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--office-border);
+  border-radius: var(--office-radius-md);
+  background: #ffffff;
+}
+
+.office-account-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+}
+
+.office-account-toggle strong {
+  color: var(--office-text);
+  font-size: 0.9rem;
+}
+
+.office-account-toggle p {
+  margin: 6px 0 0;
+  color: var(--office-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.office-account-toggle.is-disabled {
+  opacity: 0.7;
+}
+
+.office-account-security-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 1120px) {
+  .office-account-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .office-account-layout {
+    grid-template-columns: 1fr;
+  }
+
   .office-settings-summary-grid,
   .office-settings-section-grid,
   .office-settings-card-grid,
@@ -7271,6 +7454,20 @@ a {
 }
 
 @media (max-width: 780px) {
+  .office-account-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .office-account-avatar-panel,
+  .office-account-team-row,
+  .office-account-channel-row,
+  .office-account-security-row,
+  .office-account-subhead {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .office-settings-summary-grid,
   .office-settings-section-grid,
   .office-settings-card-grid,

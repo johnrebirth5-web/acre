@@ -12,6 +12,8 @@ import {
 import { prisma } from "./client";
 
 export const activityLogActions = {
+  accountProfileUpdated: "account.profile_updated",
+  notificationPreferencesUpdated: "account.notification_preferences_updated",
   agentProfileCreated: "agent.profile_created",
   agentProfileUpdated: "agent.profile_updated",
   teamCreated: "team.created",
@@ -116,6 +118,8 @@ export const activityLogActions = {
 export type ActivityLogAction = (typeof activityLogActions)[keyof typeof activityLogActions];
 export type ActivityLogViewMode = "all" | "activity" | "alerts";
 export type ActivityLogEntityType =
+  | "account_profile"
+  | "notification_preference"
   | "agent_profile"
   | "team"
   | "agent_onboarding_item"
@@ -432,6 +436,8 @@ const activityActionLabelMap: Record<ActivityLogAction, string> = {
   "emd.expected_created": "EMD expected",
   "emd.received": "EMD received",
   "emd.refunded": "EMD refunded / distributed",
+  "account.profile_updated": "Account profile updated",
+  "account.notification_preferences_updated": "Notification preferences updated",
   "auth.login": "Sign in",
   "auth.logout": "Sign out"
 };
@@ -442,6 +448,7 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
     key: "agents-teams",
     label: "Agents / Teams",
     matches: (action) =>
+      action === activityLogActions.accountProfileUpdated ||
       action === activityLogActions.agentProfileCreated ||
       action === activityLogActions.agentProfileUpdated ||
       action === activityLogActions.teamCreated ||
@@ -568,7 +575,9 @@ const activityLogSectionDefinitions: ActivityLogSectionDefinition[] = [
     key: "authentication",
     label: "Authentication",
     matches: (action) =>
-      action === activityLogActions.authLogin || action === activityLogActions.authLogout
+      action === activityLogActions.notificationPreferencesUpdated ||
+      action === activityLogActions.authLogin ||
+      action === activityLogActions.authLogout
   },
   {
     key: "comments",
@@ -692,6 +701,10 @@ function getActivityPayload(payload: Prisma.JsonValue | null): ParsedActivityPay
 
 function mapEntityTypeToObjectType(entityType: string): Exclude<ActivityLogObjectType, "all"> {
   switch (entityType) {
+    case "account_profile":
+      return "agent";
+    case "notification_preference":
+      return "auth";
     case "agent_profile":
     case "team":
     case "agent_onboarding_item":
@@ -797,6 +810,10 @@ function getActivityHref(record: ActivityLogRecord, payload: ParsedActivityPaylo
 
   if (record.entityType === "agent_profile") {
     return payload.contextHref ?? "/office/agents";
+  }
+
+  if (record.entityType === "account_profile" || record.entityType === "notification_preference") {
+    return payload.contextHref ?? "/office/account";
   }
 
   if (record.entityType === "team") {
@@ -921,6 +938,12 @@ function appendActionSourceSummary(baseSummary: string, payload: ParsedActivityP
 
 function getSummary(action: string, payload: ParsedActivityPayload) {
   switch (action) {
+    case activityLogActions.accountProfileUpdated:
+      return payload.changes.length === 1 ? `updated account ${payload.changes[0].label.toLowerCase()}` : "updated an account profile";
+    case activityLogActions.notificationPreferencesUpdated:
+      return payload.changes.length === 1
+        ? `updated notification ${payload.changes[0].label.toLowerCase()}`
+        : "updated notification preferences";
     case activityLogActions.agentProfileCreated:
       return "created an agent profile";
     case activityLogActions.agentProfileUpdated:

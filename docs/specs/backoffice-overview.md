@@ -96,6 +96,24 @@ This file is the high-level product map for the current `Office / Back Office` s
   - add archive/dismiss behavior if the inbox grows beyond read state
   - keep extending coverage only where a real workflow already exists
 
+### Account / My Profile
+
+- What it is for:
+  - signed-in user self-service account page for profile details, office/team visibility, notification preferences, security context, and a lightweight personal work summary.
+- Current maturity:
+  - `MVP`
+- Current notable behavior:
+  - `/office/account` is now a real user-scoped route inside the Office shell.
+  - profile editing is limited to safe self-service fields on `User` and `AgentProfile`.
+  - office, role, and team assignment remain visible but read-only in this page.
+  - notification preferences are persisted explicitly per membership and only govern the real in-app inbox.
+  - security section stays truthful about the current local seeded auth flow and does not fake password or 2-step support.
+  - profile and notification preference changes write into `AuditLog`.
+- Follow-up work:
+  - add richer personal work drilldowns only where underlying workflow modules already exist
+  - revisit password / 2-step actions only when real auth support lands
+  - extend notification preference granularity only when new real inbox families exist
+
 ### Activity Log
 
 - What it is for:

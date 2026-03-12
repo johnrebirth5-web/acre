@@ -206,6 +206,26 @@ Trade-off：
 - 也没有 MLS / email ingestion
 - 但这样能先把内部 Back Office offer workflow 做实，而不是假装外部入口已经存在
 
+## 关键决策 8.6：`Office Account` 保持自助账户页，而不是并入 `Office Admin`
+
+原因：
+
+- `User > Account` 面向当前登录用户的自助资料、通知偏好和安全上下文
+- `Settings / Users / Teams` 仍然是管理员管理其他成员和 office 配置的入口
+- 如果把两者混在一起，权限边界和页面心智都会变差
+
+影响：
+
+- `/office/account` 只允许当前 session membership 读取和保存自己的安全字段
+- office / role / team assignment 在账户页只读展示，不开放跨用户编辑
+- 通知偏好使用 membership-scoped 的显式模型，而不是复用 admin user access 表单
+- 安全区只显示当前本地 auth 真实支持的能力，不伪造 password reset / 2SV
+
+Trade-off：
+
+- 账户页现在不是完整 identity center
+- 但这样能先把真实 self-service 体验做出来，同时保持 admin 模块边界清晰
+
 ## 当前已知限制
 
 这些限制是当前真实存在的，不应忽略：

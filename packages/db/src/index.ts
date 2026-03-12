@@ -7,6 +7,7 @@ export const databaseModules = [
   "offices",
   "users",
   "memberships",
+  "membership_notification_preferences",
   "listings",
   "listing_share_links",
   "clients",
@@ -58,6 +59,11 @@ export { getOfficeActivitySnapshot } from "./activity";
 export { activityLogActions, addOfficeActivityComment, getOfficeActivityLogSnapshot, recordActivityLogEvent } from "./activity-log";
 export { findActiveMembershipContextByEmail, getSessionMembershipContext } from "./auth";
 export { getSeededWorkspaceSnapshot } from "./bootstrap";
+export {
+  getOfficeAccountSnapshot,
+  saveOfficeAccountNotificationPreferences,
+  saveOfficeAccountProfile
+} from "./account";
 export {
   createNotificationsForMemberships,
   ensureNotificationForMemberships,
@@ -202,6 +208,13 @@ export {
   updateTransactionStatus
 } from "./transactions";
 export type { SessionMembershipContext } from "./auth";
+export type {
+  GetOfficeAccountSnapshotInput,
+  OfficeAccountNotificationPreferenceState,
+  OfficeAccountSnapshot,
+  SaveOfficeAccountNotificationPreferencesInput,
+  SaveOfficeAccountProfileInput
+} from "./account";
 export type {
   AddAgentToTeamInput,
   ApplyAgentOnboardingTemplateInput,

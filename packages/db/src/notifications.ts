@@ -17,6 +17,7 @@ import {
 import { prisma } from "./client";
 
 type NotificationDbClient = Prisma.TransactionClient | typeof prisma;
+type NotificationPreferenceField = "approvalAlertsEnabled" | "taskRemindersEnabled" | "offerAlertsEnabled";
 
 export type OfficeNotificationReadFilter = "all" | "unread" | "read";
 export type OfficeNotificationPermissionGroup = "task_reviewers" | "secondary_task_reviewers" | "incoming_update_reviewers";
@@ -105,7 +106,7 @@ export type EnsureNotificationForMembershipsInput = Omit<CreateNotificationsForM
   metadata?: Prisma.InputJsonValue;
 };
 
-const officeNotificationInboxTypes: NotificationType[] = [
+export const officeNotificationInboxTypes: NotificationType[] = [
   NotificationType.task_review_requested,
   NotificationType.task_second_review_requested,
   NotificationType.task_rejected,
@@ -184,6 +185,87 @@ const categoryFilterOrder: NotificationCategory[] = [
 ];
 
 const readStateOptions: OfficeNotificationReadFilter[] = ["all", "unread", "read"];
+
+function getNotificationPreferenceField(type: NotificationType): NotificationPreferenceField | null {
+  if (
+    type === NotificationType.task_review_requested ||
+    type === NotificationType.task_second_review_requested ||
+    type === NotificationType.task_rejected ||
+    type === NotificationType.signature_pending ||
+    type === NotificationType.signature_completed ||
+    type === NotificationType.incoming_update_pending_review
+  ) {
+    return "approvalAlertsEnabled";
+  }
+
+  if (
+    type === NotificationType.follow_up_assigned ||
+    type === NotificationType.follow_up_overdue ||
+    type === NotificationType.onboarding_assigned ||
+    type === NotificationType.onboarding_due_soon
+  ) {
+    return "taskRemindersEnabled";
+  }
+
+  if (
+    type === NotificationType.offer_created ||
+    type === NotificationType.offer_received ||
+    type === NotificationType.offer_expiring_soon
+  ) {
+    return "offerAlertsEnabled";
+  }
+
+  return null;
+}
+
+async function applyNotificationPreferenceFilter(
+  db: NotificationDbClient,
+  input: {
+    organizationId: string;
+    membershipIds: string[];
+    type: NotificationType;
+  }
+) {
+  if (input.membershipIds.length === 0) {
+    return [];
+  }
+
+  const preferenceField = getNotificationPreferenceField(input.type);
+  const preferences = await db.membershipNotificationPreference.findMany({
+    where: {
+      organizationId: input.organizationId,
+      membershipId: {
+        in: input.membershipIds
+      }
+    },
+    select: {
+      membershipId: true,
+      inAppEnabled: true,
+      approvalAlertsEnabled: true,
+      taskRemindersEnabled: true,
+      offerAlertsEnabled: true
+    }
+  });
+  const preferenceMap = new Map(preferences.map((preference) => [preference.membershipId, preference]));
+
+  return input.membershipIds.filter((membershipId) => {
+    const preference = preferenceMap.get(membershipId);
+
+    if (!preference) {
+      return true;
+    }
+
+    if (!preference.inAppEnabled) {
+      return false;
+    }
+
+    if (!preferenceField) {
+      return true;
+    }
+
+    return preference[preferenceField];
+  });
+}
 
 function normalizeNotificationType(value: string | undefined) {
   if (!value) {
@@ -389,11 +471,16 @@ export async function listOfficeNotificationRecipientIds(
 }
 
 export async function createNotificationsForMemberships(db: NotificationDbClient, input: CreateNotificationsForMembershipsInput) {
-  const membershipIds = await normalizeRecipientMembershipIds(db, {
+  const recipientIds = await normalizeRecipientMembershipIds(db, {
     organizationId: input.organizationId,
     membershipIds: input.membershipIds,
     excludeMembershipIds: input.excludeMembershipIds,
     restrictToOfficeRoles: input.restrictToOfficeRoles
+  });
+  const membershipIds = await applyNotificationPreferenceFilter(db, {
+    organizationId: input.organizationId,
+    membershipIds: recipientIds,
+    type: input.type
   });
 
   if (membershipIds.length === 0) {
@@ -427,11 +514,16 @@ export async function createNotificationsForMemberships(db: NotificationDbClient
 }
 
 export async function ensureNotificationForMemberships(db: NotificationDbClient, input: EnsureNotificationForMembershipsInput) {
-  const membershipIds = await normalizeRecipientMembershipIds(db, {
+  const recipientIds = await normalizeRecipientMembershipIds(db, {
     organizationId: input.organizationId,
     membershipIds: input.membershipIds,
     excludeMembershipIds: input.excludeMembershipIds,
     restrictToOfficeRoles: input.restrictToOfficeRoles
+  });
+  const membershipIds = await applyNotificationPreferenceFilter(db, {
+    organizationId: input.organizationId,
+    membershipIds: recipientIds,
+    type: input.type
   });
 
   if (membershipIds.length === 0) {

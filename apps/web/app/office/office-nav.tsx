@@ -48,7 +48,7 @@ const navGroups: NavGroup[] = [
     icon: "◉",
     items: [
       { label: "Notifications", href: "/office/notifications" },
-      { label: "Account" },
+      { label: "Account", href: "/office/account" },
       { label: "Billing" },
       { label: "Add-ons" },
       { label: "Sign out" }

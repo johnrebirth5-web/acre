@@ -3,7 +3,7 @@
 `Acre` 是一个面向房地产经纪公司内部团队的 Web 工作台。当前仓库实现的是 `Acre Agent OS` 的第一版工程骨架，服务对象是：
 
 - `Agent`：一线经纪人，使用 listings、轻 CRM、活动通知、资源库、AI 工具
-- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Notifications / Activity / Library / Accounting`
+- `Office Team`：运营/管理人员，当前重点是 `Back Office`，参考 `Brokermint` 的 `Dashboard / Pipeline / Transactions / Contacts / Reports / Notifications / Account / Activity / Library / Accounting`
 
 这不是客户前台网站。客户前台后续会是独立 surface，复用这里的 listings 和后台数据能力。
 
@@ -24,6 +24,7 @@
   - `Tasks`
   - `Reports`
   - `Notifications`
+  - `Account / My Profile`
   - `Activity`
   - `Library`
   - `Accounting`
@@ -408,6 +409,43 @@
     - onboarding assigned / due soon
   - 当前不会伪造 email / SMS / WeChat delivery
   - 当前也没有 dismiss / archive；MVP 先以 read/unread 为唯一用户状态
+- `Account / My Profile` 现在也已落成真实 Back Office 自助账户页：
+  - 路由：`/office/account`
+  - 这是当前登录 membership 的 self-service account/profile page，不是 admin-facing `Users / Teams / Settings`
+  - 当前页面按当前登录 membership / user scope 展示：
+    - personal profile details
+    - office / role / team assignment visibility
+    - notification preferences
+    - security/password/2-step verification context
+    - lightweight `My Summary`
+  - 当前可安全自助编辑的字段包括：
+    - first / last name
+    - display name
+    - phone
+    - internal extension
+    - avatar URL
+    - license number / state
+    - timezone / locale
+    - bio
+  - 当前只读展示、不在这个页面开放修改的内容包括：
+    - email
+    - office assignment
+    - role / membership status
+    - team assignment
+    - onboarding status / start date
+  - 当前通知偏好使用显式持久化模型：
+    - `MembershipNotificationPreference`
+    - 支持 `in-app notifications`
+    - 支持 `activity / approval alerts`
+    - 支持 `task reminders`
+    - 支持 `offer notifications`
+    - 当前不会伪造 email / SMS / push channels
+  - 当前安全区会如实展示：
+    - 当前 auth method = local seeded session
+    - 当前没有 in-app password management
+    - 当前没有 2-step verification flow
+    - 当前 session 仍是 HTTP-only cookie + 12 hour max age
+  - 当前页面会把 profile update 和 notification preference change 写入 `Activity Log`
 - `Activity` 现在也已接入真实数据库：
   - 页面现在改为真实 `Account Activity Log`
   - 以 `AuditLog` 为主数据源
@@ -582,7 +620,7 @@
 当前未实现 / 计划中：
 
 - `Dashboard`、`Pipeline`、`Transactions`、`Contacts`、`Reports` 之外的大多数页面和 API 仍使用 `@acre/backoffice` 的内存示例数据
-- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Activity`、`Accounting` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
+- 已实现数据库 runtime、migration、seed，且 `Dashboard` 的业务指标、`Pipeline`、`Transactions`、`Contacts`、`Tasks`、`Reports`、`Notifications`、`Account`、`Activity`、`Accounting` 已接入真实数据库；其余主页面和主 API 仍未完成数据库切换
 - 已实现最小本地 auth/session，但还没有复杂权限管理、数据级权限、第三方 auth provider
 - 未实现 `Brokermint` 中更深层的 offer ingestion / MLS-email sync，以及更完整的 accounting workflows（如 reconciliation、QuickBooks sync、ACH/网关自动扣款）
 - 写操作接口当前只覆盖：

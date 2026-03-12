@@ -29,6 +29,7 @@ This inbox is intentionally different from `Activity Log`:
 - `Notification` is now the persisted inbox record
 - `/office/notifications` is a real page in the existing Office shell
 - nav `User > Notifications` now points to the real route
+- nav `User > Account` now exposes the current membership's notification preference controls
 - inbox supports:
   - unread-first sorting
   - category filter
@@ -61,6 +62,17 @@ Current notification records support:
 - `createdAt`
 
 The model remains explicit and reviewable; it does not reuse `AuditLog` rows as inbox items.
+
+Current preference model for the inbox is also explicit:
+
+- `MembershipNotificationPreference`
+  - scoped to the current membership
+  - controls only real in-app inbox creation
+  - currently supports:
+    - master in-app enable / disable
+    - activity / approval alerts
+    - task reminder alerts
+    - offer alerts
 
 ## Current notification families
 
@@ -102,6 +114,8 @@ Time-based reminders without a scheduler are currently reconciled when the inbox
 
 This keeps the system honest without inventing a fake delivery daemon.
 
+Current notification creation also respects the signed-in membership's saved inbox preferences before writing new inbox rows.
+
 ## Deep-link behavior
 
 Notifications currently link to the nearest real actionable page:
@@ -130,6 +144,8 @@ If the product does not yet have a more precise queue or sub-route, the notifica
 - no background scheduler; time-based reminders are created during inbox reconciliation
 - reviewer targeting still follows current permission-based queues, not explicit reviewer assignment models
 - onboarding notifications are most useful for office-role recipients because the current inbox route is office-only
+- preferences only control the in-app inbox and do not create email / SMS / push channels
+- changing preferences does not rewrite or delete already-created notification rows
 
 ## Future direction
 

@@ -376,6 +376,7 @@ model Organization {
   updatedAt                         DateTime                           @updatedAt
   offices                           Office[]
   memberships                       Membership[]
+  membershipNotificationPreferences MembershipNotificationPreference[]
   listings                          Listing[]
   clients                           Client[]
   followUpTasks                     FollowUpTask[]
@@ -432,6 +433,7 @@ model Office {
   updatedAt                         DateTime                           @updatedAt
   organization                      Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships                       Membership[]
+  membershipNotificationPreferences MembershipNotificationPreference[]
   notifications                     Notification[]
   listings                          Listing[]
   events                            Event[]
@@ -478,6 +480,7 @@ model User {
   email       String       @unique
   firstName   String
   lastName    String
+  phone       String?
   timezone    String       @default("America/New_York")
   locale      String       @default("en-US")
   isActive    Boolean      @default(true)
@@ -500,6 +503,7 @@ model Membership {
   organization                             Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   office                                   Office?                            @relation(fields: [officeId], references: [id], onDelete: SetNull)
   user                                     User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationPreference                   MembershipNotificationPreference?
   listingsOwned                            Listing[]
   clientsOwned                             Client[]
   tasksAssigned                            FollowUpTask[]
@@ -541,6 +545,25 @@ model Membership {
   checklistTemplatesUpdated                ChecklistTemplate[]                @relation("ChecklistTemplateUpdatedBy")
 
   @@unique([organizationId, userId])
+}
+
+model MembershipNotificationPreference {
+  id                    String       @id @default(cuid())
+  organizationId        String
+  officeId              String?
+  membershipId          String       @unique
+  inAppEnabled          Boolean      @default(true)
+  approvalAlertsEnabled Boolean      @default(true)
+  taskRemindersEnabled  Boolean      @default(true)
+  offerAlertsEnabled    Boolean      @default(true)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office?      @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  membership            Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, officeId])
+  @@index([organizationId, membershipId])
 }
 
 model Transaction {
