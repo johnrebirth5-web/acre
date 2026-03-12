@@ -3,7 +3,7 @@ import { prisma } from "./client";
 
 export type OfficePipelineStatus = "Opportunity" | "Active" | "Pending" | "Closed" | "Cancelled";
 export type OfficePipelineHistoryStatus = Extract<OfficePipelineStatus, "Closed" | "Cancelled">;
-export type OfficePipelineMetricMode = "transaction_volume" | "office_net";
+export type OfficePipelineMetricMode = "transaction_volume" | "office_net" | "office_gross";
 export type OfficePipelineRepresentingFilter = TransactionRepresenting | "all";
 
 export type OfficePipelineOwnerOption = {
@@ -60,6 +60,7 @@ export type OfficePipelineWorkspaceSnapshot = {
     kind: "all" | "stage" | "history";
     label: string;
     note: string;
+    contextChips: string[];
   };
   allTransactionsSummary: {
     count: number;
@@ -94,6 +95,7 @@ type PipelineWorkspaceTransaction = {
   state: string;
   zipCode: string;
   price: Prisma.Decimal | null;
+  grossCommission: Prisma.Decimal | null;
   officeNet: Prisma.Decimal | null;
   importantDate: Date | null;
   closingDate: Date | null;
@@ -135,7 +137,8 @@ const representingLabelMap: Record<TransactionRepresenting, string> = {
 
 const metricModeLabels: Record<OfficePipelineMetricMode, string> = {
   transaction_volume: "Transaction volume",
-  office_net: "Office net"
+  office_net: "Office net",
+  office_gross: "Office gross"
 };
 
 function normalizeRepresentingFilter(value: string | undefined): OfficePipelineRepresentingFilter {
@@ -147,7 +150,15 @@ function normalizeRepresentingFilter(value: string | undefined): OfficePipelineR
 }
 
 function normalizeMetricMode(value: string | undefined): OfficePipelineMetricMode {
-  return value === "office_net" ? "office_net" : "transaction_volume";
+  if (value === "office_net") {
+    return "office_net";
+  }
+
+  if (value === "office_gross") {
+    return "office_gross";
+  }
+
+  return "transaction_volume";
 }
 
 function normalizeStage(value: string | undefined): Extract<OfficePipelineStatus, "Opportunity" | "Active" | "Pending"> | "" {
@@ -195,8 +206,19 @@ function formatMonthLabel(monthKey: string) {
   });
 }
 
-function getTransactionMetricValue(transaction: Pick<PipelineWorkspaceTransaction, "price" | "officeNet">, metricMode: OfficePipelineMetricMode) {
-  return metricMode === "office_net" ? Number(transaction.officeNet ?? 0) : Number(transaction.price ?? 0);
+function getTransactionMetricValue(
+  transaction: Pick<PipelineWorkspaceTransaction, "price" | "grossCommission" | "officeNet">,
+  metricMode: OfficePipelineMetricMode
+) {
+  if (metricMode === "office_net") {
+    return Number(transaction.officeNet ?? 0);
+  }
+
+  if (metricMode === "office_gross") {
+    return Number(transaction.grossCommission ?? 0);
+  }
+
+  return Number(transaction.price ?? 0);
 }
 
 function getMonthlyRollupDate(transaction: Pick<PipelineWorkspaceTransaction, "closingDate" | "updatedAt">) {
@@ -273,13 +295,15 @@ function buildOwnerLabel(transaction: PipelineWorkspaceTransaction) {
 function buildSelectionState(
   stage: OfficePipelineWorkspaceSnapshot["filters"]["stage"],
   historyStatus: OfficePipelineWorkspaceSnapshot["filters"]["historyStatus"],
-  historyMonth: string
+  historyMonth: string,
+  contextChips: string[]
 ) {
   if (stage) {
     return {
       kind: "stage" as const,
       label: `${stage} pipeline`,
-      note: "Showing the current filtered transaction list for the selected funnel stage."
+      note: "Showing the current filtered transaction list for the selected funnel stage.",
+      contextChips
     };
   }
 
@@ -287,15 +311,29 @@ function buildSelectionState(
     return {
       kind: "history" as const,
       label: `${historyStatus} · ${formatMonthLabel(historyMonth)}`,
-      note: "Closed / cancelled history uses closing date when available, otherwise updated date as the documented fallback."
+      note: "Closed / cancelled history uses closing date when available, otherwise updated date as the documented fallback.",
+      contextChips
     };
   }
 
   return {
     kind: "all" as const,
     label: "All transactions",
-    note: "Showing all transactions in the current pipeline workspace filters."
+    note: "Showing all transactions in the current pipeline workspace filters.",
+    contextChips
   };
+}
+
+function buildMetricModeDescription(metricMode: OfficePipelineMetricMode) {
+  if (metricMode === "office_net") {
+    return "Uses stored office net values from transaction finance and commission workflow outputs; missing values are treated as zero.";
+  }
+
+  if (metricMode === "office_gross") {
+    return "Uses stored gross commission values from transaction finance; transactions without gross commission data are treated as zero.";
+  }
+
+  return "Uses transaction price as the current pipeline volume metric.";
 }
 
 function mapPipelineRow(transaction: PipelineWorkspaceTransaction, metricMode: OfficePipelineMetricMode): OfficePipelineWorkspaceRow {
@@ -361,6 +399,21 @@ export async function getOfficePipelineWorkspaceSnapshot(
     })
   ]);
 
+  const ownerOptions = ownerMemberships.map((membership) => ({
+    id: membership.id,
+    label: `${membership.user.firstName} ${membership.user.lastName}`
+  }));
+  const ownerFilterLabel = input.ownerMembershipId?.trim()
+    ? ownerOptions.find((option) => option.id === input.ownerMembershipId?.trim())?.label ?? "Selected owner"
+    : "Any owner / agent";
+  const representingFilterLabel = representing === "all" ? "Any side" : `${representingLabelMap[representing]} side`;
+  const selectionContextChips = [
+    representingFilterLabel,
+    ownerFilterLabel,
+    `Metric: ${metricModeLabels[metricMode]}`,
+    ...(input.search?.trim() ? [`Search: ${input.search.trim()}`] : [])
+  ];
+
   const funnelBuckets = activePipelineStatuses.map((currentStatus) => {
     const scopedTransactions = transactions.filter((transaction) => pipelineStatusFromDb[transaction.status] === currentStatus);
     const totalMetric = scopedTransactions.reduce((sum, transaction) => sum + getTransactionMetricValue(transaction, metricMode), 0);
@@ -397,7 +450,7 @@ export async function getOfficePipelineWorkspaceSnapshot(
     })
     .filter((month) => month.buckets.some((bucket) => bucket.count > 0) || month.monthKey === historyMonth);
 
-  const selection = buildSelectionState(stage, historyStatus, historyMonth);
+  const selection = buildSelectionState(stage, historyStatus, historyMonth, selectionContextChips);
 
   const selectedTransactions = transactions
     .filter((transaction) => {
@@ -428,19 +481,13 @@ export async function getOfficePipelineWorkspaceSnapshot(
       representing,
       ownerMembershipId: input.ownerMembershipId?.trim() ?? "",
       metricMode,
-      ownerOptions: ownerMemberships.map((membership) => ({
-        id: membership.id,
-        label: `${membership.user.firstName} ${membership.user.lastName}`
-      })),
+      ownerOptions,
       stage,
       historyStatus,
       historyMonth
     },
     metricModeLabel: metricModeLabels[metricMode],
-    metricModeDescription:
-      metricMode === "office_net"
-        ? "Uses stored office net values when available; missing finance values are treated as zero."
-        : "Uses transaction price as the current pipeline volume metric.",
+    metricModeDescription: buildMetricModeDescription(metricMode),
     selection,
     allTransactionsSummary: {
       count: transactions.length,

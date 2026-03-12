@@ -72,6 +72,12 @@
   - 右侧 unified transaction list
   - `Closed / Cancelled` 月度 rollup
   - query-param 驱动的 search / side / owner / metric mode 过滤
+  - 当前 metric mode 支持：
+    - `Transaction volume`
+    - `Office net`
+    - `Office gross`
+  - `Office gross` 当前来自 transaction finance 上已存储的 `grossCommission`
+  - stage / history 选择会直接驱动右侧 working list，并保存在 shareable URL 中
 - 当前 `Reports` 页面已通过 server-side service 读取真实聚合数据
 - 当前 `Reports` 页面也已有最小 CSV 导出路径，使用当前 session 和过滤条件直接导出 transaction 行
 - 当前 `Commission Management` 已通过 Prisma service 和 route handlers 落地到：

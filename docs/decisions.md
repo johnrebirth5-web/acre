@@ -262,8 +262,8 @@ Trade-off：
 - 当前这条迁移已经从 `Transactions` 和 `Contacts` 开始落地：
   - dashboard 业务指标 / recent transactions / access summary 已切到 Prisma + session context
   - pipeline 已切到 Prisma，并重构成左侧 summary rail + 右侧 unified list 的 workspace
-  - 当前 metric mode 只暴露真实可得的 `Transaction volume` 和 `Office net`
-  - `Office gross` 暂时不显示，避免把 `grossCommission` 误当成独立 office gross 口径
+  - 当前 metric mode 暴露真实可得的 `Transaction volume`、`Office net` 和 `Office gross`
+  - `Office gross` 当前使用 transaction finance 上已存储的 `grossCommission`，缺失值按 `0` 处理
   - `Closed / Cancelled` 月度历史优先使用 `closingDate`，没有时回退到 `updatedAt`
   - transaction list/detail/create/status update 已经切到 Prisma
   - transaction finance 先用 `Transaction` 上的 5 个可空字段落地，而不是单独 finance model

@@ -77,18 +77,24 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
     historyStatus: null,
     historyMonth: null
   });
+  const hasScopedSelection = snapshot.selection.kind !== "all";
 
   return (
     <PageShell className="bm-page">
       <PageHeader
         actions={
-          <Link className="office-button office-button-secondary" href={allTransactionsHref}>
-            Show all transactions
-          </Link>
+          <div className="office-page-actions office-pipeline-page-actions">
+            <span className="office-pipeline-header-chip">{snapshot.metricModeLabel}</span>
+            {hasScopedSelection ? (
+              <Link className="office-button office-button-secondary" href={allTransactionsHref}>
+                Clear selection
+              </Link>
+            ) : null}
+          </div>
         }
-        description="Left-side funnel rollups, real monthly closed / cancelled history, and one unified transaction list."
+        description="Management-oriented pipeline workspace with live funnel totals on the left and one unified working list on the right."
         eyebrow="Pipeline"
-        title="Pipeline workspace"
+        title="Pipeline"
       />
 
       <form className="office-report-filters office-pipeline-filters" method="get">
@@ -97,9 +103,9 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
           <input defaultValue={snapshot.filters.search} name="search" placeholder="Address, owner, city..." type="search" />
         </label>
         <label className="office-report-filter">
-          <span>Side / representing</span>
+          <span>Side</span>
           <select defaultValue={snapshot.filters.representing} name="representing">
-            <option value="all">All sides</option>
+            <option value="all">Any side</option>
             <option value="buyer">Buyer</option>
             <option value="seller">Seller</option>
             <option value="both">Both</option>
@@ -108,16 +114,17 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
           </select>
         </label>
         <label className="office-report-filter">
-          <span>Metric mode</span>
+          <span>Metric</span>
           <select defaultValue={snapshot.filters.metricMode} name="metricMode">
             <option value="transaction_volume">Transaction volume</option>
             <option value="office_net">Office net</option>
+            <option value="office_gross">Office gross</option>
           </select>
         </label>
         <label className="office-report-filter">
           <span>Owner / agent</span>
           <select defaultValue={snapshot.filters.ownerMembershipId} name="ownerMembershipId">
-            <option value="">All owners</option>
+            <option value="">Any owner / agent</option>
             {snapshot.filters.ownerOptions.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
@@ -144,7 +151,7 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
             <div className="office-pipeline-rail-copy">
               <span className="office-eyebrow">Current funnel</span>
               <h3>Live stages</h3>
-              <p>{snapshot.metricModeLabel} updates the totals shown for every stage and history bucket.</p>
+              <p>{snapshot.metricModeDescription}</p>
             </div>
 
             <Link
@@ -158,6 +165,10 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
               <em>{snapshot.allTransactionsSummary.metricLabel}</em>
             </Link>
 
+            <div className="office-pipeline-rail-section-head">
+              <span>Funnel stage</span>
+              <span>{snapshot.metricModeLabel}</span>
+            </div>
             <div className="office-pipeline-rail-list">
               {snapshot.funnelBuckets.map((bucket) => (
                 <Link
@@ -224,13 +235,20 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
         <section className="office-pipeline-panel">
           <div className="office-pipeline-panel-header">
             <div className="office-pipeline-panel-copy">
-              <span className="office-eyebrow">Selection</span>
+              <span className="office-eyebrow">Working list</span>
               <h3>{snapshot.selection.label}</h3>
               <p>{snapshot.selection.note}</p>
+              <div className="office-pipeline-selection-meta">
+                {snapshot.selection.contextChips.map((chip) => (
+                  <span className="office-pipeline-selection-chip" key={chip}>
+                    {chip}
+                  </span>
+                ))}
+              </div>
             </div>
             <div className="office-pipeline-headline">
               <article className="office-pipeline-headline-card">
-                <span>Transactions</span>
+                <span>Matching transactions</span>
                 <strong>{snapshot.listSummary.totalCount}</strong>
               </article>
               <article className="office-pipeline-headline-card office-pipeline-headline-card-accent">
@@ -261,16 +279,16 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
                       <strong>{transaction.title}</strong>
                       <small>{transaction.addressLine}</small>
                     </span>
-                    <span>{transaction.cityState}</span>
+                    <span className="office-pipeline-row-market">{transaction.cityState}</span>
                     <span>
                       <span className={`bm-status-pill bm-status-${transaction.status.toLowerCase()}`}>{transaction.status}</span>
                     </span>
                     <span>{transaction.representing}</span>
                     <span>{transaction.owner}</span>
-                    <span>{transaction.priceLabel}</span>
-                    <span>{transaction.metricValueLabel}</span>
-                    <span>{transaction.closingOrImportantLabel}</span>
-                    <span>{transaction.updatedLabel}</span>
+                    <span className="office-pipeline-cell-number">{transaction.priceLabel}</span>
+                    <span className="office-pipeline-cell-number office-pipeline-cell-number-strong">{transaction.metricValueLabel}</span>
+                    <span className="office-pipeline-cell-date">{transaction.closingOrImportantLabel}</span>
+                    <span className="office-pipeline-cell-date">{transaction.updatedLabel}</span>
                   </Link>
                 ))
               ) : (
@@ -283,8 +301,7 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
           </div>
 
           <p className="office-pipeline-footnote">
-            Current metric mode: <strong>{snapshot.metricModeLabel}</strong>. Office gross is not shown yet because the current schema only stores
-            reliable office net values.
+            Current metric mode: <strong>{snapshot.metricModeLabel}</strong>. {snapshot.metricModeDescription}
           </p>
         </section>
       </section>

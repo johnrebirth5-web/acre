@@ -6846,3 +6846,206 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Pipeline workspace refinements */
+
+.office-pipeline-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.office-pipeline-header-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--office-border);
+  border-radius: 999px;
+  background: var(--office-surface-muted);
+  color: var(--office-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.office-pipeline-filters {
+  grid-template-columns: minmax(240px, 1.45fr) repeat(3, minmax(165px, 1fr)) auto;
+}
+
+.office-pipeline-rail-card,
+.office-pipeline-panel {
+  padding: 18px 20px;
+}
+
+.office-pipeline-rail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--office-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.office-pipeline-rail-link,
+.office-pipeline-history-link {
+  min-height: 64px;
+  border: 1px solid var(--office-border);
+  border-radius: 14px;
+  background: var(--office-surface-muted);
+}
+
+.office-pipeline-rail-link:hover,
+.office-pipeline-history-link:hover {
+  border-color: #d5e0f7;
+  background: #f7faff;
+}
+
+.office-pipeline-rail-link.is-active,
+.office-pipeline-history-link.is-active {
+  border-color: #bcd0f8;
+  background: #eef4ff;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+}
+
+.office-pipeline-rail-link strong,
+.office-pipeline-history-month strong,
+.office-pipeline-history-link strong {
+  color: var(--office-text);
+  font-size: 0.92rem;
+}
+
+.office-pipeline-rail-link span,
+.office-pipeline-history-link span,
+.office-pipeline-history-link em,
+.office-pipeline-rail-link em {
+  color: var(--office-text-muted);
+  font-size: 0.78rem;
+}
+
+.office-pipeline-panel-copy {
+  gap: 8px;
+}
+
+.office-pipeline-selection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.office-pipeline-selection-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--office-accent-soft);
+  color: var(--office-accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.office-pipeline-panel-header {
+  gap: 18px;
+}
+
+.office-pipeline-headline-card {
+  min-height: 84px;
+  gap: 8px;
+}
+
+.office-pipeline-headline-card span {
+  letter-spacing: 0.02em;
+}
+
+.office-pipeline-table {
+  border-radius: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.office-pipeline-table-head,
+.office-pipeline-row {
+  min-width: 1100px;
+  grid-template-columns: 1.9fr 1.15fr 0.9fr 0.85fr 1.05fr 0.9fr 0.95fr 1.05fr 0.85fr;
+  gap: 14px;
+}
+
+.office-pipeline-table-head {
+  min-height: 46px;
+}
+
+.office-pipeline-row {
+  min-height: 66px;
+  font-size: 0.83rem;
+}
+
+.office-pipeline-row-main {
+  gap: 3px;
+}
+
+.office-pipeline-row-main strong {
+  color: var(--office-text);
+  font-size: 0.93rem;
+  line-height: 1.25;
+}
+
+.office-pipeline-row-main small,
+.office-pipeline-row-market,
+.office-pipeline-cell-date {
+  color: var(--office-text-muted);
+  line-height: 1.35;
+}
+
+.office-pipeline-row-market,
+.office-pipeline-cell-date {
+  font-size: 0.8rem;
+}
+
+.office-pipeline-cell-number {
+  justify-self: end;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.office-pipeline-cell-number-strong {
+  color: var(--office-text);
+  font-weight: 700;
+}
+
+.office-pipeline-footnote {
+  padding-top: 2px;
+}
+
+@media (max-width: 1360px) {
+  .office-pipeline-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .office-pipeline-page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1120px) {
+  .office-pipeline-headline-card {
+    min-height: 72px;
+  }
+}
+
+@media (max-width: 780px) {
+  .office-pipeline-filters,
+  .office-pipeline-headline {
+    grid-template-columns: 1fr;
+  }
+
+  .office-pipeline-selection-meta {
+    gap: 6px;
+  }
+}

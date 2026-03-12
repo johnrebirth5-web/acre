@@ -49,10 +49,12 @@
     - `metric mode`
     - `owner / agent`
     - `search`
-  - 当前 metric mode 只支持真实可得的数据：
+  - 当前 metric mode 现在支持真实可得的数据：
     - `Transaction volume`
     - `Office net`
-  - `Office gross` 还没有接入，因为当前 schema 里没有足够可靠的独立口径
+    - `Office gross`
+  - `Office gross` 当前来自 transaction finance 上的 `grossCommission`；缺失 finance 数据时按 `0` 处理
+  - 左侧 funnel / history 选择会通过 URL 持久化，并驱动右侧 working list
   - `Closed / Cancelled` 月度历史优先使用 `closingDate`，没有时回退到 `updatedAt`
   - transaction row 可进入真实 transaction detail
 - `Transactions` 当前已实现一版更接近 `Brokermint` 的静态高密度列表页，包含顶部统计、搜索、分页和交易列表
