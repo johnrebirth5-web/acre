@@ -61,10 +61,12 @@ function decodeSession(cookieValue: string | undefined): SessionPayload | null {
 }
 
 function getSessionCookieOptions() {
+  const forceSecureCookies = process.env.ACRE_SECURE_COOKIES;
+
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: forceSecureCookies ? forceSecureCookies !== "false" : process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 12
   };
