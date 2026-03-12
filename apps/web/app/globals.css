@@ -7282,6 +7282,11 @@ a {
   flex-wrap: wrap;
 }
 
+.office-account-page .office-section-card {
+  display: grid;
+  gap: 14px;
+}
+
 .office-account-profile-shell {
   display: grid;
   gap: 18px;
