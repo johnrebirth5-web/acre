@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { SiteReleaseBadge } from "../site-release-badge";
 
 type NavGroup = {
@@ -66,6 +66,14 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
   const pathname = usePathname();
   const [currentHash, setCurrentHash] = useState("");
 
+  useLayoutEffect(() => {
+    function syncHash() {
+      setCurrentHash(window.location.hash);
+    }
+
+    syncHash();
+  }, [pathname]);
+
   useEffect(() => {
     function syncHash() {
       setCurrentHash(window.location.hash);
@@ -73,12 +81,25 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
 
     syncHash();
     window.addEventListener("hashchange", syncHash);
+    window.addEventListener("popstate", syncHash);
 
-    return () => window.removeEventListener("hashchange", syncHash);
-  }, [pathname]);
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("popstate", syncHash);
+    };
+  }, []);
 
   function hasHashVariant(path: string) {
     return navGroups.some((group) => group.items.some((item) => item.href?.startsWith(`${path}#`)));
+  }
+
+  function getHrefHash(href: string) {
+    const [, hashFragment] = href.split("#");
+    return hashFragment ? `#${hashFragment}` : "";
+  }
+
+  function handleNavIntent(href: string) {
+    setCurrentHash(getHrefHash(href));
   }
 
   function isSidebarItemActive(href: string) {
@@ -130,29 +151,38 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
                 <strong>{group.title}</strong>
               </header>
               <div className="office-nav-items">
-                {group.items.map((item) =>
-                  item.href ? (
-                    <Link
-                      key={item.label}
-                      className={`office-nav-link${isSidebarItemActive(item.href) ? " is-active" : ""}`}
-                      href={item.href}
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    item.label === "Sign out" ? (
+                {group.items.map((item) => {
+                  if (item.href) {
+                    const href = item.href;
+
+                    return (
+                      <Link
+                        key={item.label}
+                        className={`office-nav-link${isSidebarItemActive(href) ? " is-active" : ""}`}
+                        href={href}
+                        onClick={() => handleNavIntent(href)}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  }
+
+                  if (item.label === "Sign out") {
+                    return (
                       <form action="/api/auth/logout" className="office-nav-logout-form" key={item.label} method="post">
                         <button className="office-nav-link office-nav-link-button" type="submit">
                           {item.label}
                         </button>
                       </form>
-                    ) : (
-                      <span className="office-nav-link office-nav-link-muted" key={item.label}>
-                        {item.label}
-                      </span>
-                    )
-                  )
-                )}
+                    );
+                  }
+
+                  return (
+                    <span className="office-nav-link office-nav-link-muted" key={item.label}>
+                      {item.label}
+                    </span>
+                  );
+                })}
               </div>
             </section>
           ))}
