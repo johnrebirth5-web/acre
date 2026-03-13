@@ -15,40 +15,6 @@ import {
 } from "@acre/ui";
 import { getSessionAccess, requireOfficeSession } from "../../../lib/auth-session";
 
-const chartTopInset = 8;
-const chartBottomInset = 8;
-
-function getChartY(value: number, height: number, maxValue: number) {
-  const drawableHeight = height - chartTopInset - chartBottomInset;
-
-  if (drawableHeight <= 0) {
-    return height / 2;
-  }
-
-  if (maxValue === 0) {
-    return height - chartBottomInset;
-  }
-
-  return chartTopInset + drawableHeight - (value / maxValue) * drawableHeight;
-}
-
-function buildChartPath(values: number[], width: number, height: number, maxValue: number) {
-  if (values.length === 0) {
-    return "";
-  }
-
-  const stepX = values.length > 1 ? width / (values.length - 1) : width;
-
-  return values
-    .map((value, index) => {
-      const x = index * stepX;
-      const y = getChartY(value, height, maxValue);
-
-      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-}
-
 function getChartTick(label: string, index: number, labels: string[]) {
   const [monthLabel = label, yearLabel = ""] = label.split(" ");
   const previousYear = index > 0 ? labels[index - 1]?.split(" ")[1] : undefined;
@@ -90,11 +56,7 @@ export default async function OfficeDashboardPage() {
     officeId: context.currentOffice?.id
   });
 
-  const chartWidth = 1000;
-  const chartHeight = 220;
-  const chartValues = snapshot.chart.points.map((point) => point.value);
   const chartPointLabels = snapshot.chart.points.map((point) => point.label);
-  const chartPath = buildChartPath(chartValues, chartWidth, chartHeight, snapshot.chart.maxValue);
   const livePipelineCount = snapshot.transactionCountsByStatus
     .filter((metric) => metric.status !== "Closed" && metric.status !== "Cancelled")
     .reduce((total, metric) => total + metric.count, 0);
@@ -153,16 +115,20 @@ export default async function OfficeDashboardPage() {
                 </div>
                 <div className="bm-chart-line-shell">
                   <div className="bm-chart-canvas">
-                    <svg aria-hidden="true" className="bm-chart-series" preserveAspectRatio="none" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
-                      <path d={chartPath} />
-                    </svg>
+                    <div aria-hidden="true" className="bm-chart-bars">
+                      {snapshot.chart.points.map((point) => {
+                        const heightPercent = snapshot.chart.maxValue > 0 ? (point.value / snapshot.chart.maxValue) * 100 : 0;
+                        const barHeight = point.value > 0 ? `${Math.max(heightPercent, 2)}%` : "0%";
 
-                    <div aria-hidden="true" className="bm-chart-points">
-                      {snapshot.chart.points.map((point, index) => {
-                        const xPercent = snapshot.chart.points.length > 1 ? (index / (snapshot.chart.points.length - 1)) * 100 : 50;
-                        const yPercent = (getChartY(point.value, chartHeight, snapshot.chart.maxValue) / chartHeight) * 100;
-
-                        return <span className="bm-chart-point" key={point.label} style={{ left: `${xPercent}%`, top: `${yPercent}%` }} />;
+                        return (
+                          <span className="bm-chart-bar-slot" key={point.label}>
+                            <span
+                              className={`bm-chart-bar${point.value === 0 ? " is-empty" : ""}`}
+                              style={{ height: barHeight }}
+                              title={`${point.label}: ${point.value}`}
+                            />
+                          </span>
+                        );
                       })}
                     </div>
 
