@@ -79,6 +79,10 @@
   - contacts, agents, reports list sections, accounting workbench list surfaces, and settings users/teams/checklists/fields now share the same list-page rhythm (`PageHeader + SummaryChip`, `office-list-card`, `office-list-filters`, dense table card contract)
   - settings teams/checklists now expose explicit list inventory tables before deep edit cards, so admin pages read like peer list modules instead of one-off internal forms
   - shared `SummaryChip` primitive added in `@acre/ui` to reduce repeated page-local KPI chip markup
+- Office page-header normalization follow-up:
+  - added shared `PageHeaderSummary` in `@acre/ui` so top-right page summary/actions stop diverging page by page
+  - dashboard, tasks, activity, library, settings overview, approve docs, notifications, billing, and account now use the same summary-chip header contract instead of mixed `Badge`-based header chrome
+  - stray mixed-language approval-queue UI copy was restored to English so the Office shell reads like one coherent product
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

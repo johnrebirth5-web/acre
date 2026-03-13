@@ -170,7 +170,7 @@ export function OfficeApproveDocsClient({
     try {
       const rejectionReason =
         action === "reject"
-          ? window.prompt("填写拒绝原因（可选）", task.rejectionReason || "")?.trim() ?? ""
+          ? window.prompt("Enter a rejection reason (optional)", task.rejectionReason || "")?.trim() ?? ""
           : "";
       const response = await fetch(`/api/office/transactions/${task.transactionId}/tasks/${task.id}/workflow`, {
         method: "POST",
@@ -186,12 +186,12 @@ export function OfficeApproveDocsClient({
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "审批队列动作执行失败。");
+        throw new Error(body?.error ?? "Unable to complete the approval queue action.");
       }
 
       router.refresh();
     } catch (workflowError) {
-      setError(workflowError instanceof Error ? workflowError.message : "审批队列动作执行失败。");
+      setError(workflowError instanceof Error ? workflowError.message : "Unable to complete the approval queue action.");
     } finally {
       setPendingAction(null);
     }
@@ -213,7 +213,7 @@ export function OfficeApproveDocsClient({
       </section>
 
       <SectionCard
-        subtitle="按审批状态、责任人和截止时间聚焦当前文档审阅工作；Awaiting my review 会按当前登录 reviewer 的可执行动作计算。"
+        subtitle="Focus the document review queue by approval state, assignee, and due window. Awaiting my review reflects actions available to the current reviewer."
         title="Queue filters"
       >
         <FilterBar as="form" className="office-approval-filter-bar" method="get">
@@ -249,7 +249,7 @@ export function OfficeApproveDocsClient({
           </FilterField>
 
           <FilterField className="office-approval-filter-field-wide" label="Transaction / task / document">
-            <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="搜索交易、任务、文档、表单或责任人..." />
+            <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Search transaction, task, document, form, or owner..." />
           </FilterField>
 
           <div className="office-approval-filter-actions">
@@ -307,7 +307,7 @@ export function OfficeApproveDocsClient({
                         </div>
                         <div className="office-approval-meta-copy">{item.task.checklistGroup}</div>
                         {item.task.rejectionReason ? (
-                          <div className="office-approval-meta-copy">拒绝原因: {item.task.rejectionReason}</div>
+                          <div className="office-approval-meta-copy">Rejection reason: {item.task.rejectionReason}</div>
                         ) : null}
                       </td>
                       <td>
@@ -410,7 +410,7 @@ export function OfficeApproveDocsClient({
           </div>
         ) : (
           <EmptyState
-            description="当前过滤条件下没有需要进入文档审批队列的任务。"
+            description="No tasks in the current filter scope need to enter the document approval queue."
             title="No document review items"
           />
         )}

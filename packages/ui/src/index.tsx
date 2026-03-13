@@ -60,6 +60,13 @@ export function PageHeader(props: {
   );
 }
 
+export function PageHeaderSummary(props: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <div className={cx("office-page-actions office-list-page-header-actions", props.className)}>{props.children}</div>;
+}
+
 export function SectionHeader(props: {
   title: string;
   subtitle?: string;

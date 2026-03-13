@@ -71,6 +71,7 @@
 
 - `PageShell`
 - `PageHeader`
+- `PageHeaderSummary`
 - `SectionHeader`
 - `SectionCard`
 - `DetailSection`
@@ -147,11 +148,12 @@
 
 1. `PageShell`
 2. `PageHeader`
-3. `PageHeader.actions` 使用统一 `SummaryChip` + primary/secondary actions
-4. `SectionCard`（`office-list-card`）
-5. `FilterBar`（`office-list-filters`）
-6. `DataTable`
-7. footer / pager
+3. `PageHeader.actions` 优先使用 `PageHeaderSummary`
+4. `PageHeaderSummary` 内统一放 `SummaryChip` + primary/secondary actions
+5. `SectionCard`（`office-list-card`）
+6. `FilterBar`（`office-list-filters`）
+7. `DataTable`
+8. footer / pager
 
 ### Detail pages
 

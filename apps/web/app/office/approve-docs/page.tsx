@@ -4,7 +4,7 @@ import {
   canReviewOfficeTasks,
   canSecondaryReviewOfficeTasks
 } from "@acre/auth";
-import { Badge, PageHeader, PageShell } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { listOfficeDocumentApprovalQueue } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -39,14 +39,14 @@ export default async function OfficeApproveDocsPage(props: OfficeApproveDocsPage
   });
 
   return (
-    <PageShell>
+    <PageShell className="office-list-page office-approve-docs-page">
       <PageHeader
         actions={
-          <>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="neutral">{snapshot.selectedQueueLabel}</Badge>
-            <Badge tone="neutral">{snapshot.maxWindowLabel}</Badge>
-          </>
+          <PageHeaderSummary>
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Queue" tone="accent" value={snapshot.selectedQueueLabel} />
+            <SummaryChip label="Records in view" value={snapshot.itemCount} />
+          </PageHeaderSummary>
         }
         description="Focused document review workbench for first approval, second approval, rejection follow-up, signature blockers, and missing required files."
         eyebrow="Approve docs"

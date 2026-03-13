@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { canAccessAccountActivity, canReviewOfficeTasks, canSecondaryReviewOfficeTasks } from "@acre/auth";
-import { Badge, Button, EmptyState, FilterBar, FilterField, PageHeader, PageShell, SectionCard, StatusBadge } from "@acre/ui";
+import {
+  Button,
+  EmptyState,
+  FilterBar,
+  FilterField,
+  PageHeader,
+  PageHeaderSummary,
+  PageShell,
+  SectionCard,
+  StatusBadge,
+  SummaryChip
+} from "@acre/ui";
 import { getOfficeActivityLogSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -89,17 +100,18 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
   const selectedView = snapshot.selectedView;
 
   return (
-    <PageShell className="office-activity-page">
+    <PageShell className="office-activity-page office-list-page">
       <PageHeader
         actions={
-          <>
+          <PageHeaderSummary>
             <ActivityCommentComposer
               officeId={context.currentOffice?.id ?? null}
               scopeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
             />
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="accent">{snapshot.latestWindowLabel}</Badge>
-          </>
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Audit window" tone="accent" value={snapshot.latestWindowCount} />
+            <SummaryChip label="Live alerts" value={snapshot.alerts.length} />
+          </PageHeaderSummary>
         }
         description="Audit-backed activity records remain the source of truth. Operational alerts are derived live from current transaction, task, and contact state."
         eyebrow="Account activity"

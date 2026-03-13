@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { canAccessOfficeNotifications } from "@acre/auth";
-import { Badge, PageHeader, PageShell } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { listOfficeNotifications } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -32,16 +32,17 @@ export default async function OfficeNotificationsPage(props: OfficeNotifications
   });
 
   return (
-    <PageShell className="bm-page">
+    <PageShell className="bm-page office-list-page office-notifications-page">
       <PageHeader
         actions={
-          <>
+          <PageHeaderSummary>
             <Link className="office-button office-button-secondary" href="/office/activity">
               Open activity log
             </Link>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="neutral">{snapshot.summary.unreadCount} unread</Badge>
-          </>
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Unread" tone="accent" value={snapshot.summary.unreadCount} />
+            <SummaryChip label="Review queue" value={snapshot.summary.reviewCount} />
+          </PageHeaderSummary>
         }
         description="Personal inbox for review work, follow-ups, offer changes, signatures, and incoming updates. Activity log remains the audited system-wide record."
         eyebrow="Notifications"

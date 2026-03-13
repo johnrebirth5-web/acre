@@ -1,6 +1,18 @@
 import Link from "next/link";
 import { getOfficeDashboardBusinessSnapshot } from "@acre/db";
-import { Badge, Button, DataTable, DataTableBody, DataTableHeader, DataTableRow, PageHeader, PageShell, SectionCard, StatCard, StatusBadge } from "@acre/ui";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  PageHeader,
+  PageHeaderSummary,
+  PageShell,
+  SectionCard,
+  StatCard,
+  StatusBadge,
+  SummaryChip
+} from "@acre/ui";
 import { getSessionAccess, requireOfficeSession } from "../../../lib/auth-session";
 
 const chartTopInset = 8;
@@ -69,15 +81,19 @@ export default async function OfficeDashboardPage() {
   const chartHeight = 220;
   const chartValues = snapshot.chart.points.map((point) => point.value);
   const chartPath = buildChartPath(chartValues, chartWidth, chartHeight, snapshot.chart.maxValue);
+  const livePipelineCount = snapshot.transactionCountsByStatus
+    .filter((metric) => metric.status !== "Closed" && metric.status !== "Cancelled")
+    .reduce((total, metric) => total + metric.count, 0);
 
   return (
-    <PageShell className="office-dashboard-page">
+    <PageShell className="office-dashboard-page office-list-page">
       <PageHeader
         actions={
-          <>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="accent">{access.label}</Badge>
-          </>
+          <PageHeaderSummary>
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Access" value={access.label} />
+            <SummaryChip label="Live pipeline" tone="accent" value={livePipelineCount} />
+          </PageHeaderSummary>
         }
         description="Goal tracking, current back-office pressure, and recent transactions inside one operational dashboard."
         eyebrow="Dashboard"
@@ -86,7 +102,7 @@ export default async function OfficeDashboardPage() {
 
       <div className="office-dashboard-grid-wide">
         <SectionCard
-          className="office-dashboard-goal-card"
+          className="office-dashboard-goal-card office-list-card"
           subtitle="Goal tracking, access visibility, and live pipeline pressure for the current office scope."
           title="Goal tracking"
         >
@@ -170,7 +186,7 @@ export default async function OfficeDashboardPage() {
         </SectionCard>
 
         <SectionCard
-          className="office-dashboard-transactions-card"
+          className="office-dashboard-transactions-card office-list-card"
           subtitle="Recently updated deals visible inside the current office scope."
           title="Recent transactions"
         >
@@ -198,11 +214,6 @@ export default async function OfficeDashboardPage() {
           </DataTable>
         </SectionCard>
       </div>
-
-      <Button className="office-help-fab" type="button" variant="secondary">
-        <span className="bm-help-icon">?</span>
-        NEED HELP?
-      </Button>
     </PageShell>
   );
 }

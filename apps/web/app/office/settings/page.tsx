@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { canAccessOfficeSettings } from "@acre/auth";
-import { Badge, PageHeader, PageShell, SectionCard, StatCard } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SectionCard, StatCard, SummaryChip } from "@acre/ui";
 import { getOfficeSettingsSummarySnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -19,9 +19,15 @@ export default async function OfficeSettingsPage() {
   });
 
   return (
-    <PageShell>
+    <PageShell className="office-list-page office-settings-list-page">
       <PageHeader
-        actions={<Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>}
+        actions={
+          <PageHeaderSummary>
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Active users" tone="accent" value={snapshot.summary.activeUsersCount} />
+            <SummaryChip label="Teams" value={snapshot.summary.teamsCount} />
+          </PageHeaderSummary>
+        }
         description="Administrative controls for user access, team configuration, transaction workflow requirements, and reusable checklists."
         eyebrow="Office admin"
         title="Settings"

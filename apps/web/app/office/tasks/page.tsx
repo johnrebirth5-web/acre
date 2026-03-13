@@ -4,7 +4,7 @@ import {
   canReviewOfficeTasks,
   canSecondaryReviewOfficeTasks
 } from "@acre/auth";
-import { Badge, PageHeader, PageShell } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { listOfficeTasks } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -53,13 +53,14 @@ export default async function OfficeTasksPage(props: OfficeTasksPageProps) {
   });
 
   return (
-    <PageShell>
+    <PageShell className="office-list-page office-tasks-page">
       <PageHeader
         actions={
-          <>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="neutral">{snapshot.maxWindowLabel}</Badge>
-          </>
+          <PageHeaderSummary>
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Current view" value={snapshot.selectedViewName} />
+            <SummaryChip label="Window" tone="accent" value={snapshot.maxWindowLabel} />
+          </PageHeaderSummary>
         }
         description="Back-office task management for transaction work, compliance review, and due-date prioritization."
         eyebrow="Task list"
