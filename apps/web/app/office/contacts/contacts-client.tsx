@@ -13,10 +13,7 @@ import {
   FilterField,
   ListPageFilters,
   ListPageFooter,
-  ListPageTableSection,
-  PageHeader,
-  PageHeaderSummary,
-  PageShell,
+  OfficeListPage,
   SelectInput,
   StatusBadge,
   SummaryChip,
@@ -277,61 +274,62 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
     />
   );
 
+  const contactSummary = (
+    <>
+      <SummaryChip label="Contacts" value={totalCount} />
+      <SummaryChip label="Current view" tone="accent" value={stageFilter === "All" ? "All stages" : stageFilter} />
+      <Button className="office-list-page-primary-action" onClick={() => setIsModalOpen(true)} type="button">
+        New contact
+      </Button>
+    </>
+  );
+
   return (
     <>
-      <PageShell className="office-contacts-page office-list-page">
-        <PageHeader
-          actions={
-            <PageHeaderSummary>
-              <SummaryChip label="Contacts" value={totalCount} />
-              <SummaryChip
-                label="Current view"
-                tone="accent"
-                value={stageFilter === "All" ? "All stages" : stageFilter}
-              />
-              <Button onClick={() => setIsModalOpen(true)} type="button">
-                New contact
-              </Button>
-            </PageHeaderSummary>
-          }
-          description="Organization-scoped contacts, follow-up context, and linked transaction visibility in one list."
-          eyebrow="Contacts"
-          title="Contacts"
-        />
-
-        <ListPageTableSection filters={contactFilters} footer={contactFooter} subtitle={summaryLabel} title="Contact list">
-          <DataTable className="office-table bm-contacts-table">
-            <DataTableHeader className="office-table-header bm-contacts-table-header">
-              <span>Name</span>
-              <span>Stage</span>
-              <span>Intent</span>
-              <span>Areas</span>
-              <span>Last contact</span>
-              <span>Next follow-up</span>
-            </DataTableHeader>
-            <DataTableBody>
-              {contacts.map((contact) => (
-                <DataTableRow className="office-table-row bm-contacts-table-row" key={contact.id}>
-                  <div className="office-table-primary">
-                    <strong>
-                      <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
-                    </strong>
-                    <p>{contact.email || contact.phone || contact.source}</p>
-                  </div>
-                  <StatusBadge tone={getContactStageTone(contact.stage)}>{contact.stage}</StatusBadge>
-                  <span>{contact.intent}</span>
-                  <span>{contact.areas.join(", ") || "—"}</span>
-                  <span>{contact.lastContactLabel}</span>
-                  <span>{contact.nextFollowUpLabel}</span>
-                </DataTableRow>
-              ))}
-              {contacts.length === 0 ? (
-                <EmptyState description="Try widening the search or resetting the stage filter." title="No contacts matched the current filters" />
-              ) : null}
-            </DataTableBody>
-          </DataTable>
-        </ListPageTableSection>
-      </PageShell>
+      <OfficeListPage
+        className="office-contacts-page"
+        description="Organization-scoped contacts, follow-up context, and linked transaction visibility in one list."
+        eyebrow="Contacts"
+        filters={contactFilters}
+        footer={contactFooter}
+        sectionSubtitle={summaryLabel}
+        sectionTitle="Contact list"
+        summary={contactSummary}
+        title="Contacts"
+      >
+        <DataTable className="office-list-table office-list-table-wide bm-contacts-table">
+          <DataTableHeader className="office-list-table-header office-list-table-header-contacts">
+            <span>Name</span>
+            <span>Stage</span>
+            <span>Intent</span>
+            <span>Areas</span>
+            <span>Last contact</span>
+            <span>Next follow-up</span>
+          </DataTableHeader>
+          <DataTableBody className="office-list-table-body">
+            {contacts.map((contact) => (
+              <DataTableRow className="office-list-table-row office-list-table-row-contacts" key={contact.id}>
+                <div className="office-list-table-main">
+                  <strong>
+                    <Link href={`/office/contacts/${contact.id}`}>{contact.fullName}</Link>
+                  </strong>
+                  <p>{contact.email || contact.phone || contact.source}</p>
+                </div>
+                <StatusBadge className="office-list-table-status" tone={getContactStageTone(contact.stage)}>
+                  {contact.stage}
+                </StatusBadge>
+                <span>{contact.intent}</span>
+                <span>{contact.areas.join(", ") || "—"}</span>
+                <span>{contact.lastContactLabel}</span>
+                <span>{contact.nextFollowUpLabel}</span>
+              </DataTableRow>
+            ))}
+            {contacts.length === 0 ? (
+              <EmptyState description="Try widening the search or resetting the stage filter." title="No contacts matched the current filters" />
+            ) : null}
+          </DataTableBody>
+        </DataTable>
+      </OfficeListPage>
 
       {isModalOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsModalOpen(false)}>

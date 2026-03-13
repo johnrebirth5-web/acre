@@ -13,10 +13,7 @@ import {
   FilterField,
   ListPageFilters,
   ListPageFooter,
-  ListPageTableSection,
-  PageHeader,
-  PageHeaderSummary,
-  PageShell,
+  OfficeListPage,
   SelectInput,
   StatusBadge,
   SummaryChip,
@@ -546,68 +543,69 @@ export function TransactionsClient({
     />
   );
 
+  const transactionSummary = (
+    <>
+      <SummaryChip label="Transactions" value={summary.totalCount} />
+      <SummaryChip label="My net income" tone="accent" value={summary.totalNetIncome} />
+      <Button className="office-list-page-primary-action bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
+        Create transaction
+      </Button>
+    </>
+  );
+
   return (
     <>
-      <PageShell className="bm-transactions-page office-list-page">
-        <PageHeader
-          actions={
-            <PageHeaderSummary className="office-transactions-page-actions">
-              <SummaryChip label="Transactions" value={summary.totalCount} />
-              <SummaryChip label="My net income" tone="accent" value={summary.totalNetIncome} />
-              <Button className="bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
-                Create transaction
-              </Button>
-            </PageHeaderSummary>
-          }
-          description="Operational transaction list with query-param filters for status, owner, team, type, and date-window drill-down."
-          eyebrow="Transactions"
-          title="Transactions"
-        />
+      <OfficeListPage
+        className="bm-transactions-page"
+        description="Operational transaction list with query-param filters for status, owner, team, type, and date-window drill-down."
+        eyebrow="Transactions"
+        filters={transactionFilters}
+        footer={transactionFooter}
+        sectionSubtitle="Search, filter, and review the current office transaction set."
+        sectionTitle="Transaction list"
+        summary={transactionSummary}
+        summaryClassName="office-transactions-page-actions"
+        title="Transactions"
+      >
+        <DataTable className="office-list-table bm-transactions-list-shell">
+          <DataTableHeader className="office-list-table-header office-list-table-header-transactions">
+            <span />
+            <span>Transaction</span>
+            <span>Price</span>
+            <span>Owner</span>
+            <span>Representing</span>
+            <span>Status</span>
+            <span>Important date</span>
+          </DataTableHeader>
 
-        <ListPageTableSection
-          filters={transactionFilters}
-          footer={transactionFooter}
-          subtitle="Search, filter, and review the current office transaction set."
-          title="Transaction list"
-        >
-          <DataTable className="bm-transactions-list-shell">
-            <DataTableHeader className="bm-transactions-columns">
-              <span />
-              <span>Transaction</span>
-              <span>Price</span>
-              <span>Owner</span>
-              <span>Representing</span>
-              <span>Status</span>
-              <span>Important date</span>
-            </DataTableHeader>
-
-            <DataTableBody className="bm-transactions-rows">
-              {transactions.map((transaction) => (
-                <DataTableRow className="bm-transactions-row" key={transaction.id}>
-                  <span className={`bm-transaction-home-icon${transaction.isFlagged ? " is-flagged" : ""}`}>⌂</span>
+          <DataTableBody className="office-list-table-body">
+            {transactions.map((transaction) => (
+              <DataTableRow className="office-list-table-row office-list-table-row-transactions" key={transaction.id}>
+                <span className={`bm-transaction-home-icon${transaction.isFlagged ? " is-flagged" : ""}`}>⌂</span>
+                <div className="office-list-table-main">
                   <strong className={transaction.isFlagged ? "is-flagged" : ""}>
                     <Link href={`/office/transactions/${transaction.id}`}>{transaction.address}</Link>
                   </strong>
-                  <span>{transaction.price}</span>
-                  <span>{transaction.owner}</span>
-                  <span>{transaction.representing}</span>
-                  <StatusBadge className="bm-transaction-status-badge" tone={getTransactionStatusTone(transaction.status)}>
-                    {transaction.status}
-                  </StatusBadge>
-                  <span>{transaction.importantDate || "—"}</span>
-                </DataTableRow>
-              ))}
+                </div>
+                <span>{transaction.price}</span>
+                <span>{transaction.owner}</span>
+                <span>{transaction.representing}</span>
+                <StatusBadge className="office-list-table-status bm-transaction-status-badge" tone={getTransactionStatusTone(transaction.status)}>
+                  {transaction.status}
+                </StatusBadge>
+                <span>{transaction.importantDate || "—"}</span>
+              </DataTableRow>
+            ))}
 
-              {transactions.length === 0 ? (
-                <EmptyState
-                  description="Try widening the search or switching the current view."
-                  title="No transactions matched the current filters"
-                />
-              ) : null}
-            </DataTableBody>
-          </DataTable>
-        </ListPageTableSection>
-      </PageShell>
+            {transactions.length === 0 ? (
+              <EmptyState
+                description="Try widening the search or switching the current view."
+                title="No transactions matched the current filters"
+              />
+            ) : null}
+          </DataTableBody>
+        </DataTable>
+      </OfficeListPage>
 
       {isModalOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsModalOpen(false)}>

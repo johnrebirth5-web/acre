@@ -102,6 +102,10 @@
   - `ListPageTableSection`, `ListPageStack`, and `ListPageSplit` now formalize the transactions-style list-page composition instead of relying on each page to hand-assemble the same structure
   - transactions and contacts now explicitly compose their main inventory module through the same `filters -> table -> footer` helper contract
   - agents roster, reports list modules, accounting list modules, and settings admin list pages now use the same shared list-page stack/split rhythm and more consistent `DataTable`-based inventory shells
+- Transactions-to-contacts canonical template extraction:
+  - `OfficeListPage` and `OfficeListPageSummary` now codify the exact transactions page skeleton (`header -> summary/actions -> filter card -> table card -> footer`)
+  - `/office/transactions` now serves as the explicit canonical implementation through that template instead of hand-assembling `PageShell + PageHeader + ListPageTableSection`
+  - `/office/contacts` now uses the same page composition and shared `office-list-table-*` contract, so it reads as a direct peer of transactions instead of a thinner parallel list page
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

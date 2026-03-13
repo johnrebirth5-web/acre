@@ -1875,7 +1875,9 @@ select {
 }
 
 .bm-transactions-columns,
-.bm-transactions-row {
+.bm-transactions-row,
+.office-list-table-header-transactions,
+.office-list-table-row-transactions {
   display: grid;
   grid-template-columns:
     30px
@@ -1889,7 +1891,8 @@ select {
   align-items: center;
 }
 
-.bm-transactions-columns {
+.bm-transactions-columns,
+.office-list-table-header-transactions {
   min-height: 30px;
   padding: 0 0 2px;
 }
@@ -1914,25 +1917,29 @@ select {
   display: grid;
 }
 
-.bm-transactions-row {
+.bm-transactions-row,
+.office-list-table-row-transactions {
   min-height: 40px;
   border-top: 1px solid #e6e6e6;
   color: #474747;
   font-size: 0.74rem;
 }
 
-.bm-transactions-row strong {
+.bm-transactions-row strong,
+.office-list-table-row-transactions strong {
   color: #0f62db;
   font-size: 0.78rem;
   font-weight: 600;
 }
 
-.bm-transactions-row strong a {
+.bm-transactions-row strong a,
+.office-list-table-row-transactions strong a {
   color: inherit;
   text-decoration: none;
 }
 
-.bm-transactions-row strong.is-flagged {
+.bm-transactions-row strong.is-flagged,
+.office-list-table-row-transactions strong.is-flagged {
   color: #ed4d43;
 }
 
@@ -5030,10 +5037,18 @@ a {
   gap: 12px;
 }
 
+.office-list-page-summary {
+  gap: 12px;
+}
+
 .office-list-page-header-actions {
   width: 100%;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.office-list-page-primary-action {
+  min-width: max-content;
 }
 
 .office-summary-chip,
@@ -5950,6 +5965,7 @@ a {
 
 .office-data-table,
 .office-table,
+.office-list-table,
 .bm-transactions-list-shell,
 .bm-transactions-table,
 .office-pipeline-table,
@@ -5976,6 +5992,7 @@ a {
 
 .office-data-table-head,
 .office-table-header,
+.office-list-table-header,
 .bm-transactions-columns,
 .bm-transaction-header,
 .office-pipeline-table-head,
@@ -5998,6 +6015,7 @@ a {
 
 .office-data-table-row,
 .office-table-row,
+.office-list-table-row,
 .bm-transactions-row,
 .bm-transaction-row,
 .office-pipeline-row,
@@ -6022,19 +6040,31 @@ a {
   min-width: 0;
 }
 
+.office-list-table-body {
+  display: grid;
+  min-width: 0;
+}
+
 .bm-transactions-columns,
-.bm-transactions-row {
+.bm-transactions-row,
+.office-list-table-header-transactions,
+.office-list-table-row-transactions {
   min-width: 900px;
 }
 
 .office-table-row-wide,
 .bm-contacts-table-header,
-.bm-contacts-table-row {
+.bm-contacts-table-row,
+.office-list-table-wide,
+.office-list-table-header-contacts,
+.office-list-table-row-contacts {
   min-width: 840px;
 }
 
 .bm-contacts-table-header,
-.bm-contacts-table-row {
+.bm-contacts-table-row,
+.office-list-table-header-contacts,
+.office-list-table-row-contacts {
   grid-template-columns:
     minmax(220px, 2.15fr)
     minmax(84px, 0.68fr)
@@ -6046,6 +6076,12 @@ a {
 }
 
 .bm-contacts-table-row {
+  align-items: start;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.office-list-table-row-contacts {
   align-items: start;
   padding-top: 9px;
   padding-bottom: 9px;
@@ -6274,6 +6310,7 @@ a {
 
 .office-data-table-row:last-child,
 .office-table-row:last-child,
+.office-list-table-row:last-child,
 .bm-transactions-row:last-child,
 .bm-transaction-row:last-child,
 .office-pipeline-row:last-child,
@@ -6283,6 +6320,7 @@ a {
 
 .office-data-table-row:hover,
 .office-table-row:hover,
+.office-list-table-row:hover,
 .bm-transactions-row:hover,
 .bm-transaction-row:hover,
 .office-pipeline-row:hover,
@@ -6292,11 +6330,13 @@ a {
 
 .office-data-table-head > *,
 .office-table-header > *,
+.office-list-table-header > *,
 .bm-transactions-columns > *,
 .bm-transaction-header > *,
 .office-pipeline-table-head > *,
 .office-data-table-row > *,
 .office-table-row > *,
+.office-list-table-row > *,
 .bm-transactions-row > *,
 .bm-transaction-row > *,
 .office-pipeline-row > *,
@@ -6307,6 +6347,7 @@ a {
 
 .office-data-table-head > span,
 .office-table-header > span,
+.office-list-table-header > span,
 .bm-transactions-columns > span,
 .bm-transaction-header > span,
 .office-pipeline-table-head > span,
@@ -6318,6 +6359,7 @@ a {
 
 .office-data-table-row > span,
 .office-table-row > span,
+.office-list-table-row > span,
 .bm-transactions-row > span,
 .bm-transaction-row > span,
 .bm-office-table-row > span {
@@ -6328,6 +6370,7 @@ a {
 }
 
 .office-table-primary strong,
+.office-list-table-main strong,
 .bm-transactions-row strong,
 .bm-transaction-row strong,
 .office-pipeline-row strong,
@@ -6340,15 +6383,32 @@ a {
 }
 
 .office-table-primary,
+.office-list-table-main,
 .office-data-table-row-main {
   min-width: 0;
 }
 
-.office-table-primary p {
+.office-list-table-main {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+}
+
+.office-list-table-main strong a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.office-table-primary p,
+.office-list-table-main p {
   margin: 2px 0 0;
   color: var(--office-text-muted);
   font-size: var(--office-text-meta-size);
   line-height: var(--office-line-body);
+}
+
+.office-list-table-status {
+  justify-self: start;
 }
 
 .bm-detail-card .bm-document-row-head strong,
@@ -6404,6 +6464,8 @@ a {
 .office-table-row-billing-statements > :is(:nth-child(2), :nth-child(3), :nth-child(4), :nth-child(5)),
 .bm-transactions-columns > :nth-child(3),
 .bm-transactions-row > :nth-child(3),
+.office-list-table-header-transactions > :nth-child(3),
+.office-list-table-row-transactions > :nth-child(3),
 .bm-office-table-row-transactions > :is(:nth-child(5), :nth-child(6)),
 .office-pipeline-cell-number {
   justify-self: end;
@@ -6429,7 +6491,11 @@ a {
 .bm-transactions-columns > :is(:nth-child(3), :nth-child(4), :nth-child(5), :nth-child(6), :nth-child(7)),
 .bm-transactions-row > :is(:nth-child(3), :nth-child(4), :nth-child(5), :nth-child(6), :nth-child(7)),
 .bm-contacts-table-header > :is(:nth-child(2), :nth-child(5), :nth-child(6)),
-.bm-contacts-table-row > :is(:nth-child(2), :nth-child(5), :nth-child(6)) {
+.bm-contacts-table-row > :is(:nth-child(2), :nth-child(5), :nth-child(6)),
+.office-list-table-header-transactions > :is(:nth-child(3), :nth-child(4), :nth-child(5), :nth-child(6), :nth-child(7)),
+.office-list-table-row-transactions > :is(:nth-child(3), :nth-child(4), :nth-child(5), :nth-child(6), :nth-child(7)),
+.office-list-table-header-contacts > :is(:nth-child(2), :nth-child(5), :nth-child(6)),
+.office-list-table-row-contacts > :is(:nth-child(2), :nth-child(5), :nth-child(6)) {
   white-space: nowrap;
 }
 

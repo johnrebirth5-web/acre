@@ -67,6 +67,13 @@ export function PageHeaderSummary(props: {
   return <div className={cx("office-page-actions office-list-page-header-actions", props.className)}>{props.children}</div>;
 }
 
+export function OfficeListPageSummary(props: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <PageHeaderSummary className={cx("office-list-page-summary", props.className)}>{props.children}</PageHeaderSummary>;
+}
+
 export function SectionHeader(props: {
   title: string;
   subtitle?: string;
@@ -129,6 +136,46 @@ export function ListPageTableSection(props: {
       {props.children}
       {props.footer}
     </ListPageSection>
+  );
+}
+
+export function OfficeListPage(props: {
+  className?: string;
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  summary?: ReactNode;
+  summaryClassName?: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  sectionSubtitle?: string;
+  sectionActions?: ReactNode;
+  sectionClassName?: string;
+  filters?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <PageShell className={cx("office-list-page", props.className)}>
+      <PageHeader
+        actions={props.summary ? <OfficeListPageSummary className={props.summaryClassName}>{props.summary}</OfficeListPageSummary> : null}
+        description={props.description}
+        eyebrow={props.eyebrow}
+        title={props.title}
+      />
+
+      <ListPageTableSection
+        actions={props.sectionActions}
+        className={props.sectionClassName}
+        filters={props.filters}
+        footer={props.footer}
+        id={props.sectionId}
+        subtitle={props.sectionSubtitle}
+        title={props.sectionTitle}
+      >
+        {props.children}
+      </ListPageTableSection>
+    </PageShell>
   );
 }
 

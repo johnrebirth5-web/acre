@@ -72,6 +72,8 @@
 - `PageShell`
 - `PageHeader`
 - `PageHeaderSummary`
+- `OfficeListPageSummary`
+- `OfficeListPage`
 - `SectionHeader`
 - `SectionCard`
 - `ListPageSection`
@@ -159,19 +161,18 @@
 
 推荐结构：
 
-1. `PageShell`
-2. `PageHeader`
-3. `PageHeader.actions` 优先使用 `PageHeaderSummary`
-4. `PageHeaderSummary` 内统一放 `SummaryChip` + primary/secondary actions
-5. `ListPageSection`
-6. `ListPageTableSection`
-7. `ListPageFilters`
-8. `DataTable` 或共享 `office-table-*` table contract
-9. `ListPageFooter` / `office-list-footer`
+1. `OfficeListPage`
+2. `OfficeListPage.summary` 使用 `OfficeListPageSummary`
+3. `OfficeListPageSummary` 内统一放 `SummaryChip` + primary/secondary actions
+4. `ListPageTableSection`
+5. `ListPageFilters`
+6. `DataTable` 或共享 `office-table-*` / `office-list-table-*` table contract
+7. `ListPageFooter` / `office-list-footer`
 
 补充结构规则：
 
 - transactions 的 `PageHeader + SummaryChip + list card + filter bar + dense table + footer` 是 peer list pages 的直接参考，不要再为 contacts / agents / reports / accounting / settings 各自发明另一套 page composition
+- `OfficeListPage` 是 transactions 提炼出来的 canonical page shell；当 contacts 之类的 peer list page 需要页头 + summary + table card 时，优先直接复用这个组合层，而不是每页重新手写 `PageShell + PageHeader + ListPageTableSection`
 - 现在优先使用 `ListPageTableSection` 把 `filters -> table/list -> footer` 固定成一套顺序，避免每页各自排列 inventory section
 - 当一个页面需要多个 peer list modules 时，优先使用 `ListPageStack` 和 `ListPageSplit` 组织主列表与次级列表/明细区，而不是重新回到 `dashboard` 式 page-local grid
 - 如果页面还需要一层二级 summary，只能用 `ListPageSection + ListPageStatsGrid + StatCard`，不能再额外长出第二套 floating KPI strip
