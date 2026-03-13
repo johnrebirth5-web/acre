@@ -4650,8 +4650,13 @@ select {
   --office-text-subsection-title-size: 0.94rem;
   --office-text-body-size: 0.92rem;
   --office-text-meta-size: 0.82rem;
+  --office-text-helper-size: 0.78rem;
   --office-text-label-size: 0.76rem;
   --office-text-table-head-size: 0.7rem;
+  --office-text-table-cell-size: 0.88rem;
+  --office-text-button-size: 0.88rem;
+  --office-text-button-sm-size: 0.8rem;
+  --office-text-inline-action-size: 0.78rem;
   --office-text-stat-size: 1.38rem;
   --office-line-tight: 1.25;
   --office-line-body: 1.45;
@@ -5642,18 +5647,21 @@ a {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 40px;
   padding: 0 16px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--office-radius-md);
   background: var(--office-accent);
   color: #fff;
-  font-size: 0.95rem;
+  font-size: var(--office-text-button-size);
+  line-height: 1;
+  letter-spacing: -0.01em;
   font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
 .office-button:hover,
@@ -5703,20 +5711,47 @@ a {
   color: #fff;
 }
 
-.office-inline-action {
+.office-inline-action,
+.office-inline-link {
   min-width: 0;
+  font-size: var(--office-text-inline-action-size);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.office-inline-action {
   padding: 6px 9px;
-  font-size: 0.78rem;
 }
 
 .office-inline-action-sm {
   min-width: 0;
 }
 
-.office-button-sm {
+.office-button-sm,
+.office-list-page-button,
+.bm-transactions-page-button,
+.bm-contacts-page-button {
   min-height: 34px;
   padding: 0 12px;
-  font-size: 0.82rem;
+  font-size: var(--office-text-button-sm-size);
+}
+
+.office-button.office-inline-action,
+.office-button-secondary.office-inline-action,
+.bm-create-button.office-inline-action,
+.bm-view-toggle.office-inline-action {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: var(--office-text-button-sm-size);
+}
+
+.office-button.office-inline-action-sm,
+.office-button-secondary.office-inline-action-sm,
+.bm-create-button.office-inline-action-sm,
+.bm-view-toggle.office-inline-action-sm {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: var(--office-text-inline-action-size);
 }
 
 .office-button:focus-visible,
@@ -5953,6 +5988,8 @@ a {
   gap: var(--office-table-row-gap);
   border-bottom: 1px solid var(--office-border);
   color: var(--office-text);
+  font-size: var(--office-text-table-cell-size);
+  line-height: var(--office-line-body);
   text-decoration: none;
   box-sizing: border-box;
 }
@@ -6136,7 +6173,7 @@ a {
 .office-report-limitations strong,
 .office-report-section-note {
   color: var(--office-text);
-  font-size: 0.9rem;
+  font-size: var(--office-text-subsection-title-size);
   font-weight: 700;
 }
 
@@ -6144,7 +6181,7 @@ a {
   margin: 0;
   padding-left: 18px;
   color: var(--office-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--office-text-body-size);
   line-height: 1.5;
 }
 
@@ -6174,7 +6211,7 @@ a {
 
 .office-report-stat span {
   color: var(--office-text-muted);
-  font-size: 0.76rem;
+  font-size: var(--office-text-label-size);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -6182,7 +6219,7 @@ a {
 
 .office-report-stat strong {
   color: var(--office-text);
-  font-size: 1.08rem;
+  font-size: var(--office-text-stat-size);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
@@ -6190,7 +6227,7 @@ a {
 .office-report-stat p {
   margin: 0;
   color: var(--office-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .office-report-time-list {
@@ -6242,6 +6279,7 @@ a {
 .office-pipeline-row > *,
 .bm-office-table-row > * {
   min-width: 0;
+  font-size: inherit;
 }
 
 .office-data-table-head > span,
@@ -6263,7 +6301,7 @@ a {
   display: flex;
   align-items: center;
   min-width: 0;
-  line-height: 1.3;
+  line-height: var(--office-line-body);
 }
 
 .office-table-primary strong,
@@ -6272,6 +6310,9 @@ a {
 .office-pipeline-row strong,
 .bm-office-table-row strong {
   color: var(--office-accent);
+  font-size: var(--office-text-subsection-title-size);
+  line-height: var(--office-line-tight);
+  letter-spacing: -0.01em;
   font-weight: 700;
 }
 
@@ -6283,8 +6324,37 @@ a {
 .office-table-primary p {
   margin: 2px 0 0;
   color: var(--office-text-muted);
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-size: var(--office-text-meta-size);
+  line-height: var(--office-line-body);
+}
+
+.bm-detail-card .bm-document-row-head strong,
+.bm-detail-card .bm-signature-row-copy strong,
+.bm-offer-row-headline strong,
+.bm-offer-form-head strong,
+.bm-offer-subhead h4,
+.bm-transaction-task-group-head strong,
+.bm-commission-item strong,
+.bm-rule-item span {
+  color: var(--office-text);
+  font-size: var(--office-text-subsection-title-size);
+  line-height: var(--office-line-tight);
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+.bm-detail-card .bm-document-row-copy p,
+.bm-detail-card .bm-signature-row-copy p,
+.bm-offer-row-headline p,
+.bm-offer-form-head p,
+.bm-offer-comment-list p,
+.bm-commission-item p,
+.bm-commission-meta p,
+.bm-transaction-task-group-head span,
+.bm-transaction-task-status span {
+  color: var(--office-text-muted);
+  font-size: var(--office-text-meta-size);
+  line-height: var(--office-line-body);
 }
 
 .office-table-row-report-transactions > :is(:nth-child(5), :nth-child(6)),
@@ -6528,7 +6598,7 @@ a {
   gap: 14px;
   padding-top: 12px;
   color: var(--office-text-muted);
-  font-size: 0.88rem;
+  font-size: var(--office-text-meta-size);
   flex-wrap: wrap;
 }
 
@@ -6558,7 +6628,7 @@ a {
 
 .office-list-page-size span {
   color: var(--office-text-muted);
-  font-size: 0.84rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .office-list-pager {
@@ -6573,14 +6643,15 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 24px;
-  padding: 0 8px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
   border: 1px solid var(--office-border);
-  border-radius: 8px;
+  border-radius: var(--office-radius-sm);
   background: var(--office-surface-subtle);
   color: var(--office-text-muted);
-  font-size: 0.76rem;
+  font-size: var(--office-text-button-sm-size);
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -6595,7 +6666,7 @@ a {
   min-width: 76px;
   text-align: center;
   color: var(--office-text-muted);
-  font-size: 0.84rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .bm-transaction-status-badge,
@@ -7205,12 +7276,12 @@ a {
 }
 
 .office-agents-goal-card-head strong {
-  font-size: 0.98rem;
+  font-size: var(--office-text-subsection-title-size);
 }
 
 .office-agents-goal-card-head span {
   color: var(--office-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .bm-link-row,
@@ -7639,7 +7710,7 @@ a {
   justify-content: space-between;
   gap: 8px;
   color: var(--office-text-muted);
-  font-size: 0.84rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .office-settings-pill-list {
@@ -7659,7 +7730,7 @@ a {
   border: 1px solid var(--office-border);
   border-radius: 999px;
   background: var(--office-surface-subtle);
-  font-size: 0.82rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .office-settings-pill a {
@@ -8090,21 +8161,25 @@ a {
 }
 
 .office-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--office-accent);
-  font-size: 0.82rem;
+  font-size: var(--office-text-inline-action-size);
   font-weight: 700;
   text-decoration: none;
 }
 
 .office-inline-link:hover {
   color: var(--office-accent-strong);
+  text-decoration: underline;
 }
 
 .office-billing-limitations {
   margin: 0;
   padding-left: 18px;
   color: var(--office-text-muted);
-  font-size: 0.86rem;
+  font-size: var(--office-text-body-size);
   line-height: 1.5;
 }
 
