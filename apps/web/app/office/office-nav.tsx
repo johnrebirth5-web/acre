@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { SiteReleaseBadge } from "../site-release-badge";
 
 type NavGroup = {
@@ -63,11 +64,41 @@ type OfficeNavProps = {
 
 export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
   const pathname = usePathname();
+  const [currentHash, setCurrentHash] = useState("");
 
-  function isActive(href: string) {
-    const normalizedHref = href.split("#")[0];
+  useEffect(() => {
+    function syncHash() {
+      setCurrentHash(window.location.hash);
+    }
 
-    return pathname === normalizedHref || pathname.startsWith(`${normalizedHref}/`);
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, [pathname]);
+
+  function hasHashVariant(path: string) {
+    return navGroups.some((group) => group.items.some((item) => item.href?.startsWith(`${path}#`)));
+  }
+
+  function isSidebarItemActive(href: string) {
+    const [path, hashFragment] = href.split("#");
+
+    if (hashFragment) {
+      return pathname === path && currentHash === `#${hashFragment}`;
+    }
+
+    if (hasHashVariant(path)) {
+      return pathname === path && currentHash.length === 0;
+    }
+
+    return pathname === path;
+  }
+
+  function isMobileSectionActive(href: string) {
+    const path = href.split("#")[0];
+
+    return pathname === path || pathname.startsWith(`${path}/`);
   }
 
   return (
@@ -103,7 +134,7 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
                   item.href ? (
                     <Link
                       key={item.label}
-                      className={`office-nav-link${isActive(item.href) ? " is-active" : ""}`}
+                      className={`office-nav-link${isSidebarItemActive(item.href) ? " is-active" : ""}`}
                       href={item.href}
                     >
                       {item.label}
@@ -129,28 +160,28 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
       </aside>
 
       <nav className="mobile-rail office-mobile-rail">
-        <Link className={isActive("/office/dashboard") ? "is-active" : ""} href="/office/dashboard">
+        <Link className={isMobileSectionActive("/office/dashboard") ? "is-active" : ""} href="/office/dashboard">
           Dash
         </Link>
-        <Link className={isActive("/office/tasks") ? "is-active" : ""} href="/office/tasks">
+        <Link className={isMobileSectionActive("/office/tasks") ? "is-active" : ""} href="/office/tasks">
           Tasks
         </Link>
-        <Link className={isActive("/office/transactions") ? "is-active" : ""} href="/office/transactions">
+        <Link className={isMobileSectionActive("/office/transactions") ? "is-active" : ""} href="/office/transactions">
           Trans
         </Link>
-        <Link className={isActive("/office/agents") ? "is-active" : ""} href="/office/agents">
+        <Link className={isMobileSectionActive("/office/agents") ? "is-active" : ""} href="/office/agents">
           Agents
         </Link>
-        <Link className={isActive("/office/activity") ? "is-active" : ""} href="/office/activity">
+        <Link className={isMobileSectionActive("/office/activity") ? "is-active" : ""} href="/office/activity">
           Activity
         </Link>
-        <Link className={isActive("/office/library") ? "is-active" : ""} href="/office/library">
+        <Link className={isMobileSectionActive("/office/library") ? "is-active" : ""} href="/office/library">
           Library
         </Link>
-        <Link className={isActive("/office/accounting") ? "is-active" : ""} href="/office/accounting">
+        <Link className={isMobileSectionActive("/office/accounting") ? "is-active" : ""} href="/office/accounting">
           Acct
         </Link>
-        <Link className={isActive("/office/settings") ? "is-active" : ""} href="/office/settings">
+        <Link className={isMobileSectionActive("/office/settings") ? "is-active" : ""} href="/office/settings">
           Admin
         </Link>
       </nav>
