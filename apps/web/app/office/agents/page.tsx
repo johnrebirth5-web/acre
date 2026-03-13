@@ -49,6 +49,8 @@ export default async function OfficeAgentsPage(props: OfficeAgentsPageProps) {
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Rostered members" tone="accent" value={snapshot.summary.totalMembers} />
             <SummaryChip label="Active teams" value={snapshot.summary.activeTeamCount} />
+            <SummaryChip label="Onboarding in progress" value={snapshot.summary.onboardingInProgressCount} />
+            <SummaryChip label="Inactive members" value={snapshot.summary.inactiveMemberCount} />
           </PageHeaderSummary>
         }
         description="Agent profiles, onboarding visibility, teams, goals, and operating performance for the current back-office workspace."

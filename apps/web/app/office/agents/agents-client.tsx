@@ -15,7 +15,6 @@ import {
   FormField,
   SectionCard,
   SelectInput,
-  StatCard,
   StatusBadge,
   TextInput
 } from "@acre/ui";
@@ -143,14 +142,6 @@ export function OfficeAgentsClient({
 
   return (
     <div className="office-agents-layout">
-      <section className="office-kpi-grid office-agents-kpi-grid">
-        <StatCard hint="currently visible in this roster scope" label="Rostered members" value={snapshot.summary.totalMembers} />
-        <StatCard hint="members with the Agent role" label="Agents" value={snapshot.summary.agentCount} />
-        <StatCard hint="members still progressing through onboarding" label="Onboarding in progress" value={snapshot.summary.onboardingInProgressCount} />
-        <StatCard hint="members currently not active" label="Inactive members" value={snapshot.summary.inactiveMemberCount} />
-        <StatCard hint="currently active teams in this office scope" label="Active teams" value={snapshot.summary.activeTeamCount} />
-      </section>
-
       <SectionCard className="office-list-card" subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
         <FilterBar as="form" className="office-agents-toolbar office-list-filters" method="get">
           <FilterField className="office-agents-search-field" label="Search">

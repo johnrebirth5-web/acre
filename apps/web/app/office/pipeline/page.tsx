@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getOfficePipelineWorkspaceSnapshot } from "@acre/db";
-import { Button, FilterBar, FilterField, PageHeader, PageHeaderSummary, PageShell, SelectInput, StatusBadge, SummaryChip, TextInput } from "@acre/ui";
+import { Button, FilterBar, FilterField, PageHeader, PageHeaderSummary, PageShell, SectionCard, SelectInput, StatusBadge, SummaryChip, TextInput } from "@acre/ui";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
 type PipelinePageSearchParams = {
@@ -98,29 +98,6 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
     historyMonth: null
   });
   const hasScopedSelection = snapshot.selection.kind !== "all";
-  const workspaceOverviewCards = [
-    {
-      id: "all",
-      label: "All filtered",
-      summary: snapshot.workspaceSummary.filteredTransactions
-    },
-    {
-      id: "live",
-      label: "Live funnel",
-      summary: snapshot.workspaceSummary.livePipeline
-    },
-    {
-      id: "selected",
-      label: hasScopedSelection ? snapshot.selection.label : "Current view",
-      summary: snapshot.workspaceSummary.selectedView,
-      isAccent: true
-    },
-    {
-      id: "history",
-      label: "Recent history",
-      summary: snapshot.workspaceSummary.recentHistory
-    }
-  ];
   const workingListNote =
     snapshot.selection.kind === "stage"
       ? "Showing the selected live stage inside the current top-level filters."
@@ -135,6 +112,8 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
           <PageHeaderSummary className="office-pipeline-page-actions">
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Metric" tone="accent" value={snapshot.metricModeLabel} />
+            <SummaryChip label="Filtered" value={snapshot.workspaceSummary.filteredTransactions.count} />
+            <SummaryChip label="Live funnel" value={snapshot.workspaceSummary.livePipeline.count} />
             {hasScopedSelection ? <SummaryChip label="Selection" value={snapshot.selection.label} /> : null}
           </PageHeaderSummary>
         }
@@ -189,19 +168,34 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
         {snapshot.filters.historyMonth ? <input name="historyMonth" type="hidden" value={snapshot.filters.historyMonth} /> : null}
       </FilterBar>
 
-      <section className="office-pipeline-overview-strip" aria-label="Pipeline overview">
-        {workspaceOverviewCards.map((card) => (
-          <article className={`office-pipeline-overview-card ${card.isAccent ? "is-accent" : ""}`} key={card.id}>
-            <span>{card.label}</span>
-            <strong>{card.summary.count}</strong>
-            <em>{card.summary.metricLabel}</em>
+      <SectionCard
+        className="office-list-card office-pipeline-summary-card"
+        subtitle={`Current metric mode: ${snapshot.metricModeLabel}. ${snapshot.metricModeDescription}`}
+        title="Pipeline summary"
+      >
+        <div className="office-kpi-grid office-pipeline-overview-strip" aria-label="Pipeline summary">
+          <article className="office-stat-card office-pipeline-overview-card">
+            <span>All filtered</span>
+            <strong>{snapshot.workspaceSummary.filteredTransactions.count}</strong>
+            <p>{snapshot.workspaceSummary.filteredTransactions.metricLabel}</p>
           </article>
-        ))}
-      </section>
-
-      <p className="office-pipeline-overview-note">
-        Current metric mode: <strong>{snapshot.metricModeLabel}</strong>. {snapshot.metricModeDescription}
-      </p>
+          <article className="office-stat-card office-pipeline-overview-card">
+            <span>Live funnel</span>
+            <strong>{snapshot.workspaceSummary.livePipeline.count}</strong>
+            <p>{snapshot.workspaceSummary.livePipeline.metricLabel}</p>
+          </article>
+          <article className="office-stat-card office-stat-card-accent office-pipeline-overview-card" >
+            <span>{hasScopedSelection ? snapshot.selection.label : "Current view"}</span>
+            <strong>{snapshot.workspaceSummary.selectedView.count}</strong>
+            <p>{snapshot.workspaceSummary.selectedView.metricLabel}</p>
+          </article>
+          <article className="office-stat-card office-pipeline-overview-card">
+            <span>Recent history</span>
+            <strong>{snapshot.workspaceSummary.recentHistory.count}</strong>
+            <p>{snapshot.workspaceSummary.recentHistory.metricLabel}</p>
+          </article>
+        </div>
+      </SectionCard>
 
       <section className="office-pipeline-layout">
         <aside className="office-pipeline-rail">
