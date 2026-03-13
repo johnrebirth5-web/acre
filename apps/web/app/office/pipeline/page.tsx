@@ -129,7 +129,7 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
         : "Showing all transactions inside the current top-level filters.";
 
   return (
-    <PageShell className="office-pipeline-page">
+    <PageShell className="office-list-page office-pipeline-page">
       <PageHeader
         actions={
           <PageHeaderSummary className="office-pipeline-page-actions">

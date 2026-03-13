@@ -69,8 +69,8 @@ function getOnboardingTone(value: string) {
 export function OfficeAgentsClient({
   snapshot,
   canManageAgents,
-  canManageGoals,
   canManageOnboarding,
+  canManageGoals,
   canManageTeams
 }: OfficeAgentsClientProps) {
   const router = useRouter();
@@ -277,12 +277,11 @@ export function OfficeAgentsClient({
 
       <SectionCard
         className="office-list-card"
-        actions={canManageTeams ? <StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge> : undefined}
-        subtitle="Teams are shared roster groupings for visibility and management. Create or rename them here, then manage membership inside each agent profile."
-        title="Teams"
+        actions={<StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge>}
+        subtitle="Quick inventory of teams, membership, active work, and status across the current office scope."
+        title="Teams overview"
       >
         <div className="office-agents-team-inventory">
-          <span className="office-mini-heading">Team inventory</span>
           <DataTable className="office-table office-agents-team-table">
             <DataTableHeader className="office-agents-team-table-head">
               <span>Team</span>
@@ -306,8 +305,15 @@ export function OfficeAgentsClient({
               ))}
             </DataTableBody>
           </DataTable>
+          {snapshot.teams.length === 0 ? <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" /> : null}
         </div>
+      </SectionCard>
 
+      <SectionCard
+        className="office-list-card"
+        subtitle="Create, rename, activate, and maintain teams here. Membership remains managed inside each agent profile."
+        title="Team administration"
+      >
         {canManageTeams ? (
           <form className="office-inline-form office-agents-team-create-form" onSubmit={handleCreateTeam}>
             <FormField className="office-inline-form-field" label="New team name">
@@ -321,7 +327,6 @@ export function OfficeAgentsClient({
         ) : null}
 
         <div className="office-agents-team-admin-shell">
-          <span className="office-mini-heading">Team administration</span>
           <div className="office-agents-team-grid">
             {snapshot.teams.map((team) => (
               <form
@@ -397,9 +402,7 @@ export function OfficeAgentsClient({
                 </div>
               </form>
             ))}
-            {snapshot.teams.length === 0 ? (
-              <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" />
-            ) : null}
+            {snapshot.teams.length === 0 ? <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" /> : null}
           </div>
         </div>
 
