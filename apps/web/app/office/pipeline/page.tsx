@@ -325,8 +325,8 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
               <span>Status</span>
               <span>Side</span>
               <span>Owner</span>
-              <span>Price</span>
-              <span>{snapshot.metricModeLabel}</span>
+              <span className="office-pipeline-table-head-number">Price</span>
+              <span className="office-pipeline-table-head-number">{snapshot.metricModeLabel}</span>
               <span>Key date</span>
               <span>Updated</span>
             </div>

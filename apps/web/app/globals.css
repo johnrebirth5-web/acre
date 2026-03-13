@@ -6133,8 +6133,6 @@ a {
 .office-table-row-commission > :is(:nth-child(5), :nth-child(6)),
 .bm-office-table-row-transactions > :is(:nth-child(5), :nth-child(6)),
 .office-pipeline-cell-number {
-  justify-self: end;
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -6594,8 +6592,8 @@ a {
 }
 
 .office-agents-roster-head-metric {
-  justify-self: end;
-  text-align: right;
+  justify-self: start;
+  text-align: left;
 }
 
 .office-agents-roster-stack {
@@ -6625,8 +6623,8 @@ a {
 }
 
 .office-agents-roster-metric {
-  justify-items: end;
-  text-align: right;
+  justify-items: start;
+  text-align: left;
 }
 
 .office-agents-roster-stack small {
@@ -8142,6 +8140,18 @@ a {
   min-height: 44px;
 }
 
+.office-pipeline-table-head > span {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.office-pipeline-table-head-number {
+  justify-content: flex-start;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
 .office-pipeline-row {
   min-height: 60px;
   font-size: 0.82rem;
@@ -8206,9 +8216,10 @@ a {
 .office-pipeline-cell-number {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  justify-self: end;
-  text-align: right;
+  justify-content: flex-start;
+  justify-self: stretch;
+  min-width: 0;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
 
