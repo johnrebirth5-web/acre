@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot, OfficeCommissionManagementSnapshot } from "@acre/db";
-import { Button, FilterBar, FilterField, SelectInput, TextInput } from "@acre/ui";
+import { Button, FilterBar, FilterField, SectionCard, SelectInput, TextInput } from "@acre/ui";
 import { AgentBillingPanel } from "./agent-billing-panel";
 import { CommissionManagementPanel } from "./commission-management-panel";
 
@@ -528,127 +528,137 @@ export function OfficeAccountingClient({
         <a href="#chart-of-accounts">Chart of accounts</a>
       </nav>
 
-      <section className="office-kpi-grid">
-        <article className="office-kpi-card office-kpi-card-accent">
-          <span>Total invoices</span>
-          <strong>{snapshot.overview.totalInvoices}</strong>
-          <p>Invoices currently in the filtered accounting window.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Open bills</span>
-          <strong>{snapshot.overview.openBills}</strong>
-          <p>Outstanding bills still open for payment.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Received payments</span>
-          <strong>{snapshot.overview.receivedPaymentsLabel}</strong>
-          <p>Cash-in recorded inside the current result set.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Made payments</span>
-          <strong>{snapshot.overview.madePaymentsLabel}</strong>
-          <p>Cash-out recorded inside the current result set.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Office net ledger impact</span>
-          <strong>{snapshot.overview.officeNetLedgerImpactLabel}</strong>
-          <p>Income/expense effect derived from ledger entries.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Outstanding EMD</span>
-          <strong>{snapshot.overview.outstandingEmdCount}</strong>
-          <p>Earnest money records not yet complete.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Overdue EMD</span>
-          <strong>{snapshot.overview.overdueEmdCount}</strong>
-          <p>Earnest money items already past due.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Scope</span>
-          <strong>{officeLabel}</strong>
-          <p>Shared org-level accounts remain visible when office scope allows it.</p>
-        </article>
-      </section>
-
-      <FilterBar
-        as="form"
-        id="accounting-overview"
-        className="office-report-filters office-list-filters"
-        onSubmit={(event) => {
-          event.preventDefault();
-          navigateWithFilters({ ...filterState, entryId: "" });
-        }}
+      <SectionCard
+        className="office-list-card"
+        subtitle="Review live ledger metrics, narrow the current scope, and jump into accounting entries without leaving the list workspace."
+        title="Accounting workbench"
       >
-        <FilterField label="Type">
-          <SelectInput onChange={(event) => setFilterState((current) => ({ ...current, type: event.target.value }))} value={filterState.type}>
-            {accountingFilterTypeOptions.map((option) => (
-              <option key={option.value || "all"} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectInput>
-        </FilterField>
+        <section className="office-kpi-grid">
+          <article className="office-kpi-card office-kpi-card-accent">
+            <span>Total invoices</span>
+            <strong>{snapshot.overview.totalInvoices}</strong>
+            <p>Invoices currently in the filtered accounting window.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Open bills</span>
+            <strong>{snapshot.overview.openBills}</strong>
+            <p>Outstanding bills still open for payment.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Received payments</span>
+            <strong>{snapshot.overview.receivedPaymentsLabel}</strong>
+            <p>Cash-in recorded inside the current result set.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Made payments</span>
+            <strong>{snapshot.overview.madePaymentsLabel}</strong>
+            <p>Cash-out recorded inside the current result set.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Office net ledger impact</span>
+            <strong>{snapshot.overview.officeNetLedgerImpactLabel}</strong>
+            <p>Income/expense effect derived from ledger entries.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Outstanding EMD</span>
+            <strong>{snapshot.overview.outstandingEmdCount}</strong>
+            <p>Earnest money records not yet complete.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Overdue EMD</span>
+            <strong>{snapshot.overview.overdueEmdCount}</strong>
+            <p>Earnest money items already past due.</p>
+          </article>
+          <article className="office-kpi-card">
+            <span>Scope</span>
+            <strong>{officeLabel}</strong>
+            <p>Shared org-level accounts remain visible when office scope allows it.</p>
+          </article>
+        </section>
 
-        <FilterField label="Status">
-          <SelectInput onChange={(event) => setFilterState((current) => ({ ...current, status: event.target.value }))} value={filterState.status}>
-            {accountingFilterStatusOptions.map((option) => (
-              <option key={option.value || "all"} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectInput>
-        </FilterField>
+        <FilterBar
+          as="form"
+          id="accounting-overview"
+          className="office-report-filters office-list-filters"
+          onSubmit={(event) => {
+            event.preventDefault();
+            navigateWithFilters({ ...filterState, entryId: "" });
+          }}
+        >
+          <FilterField label="Type">
+            <SelectInput onChange={(event) => setFilterState((current) => ({ ...current, type: event.target.value }))} value={filterState.type}>
+              {accountingFilterTypeOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
 
-        <FilterField label="Owner / agent">
-          <SelectInput
-            onChange={(event) => setFilterState((current) => ({ ...current, ownerMembershipId: event.target.value }))}
-            value={filterState.ownerMembershipId}
-          >
-            <option value="">All owners</option>
-            {snapshot.filters.ownerOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </SelectInput>
-        </FilterField>
+          <FilterField label="Status">
+            <SelectInput onChange={(event) => setFilterState((current) => ({ ...current, status: event.target.value }))} value={filterState.status}>
+              {accountingFilterStatusOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
 
-        <FilterField label="Search">
-          <TextInput
-            onChange={(event) => setFilterState((current) => ({ ...current, q: event.target.value }))}
-            placeholder="Search reference, counterparty, transaction..."
-            type="text"
-            value={filterState.q}
-          />
-        </FilterField>
+          <FilterField label="Owner / agent">
+            <SelectInput
+              onChange={(event) => setFilterState((current) => ({ ...current, ownerMembershipId: event.target.value }))}
+              value={filterState.ownerMembershipId}
+            >
+              <option value="">All owners</option>
+              {snapshot.filters.ownerOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
 
-        <FilterField label="Start date">
-          <TextInput onChange={(event) => setFilterState((current) => ({ ...current, startDate: event.target.value }))} type="date" value={filterState.startDate} />
-        </FilterField>
+          <FilterField label="Search">
+            <TextInput
+              onChange={(event) => setFilterState((current) => ({ ...current, q: event.target.value }))}
+              placeholder="Search reference, counterparty, transaction..."
+              type="text"
+              value={filterState.q}
+            />
+          </FilterField>
 
-        <FilterField label="End date">
-          <TextInput onChange={(event) => setFilterState((current) => ({ ...current, endDate: event.target.value }))} type="date" value={filterState.endDate} />
-        </FilterField>
+          <FilterField label="Start date">
+            <TextInput
+              onChange={(event) => setFilterState((current) => ({ ...current, startDate: event.target.value }))}
+              type="date"
+              value={filterState.startDate}
+            />
+          </FilterField>
 
-        <div className="office-filter-actions">
-          <Button type="submit">Apply filters</Button>
-          <Button onClick={resetFilters} type="button" variant="secondary">
-            Reset
-          </Button>
-        </div>
+          <FilterField label="End date">
+            <TextInput onChange={(event) => setFilterState((current) => ({ ...current, endDate: event.target.value }))} type="date" value={filterState.endDate} />
+          </FilterField>
 
-        {canManageAccounting ? (
           <div className="office-filter-actions">
-            <Button className="bm-create-button" onClick={openCreateEntryModal} type="button">
-              New accounting entry
-            </Button>
-            <Button onClick={() => openEarnestMoneyModal()} type="button" variant="secondary">
-              New EMD
+            <Button type="submit">Apply filters</Button>
+            <Button onClick={resetFilters} type="button" variant="secondary">
+              Reset
             </Button>
           </div>
-        ) : null}
-      </FilterBar>
+
+          {canManageAccounting ? (
+            <div className="office-filter-actions">
+              <Button className="bm-create-button" onClick={openCreateEntryModal} type="button">
+                New accounting entry
+              </Button>
+              <Button onClick={() => openEarnestMoneyModal()} type="button" variant="secondary">
+                New EMD
+              </Button>
+            </div>
+          ) : null}
+        </FilterBar>
+      </SectionCard>
 
       <section className="office-dashboard-grid-wide bm-accounting-grid">
         <div className="office-side-stack">
