@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button, FormField, TextareaInput } from "@acre/ui";
 
 type ActivityCommentComposerProps = {
   officeId: string | null;
@@ -55,24 +56,22 @@ export function ActivityCommentComposer({ officeId, scopeLabel }: ActivityCommen
   }
 
   return (
-    <div className="bm-activity-comment-composer">
+    <div className="office-activity-comment-composer">
       {isOpen ? (
-        <div className="bm-activity-comment-panel">
-          <label className="bm-activity-filter-field">
-            <span>Add comment</span>
-            <textarea
+        <div className="office-activity-comment-panel">
+          <FormField className="office-activity-comment-field" label="Add comment">
+            <TextareaInput
               onChange={(event) => setBody(event.target.value)}
               placeholder={`Leave an internal note for ${scopeLabel}`}
               rows={3}
               value={body}
             />
-          </label>
-          <div className="bm-activity-comment-actions">
-            <button className="bm-create-button" disabled={isSaving} onClick={handleSubmit} type="button">
+          </FormField>
+          <div className="office-activity-comment-actions">
+            <Button disabled={isSaving} onClick={handleSubmit} type="button">
               {isSaving ? "Saving..." : "Save comment"}
-            </button>
-            <button
-              className="bm-view-toggle"
+            </Button>
+            <Button
               disabled={isSaving}
               onClick={() => {
                 setIsOpen(false);
@@ -80,16 +79,17 @@ export function ActivityCommentComposer({ officeId, scopeLabel }: ActivityCommen
                 setError("");
               }}
               type="button"
+              variant="secondary"
             >
               Cancel
-            </button>
+            </Button>
           </div>
           {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
         </div>
       ) : (
-        <button className="bm-create-button" onClick={() => setIsOpen(true)} type="button">
+        <Button onClick={() => setIsOpen(true)} type="button">
           Add comment
-        </button>
+        </Button>
       )}
     </div>
   );

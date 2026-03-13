@@ -64,6 +64,12 @@ type OfficeNavProps = {
 export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
   const pathname = usePathname();
 
+  function isActive(href: string) {
+    const normalizedHref = href.split("#")[0];
+
+    return pathname === normalizedHref || pathname.startsWith(`${normalizedHref}/`);
+  }
+
   return (
     <>
       <aside className="sidebar office-dashboard-sidebar">
@@ -85,32 +91,32 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
           <span>▾</span>
         </div>
 
-        <div className="office-bm-groups">
+        <div className="office-nav-groups">
           {navGroups.map((group) => (
-            <section className="office-bm-group" key={group.title}>
-              <header className="office-bm-header">
+            <section className="office-nav-group" key={group.title}>
+              <header className="office-nav-header">
                 <span>{group.icon}</span>
                 <strong>{group.title}</strong>
               </header>
-              <div className="office-bm-items">
+              <div className="office-nav-items">
                 {group.items.map((item) =>
                   item.href ? (
                     <Link
                       key={item.label}
-                      className={`office-bm-link${pathname === item.href ? " is-active" : ""}`}
+                      className={`office-nav-link${isActive(item.href) ? " is-active" : ""}`}
                       href={item.href}
                     >
                       {item.label}
                     </Link>
                   ) : (
                     item.label === "Sign out" ? (
-                      <form action="/api/auth/logout" className="office-bm-logout-form" key={item.label} method="post">
-                        <button className="office-bm-link office-bm-link-button" type="submit">
+                      <form action="/api/auth/logout" className="office-nav-logout-form" key={item.label} method="post">
+                        <button className="office-nav-link office-nav-link-button" type="submit">
                           {item.label}
                         </button>
                       </form>
                     ) : (
-                      <span className="office-bm-link office-bm-link-muted" key={item.label}>
+                      <span className="office-nav-link office-nav-link-muted" key={item.label}>
                         {item.label}
                       </span>
                     )
@@ -123,28 +129,28 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
       </aside>
 
       <nav className="mobile-rail office-mobile-rail">
-        <Link className={pathname === "/office/dashboard" ? "is-active" : ""} href="/office/dashboard">
+        <Link className={isActive("/office/dashboard") ? "is-active" : ""} href="/office/dashboard">
           Dash
         </Link>
-        <Link className={pathname === "/office/tasks" ? "is-active" : ""} href="/office/tasks">
+        <Link className={isActive("/office/tasks") ? "is-active" : ""} href="/office/tasks">
           Tasks
         </Link>
-        <Link className={pathname === "/office/transactions" ? "is-active" : ""} href="/office/transactions">
+        <Link className={isActive("/office/transactions") ? "is-active" : ""} href="/office/transactions">
           Trans
         </Link>
-        <Link className={pathname === "/office/agents" ? "is-active" : ""} href="/office/agents">
+        <Link className={isActive("/office/agents") ? "is-active" : ""} href="/office/agents">
           Agents
         </Link>
-        <Link className={pathname === "/office/activity" ? "is-active" : ""} href="/office/activity">
+        <Link className={isActive("/office/activity") ? "is-active" : ""} href="/office/activity">
           Activity
         </Link>
-        <Link className={pathname === "/office/library" ? "is-active" : ""} href="/office/library">
+        <Link className={isActive("/office/library") ? "is-active" : ""} href="/office/library">
           Library
         </Link>
-        <Link className={pathname === "/office/accounting" ? "is-active" : ""} href="/office/accounting">
+        <Link className={isActive("/office/accounting") ? "is-active" : ""} href="/office/accounting">
           Acct
         </Link>
-        <Link className={pathname.startsWith("/office/settings") ? "is-active" : ""} href="/office/settings">
+        <Link className={isActive("/office/settings") ? "is-active" : ""} href="/office/settings">
           Admin
         </Link>
       </nav>

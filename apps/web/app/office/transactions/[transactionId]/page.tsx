@@ -105,52 +105,52 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
         subtitle="Core transaction facts, dates, and referral context."
         title="Overview"
       >
-        <div className="bm-detail-grid">
-          <div className="bm-detail-field">
+        <div className="office-detail-grid">
+          <div className="office-detail-field">
             <span>Type</span>
             <strong>{transaction.type}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Representing</span>
             <strong>{transaction.representing}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Price</span>
             <strong>{transaction.price ? `$${Number(transaction.price).toLocaleString("en-US")}` : "$0"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Owner</span>
             <strong>{transaction.ownerName}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Office</span>
             <strong>{transaction.officeName || "Unassigned"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Company referral</span>
             <strong>{transaction.companyReferral}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Referral employee</span>
             <strong>{transaction.companyReferralEmployeeName || "None"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Important date</span>
             <strong>{transaction.importantDate || "Not set"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Buyer agreement date</span>
             <strong>{transaction.buyerAgreementDate || "Not set"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Buyer expiration date</span>
             <strong>{transaction.buyerExpirationDate || "Not set"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Acceptance date</span>
             <strong>{transaction.acceptanceDate || "Not set"}</strong>
           </div>
-          <div className="bm-detail-field">
+          <div className="office-detail-field">
             <span>Closing date</span>
             <strong>{transaction.closingDate || "Not set"}</strong>
           </div>
@@ -246,16 +246,16 @@ export default async function OfficeTransactionDetailPage({ params }: Transactio
       ) : null}
 
       <SectionCard subtitle="Additional custom fields stored with this transaction." title="Additional fields">
-        <div className="bm-detail-grid">
+        <div className="office-detail-grid">
           {Object.entries(transaction.additionalFields).length > 0 ? (
             Object.entries(transaction.additionalFields).map(([key, value]) => (
-              <div className="bm-detail-field" key={key}>
+              <div className="office-detail-field" key={key}>
                 <span>{key}</span>
                 <strong>{value || "—"}</strong>
               </div>
             ))
           ) : (
-            <div className="bm-detail-field">
+            <div className="office-detail-field">
               <span>Fields</span>
               <strong>No additional fields saved.</strong>
             </div>

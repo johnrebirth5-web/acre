@@ -420,7 +420,7 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
 
   return (
     <>
-      <section className="bm-table-card office-library-toolbar-card">
+      <section className="office-section-card office-library-toolbar-card">
         <div className="office-library-toolbar-top">
           <div className="office-library-stats">
             <span>{snapshot.summary.totalDocuments} files</span>
@@ -487,9 +487,9 @@ export function OfficeLibraryClient({ snapshot, canManageLibrary }: OfficeLibrar
         </FilterBar>
       </section>
 
-      {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
+        {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
 
-      <section className="bm-table-card office-library-browser-sheet">
+      <section className="office-section-card office-library-browser-sheet">
         <div className="office-library-browser-head">
           <div>
             <h3>Folders and files</h3>

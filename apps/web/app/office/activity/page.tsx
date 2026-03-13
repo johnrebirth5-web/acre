@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { canAccessAccountActivity, canReviewOfficeTasks, canSecondaryReviewOfficeTasks } from "@acre/auth";
-import { Badge, PageHeader, PageShell } from "@acre/ui";
+import { Badge, Button, EmptyState, FilterBar, FilterField, PageHeader, PageShell, SectionCard, StatusBadge } from "@acre/ui";
 import { getOfficeActivityLogSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -51,6 +51,18 @@ function buildActivityHref(currentSearchParams: ActivitySearchParams, nextSearch
   return query ? `/office/activity?${query}` : "/office/activity";
 }
 
+function getAlertTone(severity: string) {
+  if (severity === "high") {
+    return "danger" as const;
+  }
+
+  if (severity === "medium") {
+    return "warning" as const;
+  }
+
+  return "accent" as const;
+}
+
 export default async function OfficeActivityPage(props: OfficeActivityPageProps) {
   const context = await requireOfficeSession();
 
@@ -77,7 +89,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
   const selectedView = snapshot.selectedView;
 
   return (
-    <PageShell className="bm-page">
+    <PageShell className="office-activity-page">
       <PageHeader
         actions={
           <>
@@ -86,7 +98,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
               scopeLabel={context.currentOffice?.name ?? context.currentOrganization.name}
             />
             <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <span className="bm-view-toggle is-active">{snapshot.latestWindowLabel}</span>
+            <Badge tone="accent">{snapshot.latestWindowLabel}</Badge>
           </>
         }
         description="Audit-backed activity records remain the source of truth. Operational alerts are derived live from current transaction, task, and contact state."
@@ -94,10 +106,10 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
         title="Account activity"
       />
 
-      <form className="bm-activity-filter-bar bm-table-card" method="get">
-        <div className="bm-filter-strip">
+      <FilterBar as="form" className="office-activity-filter-bar office-activity-toolbar-card" method="get">
+        <div className="bm-filter-strip office-toggle-strip">
           <Link
-            className={`bm-view-toggle${selectedView === "all" ? " is-active" : ""}`}
+            className={`office-button office-button-secondary office-button-sm office-toggle-link${selectedView === "all" ? " is-active" : ""}`}
             href={buildActivityHref(searchParams, {
               view: "all",
               activitySection: "",
@@ -107,7 +119,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
             All
           </Link>
           <Link
-            className={`bm-view-toggle${selectedView === "activity" ? " is-active" : ""}`}
+            className={`office-button office-button-secondary office-button-sm office-toggle-link${selectedView === "activity" ? " is-active" : ""}`}
             href={buildActivityHref(searchParams, {
               view: "activity",
               alertSection: ""
@@ -116,7 +128,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
             Activity only
           </Link>
           <Link
-            className={`bm-view-toggle${selectedView === "alerts" ? " is-active" : ""}`}
+            className={`office-button office-button-secondary office-button-sm office-toggle-link${selectedView === "alerts" ? " is-active" : ""}`}
             href={buildActivityHref(searchParams, {
               view: "alerts",
               activitySection: ""
@@ -127,8 +139,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
         </div>
 
         <div className="bm-activity-filter-grid">
-          <label className="bm-activity-filter-field">
-            <span>Actor (activity only)</span>
+          <FilterField className="office-activity-filter-field" label="Actor (activity only)">
             <select defaultValue={snapshot.filters.actorMembershipId} disabled={selectedView === "alerts"} name="actorMembershipId">
               <option value="">All actors</option>
               {snapshot.filters.actorOptions.map((actor) => (
@@ -137,10 +148,9 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                 </option>
               ))}
             </select>
-          </label>
+          </FilterField>
 
-          <label className="bm-activity-filter-field">
-            <span>Object type</span>
+          <FilterField className="office-activity-filter-field" label="Object type">
             <select defaultValue={snapshot.filters.objectType} name="objectType">
               <option value="all">All objects</option>
               <option value="transaction">Transactions</option>
@@ -152,17 +162,15 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
               <option value="comment">Comments</option>
               <option value="auth">Authentication</option>
             </select>
-          </label>
+          </FilterField>
 
-          <label className="bm-activity-filter-field">
-            <span>Start date</span>
+          <FilterField className="office-activity-filter-field" label="Start date">
             <input defaultValue={snapshot.filters.startDate} name="startDate" type="date" />
-          </label>
+          </FilterField>
 
-          <label className="bm-activity-filter-field">
-            <span>End date</span>
+          <FilterField className="office-activity-filter-field" label="End date">
             <input defaultValue={snapshot.filters.endDate} name="endDate" type="date" />
-          </label>
+          </FilterField>
 
           <div className="bm-activity-filter-actions">
             <input name="view" type="hidden" value={selectedView} />
@@ -172,24 +180,23 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
             {selectedView === "alerts" ? (
               <input name="alertSection" type="hidden" value={snapshot.alertSelectedSection === "all" ? "" : snapshot.alertSelectedSection} />
             ) : null}
-            <button className="bm-create-button" type="submit">
+            <Button type="submit" variant="secondary">
               Apply filters
-            </button>
-            <Link className="bm-view-toggle" href="/office/activity">
+            </Button>
+            <Link className="office-button office-button-secondary" href="/office/activity">
               Reset
             </Link>
           </div>
         </div>
-      </form>
+      </FilterBar>
 
       <section className="bm-activity-layout">
         <aside className="bm-activity-nav-column">
-          <section className="bm-table-card bm-activity-sections-card">
-            <div className="bm-card-head">
-              <h3>Activity log</h3>
-              <span>Counts in the latest 200-record audit window</span>
-            </div>
-
+          <SectionCard
+            className="office-activity-sections-card"
+            subtitle="Counts in the latest 200-record audit window"
+            title="Activity log"
+          >
             <nav className="bm-activity-section-list">
               {snapshot.activitySections.map((section) => (
                 <Link
@@ -206,14 +213,13 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                 </Link>
               ))}
             </nav>
-          </section>
+          </SectionCard>
 
-          <section className="bm-table-card bm-activity-sections-card">
-            <div className="bm-card-head">
-              <h3>Operational alerts</h3>
-              <span>Live alerts derived from current system state</span>
-            </div>
-
+          <SectionCard
+            className="office-activity-sections-card"
+            subtitle="Live alerts derived from current system state"
+            title="Operational alerts"
+          >
             <nav className="bm-activity-section-list">
               {snapshot.alertSections.map((section) => (
                 <Link
@@ -230,17 +236,16 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                 </Link>
               ))}
             </nav>
-          </section>
+          </SectionCard>
         </aside>
 
         <div className="bm-activity-streams">
           {selectedView !== "alerts" ? (
-            <section className="bm-table-card bm-activity-log-card">
-              <div className="bm-card-head">
-                <h3>{selectedView === "activity" ? snapshot.activitySelectedSectionLabel : "Activity log"}</h3>
-                <span>Showing {snapshot.activityEvents.length} audit records</span>
-              </div>
-
+            <SectionCard
+              className="office-activity-log-card"
+              subtitle={`Showing ${snapshot.activityEvents.length} audit records`}
+              title={selectedView === "activity" ? snapshot.activitySelectedSectionLabel : "Activity log"}
+            >
               <div className="bm-activity-records">
                 {snapshot.activityEvents.length ? (
                   snapshot.activityEvents.map((event) => (
@@ -261,7 +266,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                         </div>
 
                         <div className="bm-activity-record-meta">
-                          <span className={`bm-status-pill ${event.isComment ? "bm-status-pill-neutral" : "bm-status-pill-primary"}`}>{event.actionLabel}</span>
+                          <StatusBadge tone={event.isComment ? "neutral" : "accent"}>{event.actionLabel}</StatusBadge>
                           <time>{event.timestampLabel}</time>
                         </div>
                       </div>
@@ -276,19 +281,18 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                     </article>
                   ))
                 ) : (
-                  <div className="bm-pipeline-empty">No audit events are currently available for this scope.</div>
+                  <EmptyState description="Try a wider date range or a broader view filter." title="No audit events are currently available for this scope." />
                 )}
               </div>
-            </section>
+            </SectionCard>
           ) : null}
 
           {selectedView !== "activity" ? (
-            <section className="bm-table-card bm-activity-log-card bm-alerts-card">
-              <div className="bm-card-head">
-                <h3>{selectedView === "alerts" ? snapshot.alertSelectedSectionLabel : "Operational alerts"}</h3>
-                <span>Showing {snapshot.alerts.length} current alerts</span>
-              </div>
-
+            <SectionCard
+              className="office-activity-log-card office-alerts-card"
+              subtitle={`Showing ${snapshot.alerts.length} current alerts`}
+              title={selectedView === "alerts" ? snapshot.alertSelectedSectionLabel : "Operational alerts"}
+            >
               <div className="bm-activity-records">
                 {snapshot.alerts.length ? (
                   snapshot.alerts.map((alert) => (
@@ -309,7 +313,7 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                         </div>
 
                         <div className="bm-activity-record-meta">
-                          <span className={`bm-status-pill bm-alert-pill bm-alert-pill-${alert.severity}`}>{alert.severityLabel}</span>
+                          <StatusBadge tone={getAlertTone(alert.severity)}>{alert.severityLabel}</StatusBadge>
                           <span>{alert.referenceLabel}</span>
                         </div>
                       </div>
@@ -328,10 +332,10 @@ export default async function OfficeActivityPage(props: OfficeActivityPageProps)
                     </article>
                   ))
                 ) : (
-                  <div className="bm-pipeline-empty">No live operational alerts are active for this scope.</div>
+                  <EmptyState description="This scope is clear based on the current live workflow state." title="No live operational alerts are active for this scope." />
                 )}
               </div>
-            </section>
+            </SectionCard>
           ) : null}
         </div>
       </section>

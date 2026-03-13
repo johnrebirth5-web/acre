@@ -143,47 +143,47 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
       />
 
       <SectionCard subtitle="Core profile, lifecycle, and follow-up details for this contact." title="Overview">
-        <form className="bm-detail-grid" onSubmit={handleSave}>
-          <FormField className="bm-detail-field" label="Full name">
+        <form className="office-detail-grid" onSubmit={handleSave}>
+          <FormField className="office-detail-field" label="Full name">
             <TextInput onChange={(event) => updateField("fullName", event.target.value)} type="text" value={formState.fullName} />
           </FormField>
-          <FormField className="bm-detail-field" label="Email">
+          <FormField className="office-detail-field" label="Email">
             <TextInput onChange={(event) => updateField("email", event.target.value)} type="email" value={formState.email} />
           </FormField>
-          <FormField className="bm-detail-field" label="Phone">
+          <FormField className="office-detail-field" label="Phone">
             <TextInput onChange={(event) => updateField("phone", event.target.value)} type="text" value={formState.phone} />
           </FormField>
-          <FormField className="bm-detail-field" label="Contact type">
+          <FormField className="office-detail-field" label="Contact type">
             <TextInput onChange={(event) => updateField("contactType", event.target.value)} type="text" value={formState.contactType} />
           </FormField>
-          <FormField className="bm-detail-field" label="Source">
+          <FormField className="office-detail-field" label="Source">
             <TextInput onChange={(event) => updateField("source", event.target.value)} type="text" value={formState.source} />
           </FormField>
-          <FormField className="bm-detail-field" label="Stage">
+          <FormField className="office-detail-field" label="Stage">
             <TextInput onChange={(event) => updateField("stage", event.target.value)} type="text" value={formState.stage} />
           </FormField>
-          <FormField className="bm-detail-field" label="Intent">
+          <FormField className="office-detail-field" label="Intent">
             <TextInput onChange={(event) => updateField("intent", event.target.value)} type="text" value={formState.intent} />
           </FormField>
-          <FormField className="bm-detail-field" label="Budget min">
+          <FormField className="office-detail-field" label="Budget min">
             <TextInput onChange={(event) => updateField("budgetMin", event.target.value)} type="text" value={formState.budgetMin} />
           </FormField>
-          <FormField className="bm-detail-field" label="Budget max">
+          <FormField className="office-detail-field" label="Budget max">
             <TextInput onChange={(event) => updateField("budgetMax", event.target.value)} type="text" value={formState.budgetMax} />
           </FormField>
-          <FormField className="bm-detail-field" label="Preferred areas">
+          <FormField className="office-detail-field" label="Preferred areas">
             <TextInput onChange={(event) => updateField("preferredAreas", event.target.value)} type="text" value={formState.preferredAreas} />
           </FormField>
-          <FormField className="bm-detail-field" label="Last contact">
+          <FormField className="office-detail-field" label="Last contact">
             <TextInput onChange={(event) => updateField("lastContactAt", event.target.value)} type="date" value={formState.lastContactAt} />
           </FormField>
-          <FormField className="bm-detail-field" label="Next follow-up">
+          <FormField className="office-detail-field" label="Next follow-up">
             <TextInput onChange={(event) => updateField("nextFollowUpAt", event.target.value)} type="date" value={formState.nextFollowUpAt} />
           </FormField>
-          <FormField className="bm-detail-field bm-detail-field-wide" label="Notes">
+          <FormField className="office-detail-field office-detail-field-wide" label="Notes">
             <TextareaInput onChange={(event) => updateField("notes", event.target.value)} value={formState.notes} />
           </FormField>
-          <div className="bm-transaction-status-form">
+          <div className="office-form-actions">
             <Button disabled={isSaving} type="submit">
               {isSaving ? "Saving..." : "Save contact"}
             </Button>
@@ -193,9 +193,9 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
       </SectionCard>
 
       <SectionCard subtitle="Transactions currently linked to this contact." title="Linked transactions">
-        <div className="bm-detail-grid">
+        <div className="office-detail-grid">
           {contact.linkedTransactions.map((transaction) => (
-            <div className="bm-detail-field" key={transaction.id}>
+            <div className="office-detail-field" key={transaction.id}>
               <span>
                 <Link href={`/office/transactions/${transaction.id}`}>{transaction.label}</Link>
               </span>
@@ -205,14 +205,14 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
             </div>
           ))}
           {contact.linkedTransactions.length === 0 ? (
-            <div className="bm-detail-field">
+            <div className="office-detail-field">
               <span>Transactions</span>
               <strong>No linked transactions yet.</strong>
             </div>
           ) : null}
         </div>
 
-        <div className="bm-transaction-status-form">
+        <div className="office-form-actions">
           <SelectInput onChange={(event) => setSelectedTransactionId(event.target.value)} value={selectedTransactionId}>
             <option value="">Select transaction to link</option>
             {contact.availableTransactions.map((transaction) => (
@@ -229,9 +229,9 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
       </SectionCard>
 
       <SectionCard subtitle="Follow-up work attached to this contact." title="Follow-up tasks">
-        <div className="bm-detail-grid">
+        <div className="office-detail-grid">
           {contact.followUpTasks.map((task) => (
-            <div className="bm-detail-field" key={task.id}>
+            <div className="office-detail-field" key={task.id}>
               <span>{task.title}</span>
               <strong>
                 {task.status} · {task.dueAt} · {task.assigneeName}
@@ -239,14 +239,14 @@ export function ContactDetailClient({ contact }: ContactDetailClientProps) {
             </div>
           ))}
           {contact.followUpTasks.length === 0 ? (
-            <div className="bm-detail-field">
+            <div className="office-detail-field">
               <span>Tasks</span>
               <strong>No follow-up tasks yet.</strong>
             </div>
           ) : null}
         </div>
 
-        <form className="bm-transaction-status-form" onSubmit={handleCreateTask}>
+        <form className="office-form-actions" onSubmit={handleCreateTask}>
           <TextInput onChange={(event) => setTaskTitle(event.target.value)} placeholder="New follow-up task" type="text" value={taskTitle} />
           <TextInput onChange={(event) => setTaskDueAt(event.target.value)} type="date" value={taskDueAt} />
           <Button disabled={isCreatingTask} type="submit">

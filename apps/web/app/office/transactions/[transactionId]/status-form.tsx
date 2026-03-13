@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@acre/ui";
 import type { OfficeTransactionStatus } from "@acre/db";
 
 type TransactionStatusFormProps = {
@@ -44,8 +45,8 @@ export function TransactionStatusForm({ transactionId, currentStatus }: Transact
   }
 
   return (
-    <div className="bm-transaction-status-form">
-      <label className="bm-detail-field">
+    <div className="office-form-actions">
+      <label className="office-detail-field">
         <span>Status</span>
         <select onChange={(event) => setStatus(event.target.value as OfficeTransactionStatus)} value={status}>
           {statusOptions.map((option) => (
@@ -55,9 +56,9 @@ export function TransactionStatusForm({ transactionId, currentStatus }: Transact
           ))}
         </select>
       </label>
-      <button className="bm-create-button" disabled={isSaving} onClick={handleUpdateStatus} type="button">
+      <Button disabled={isSaving} onClick={handleUpdateStatus} type="button">
         {isSaving ? "Saving..." : "Update status"}
-      </button>
+      </Button>
       {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
     </div>
   );

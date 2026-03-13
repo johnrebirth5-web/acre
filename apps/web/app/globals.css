@@ -3793,6 +3793,7 @@ select {
   text-transform: capitalize;
 }
 
+.office-help-fab,
 .bm-help-button {
   position: fixed;
   right: 38px;
@@ -4324,6 +4325,7 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .office-help-fab,
   .bm-help-button {
     right: 24px;
   }
@@ -4586,7 +4588,8 @@ select {
     display: none;
   }
 
-.bm-help-button {
+  .office-help-fab,
+  .bm-help-button {
     right: 14px;
     bottom: 72px;
     min-height: 42px;
@@ -4630,6 +4633,15 @@ select {
   --office-space-6: 24px;
   --office-space-7: 32px;
   --office-space-8: 40px;
+  --office-text-page-title-size: clamp(1.72rem, 1.44rem + 0.7vw, 2.18rem);
+  --office-text-page-subtitle-size: 0.96rem;
+  --office-text-section-title-size: 1rem;
+  --office-text-subsection-title-size: 0.94rem;
+  --office-text-body-size: 0.92rem;
+  --office-text-meta-size: 0.82rem;
+  --office-text-label-size: 0.76rem;
+  --office-text-table-head-size: 0.7rem;
+  --office-text-stat-size: 1.38rem;
   --office-line-tight: 1.25;
   --office-line-body: 1.45;
   --office-focus-ring: 0 0 0 3px rgba(24, 67, 143, 0.14);
@@ -4753,17 +4765,20 @@ a {
   color: var(--office-text);
 }
 
+.office-nav-groups,
 .office-bm-groups {
   display: grid;
   gap: 16px;
   padding: 14px 10px 24px;
 }
 
+.office-nav-group,
 .office-bm-group {
   display: grid;
   gap: 8px;
 }
 
+.office-nav-header,
 .office-bm-header {
   display: flex;
   align-items: center;
@@ -4776,11 +4791,13 @@ a {
   text-transform: uppercase;
 }
 
+.office-nav-items,
 .office-bm-items {
   display: grid;
   gap: 2px;
 }
 
+.office-nav-link,
 .office-bm-link {
   display: flex;
   align-items: center;
@@ -4794,28 +4811,38 @@ a {
   transition: background-color 120ms ease, color 120ms ease;
 }
 
+.office-nav-link:hover,
+.office-nav-link:focus-visible,
 .office-bm-link:hover,
 .office-bm-link:focus-visible {
   background: #eaf0f7;
   color: var(--office-accent-strong);
 }
 
+.office-nav-link.is-active,
 .office-bm-link.is-active {
   background: linear-gradient(180deg, #163a7a 0%, #143166 100%);
   color: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
+.office-nav-link-muted,
 .office-bm-link-muted {
   color: var(--office-text-soft);
 }
 
+.office-nav-link-button,
 .office-bm-link-button {
   width: 100%;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
+}
+
+.office-nav-logout-form,
+.office-bm-logout-form {
+  display: contents;
 }
 
 .office-mobile-rail {
@@ -4884,7 +4911,7 @@ a {
 .bm-page-heading h2 {
   margin: 0;
   color: var(--office-text);
-  font-size: clamp(1.72rem, 1.44rem + 0.7vw, 2.18rem);
+  font-size: var(--office-text-page-title-size);
   line-height: 1.04;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -4895,7 +4922,27 @@ a {
   margin: 0;
   max-width: 60rem;
   color: var(--office-text-muted);
-  font-size: 0.96rem;
+  font-size: var(--office-text-page-subtitle-size);
+  line-height: var(--office-line-body);
+}
+
+.office-mini-heading {
+  color: var(--office-text-muted);
+  font-size: var(--office-text-label-size);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.office-meta-text {
+  color: var(--office-text-muted);
+  font-size: var(--office-text-meta-size);
+  line-height: 1.4;
+}
+
+.office-body-text {
+  color: var(--office-text);
+  font-size: var(--office-text-body-size);
   line-height: var(--office-line-body);
 }
 
@@ -4993,7 +5040,7 @@ a {
 .office-section-card > .office-section-head h3 {
   margin: 0;
   color: var(--office-text);
-  font-size: 1rem;
+  font-size: var(--office-text-section-title-size);
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -5003,7 +5050,7 @@ a {
 .bm-card-head span {
   margin: 2px 0 0;
   color: var(--office-text-muted);
-  font-size: 0.84rem;
+  font-size: var(--office-text-meta-size);
   line-height: 1.4;
 }
 
@@ -5451,7 +5498,7 @@ a {
 .office-stat-card span,
 .office-kpi-card span {
   color: var(--office-text-muted);
-  font-size: 0.76rem;
+  font-size: var(--office-text-label-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -5460,7 +5507,7 @@ a {
 .office-stat-card strong,
 .office-kpi-card strong {
   color: var(--office-text);
-  font-size: 1.38rem;
+  font-size: var(--office-text-stat-size);
   line-height: 1;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -5487,7 +5534,7 @@ a {
   padding: 0 9px;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 0.74rem;
+  font-size: var(--office-text-label-size);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -5526,7 +5573,7 @@ a {
   min-height: 26px;
   padding: 0 9px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: var(--office-text-label-size);
   font-weight: 700;
   text-transform: capitalize;
 }
@@ -5565,6 +5612,7 @@ a {
 }
 
 .office-button,
+.office-toggle-link,
 .bm-create-button,
 .bm-transaction-next,
 .office-button-secondary {
@@ -5587,12 +5635,14 @@ a {
 }
 
 .office-button:hover,
+.office-toggle-link:hover,
 .bm-create-button:hover,
 .bm-transaction-next:hover {
   background: var(--office-accent-strong);
 }
 
 .office-button-secondary,
+.office-toggle-link,
 .bm-view-toggle,
 .bm-transactions-page-button,
 .bm-contacts-page-button {
@@ -5602,6 +5652,7 @@ a {
 }
 
 .office-button-secondary:hover,
+.office-toggle-link:hover,
 .bm-view-toggle:hover,
 .bm-transactions-page-button:hover,
 .bm-contacts-page-button:hover {
@@ -5610,6 +5661,7 @@ a {
 }
 
 .bm-view-toggle.is-active,
+.office-toggle-link.is-active,
 .office-button.is-active {
   border-color: var(--office-accent);
   background: var(--office-accent-soft);
@@ -5644,6 +5696,7 @@ a {
 }
 
 .office-button:focus-visible,
+.office-toggle-link:focus-visible,
 .bm-create-button:focus-visible,
 .bm-view-toggle:focus-visible,
 .bm-transactions-page-button:focus-visible,
@@ -5673,10 +5726,15 @@ a {
 .office-textarea,
 .bm-transactions-search input,
 .bm-contacts-search,
+.office-activity-filter-field input,
+.office-activity-filter-field select,
 .bm-activity-filter-field input,
 .bm-activity-filter-field select,
 .office-report-filter input,
 .office-report-filter select,
+.office-detail-field input:not([type="checkbox"]):not([type="radio"]),
+.office-detail-field select,
+.office-detail-field textarea,
 .bm-detail-field input:not([type="checkbox"]):not([type="radio"]),
 .bm-detail-field select,
 .bm-detail-field textarea,
@@ -5696,6 +5754,7 @@ a {
 }
 
 .office-textarea,
+.office-detail-field textarea,
 .bm-detail-field textarea {
   min-height: 108px;
   padding: 10px 12px;
@@ -5705,6 +5764,8 @@ a {
 .office-form-field,
 .office-filter-field,
 .office-report-filter,
+.office-activity-filter-field,
+.office-detail-field,
 .bm-activity-filter-field,
 .bm-detail-field,
 .bm-transaction-modal-field,
@@ -5716,6 +5777,8 @@ a {
 .office-form-field > span,
 .office-filter-field > span,
 .office-report-filter > span,
+.office-activity-filter-field > span,
+.office-detail-field > span,
 .bm-activity-filter-field > span,
 .bm-detail-field > span,
 .bm-transaction-modal-field > span,
@@ -5733,6 +5796,7 @@ a {
 
 .office-filter-bar,
 .office-report-filters,
+.office-form-actions,
 .bm-transactions-toolbar,
 .bm-contacts-toolbar,
 .bm-transaction-status-form {
@@ -5744,6 +5808,7 @@ a {
 
 .office-filter-bar > *,
 .office-report-filters > *,
+.office-form-actions > *,
 .bm-transactions-toolbar > *,
 .bm-contacts-toolbar > *,
 .bm-transaction-status-form > * {
@@ -5752,6 +5817,7 @@ a {
 }
 
 .office-report-filter,
+.office-activity-filter-field,
 .bm-activity-filter-field,
 .office-filter-field {
   min-width: 152px;
@@ -5772,6 +5838,8 @@ a {
 .office-filter-bar > .office-button-secondary,
 .office-report-filters > .office-report-filter-actions,
 .office-report-filters > .office-filter-actions,
+.office-form-actions > .office-button,
+.office-form-actions > .office-button-secondary,
 .bm-transactions-toolbar > .office-button,
 .bm-transactions-toolbar > .office-button-secondary,
 .bm-contacts-toolbar > .office-button,
@@ -5823,7 +5891,7 @@ a {
   background: #f8fafc;
   border-bottom: 1px solid var(--office-border);
   color: var(--office-text-muted);
-  font-size: 0.7rem;
+  font-size: var(--office-text-table-head-size);
   font-weight: 800;
   letter-spacing: 0.055em;
   text-transform: uppercase;
@@ -6259,13 +6327,18 @@ a {
   color: var(--office-text-muted);
 }
 
+.office-detail-grid,
 .bm-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 18px;
 }
 
+.office-detail-field,
 .bm-detail-field {
+  display: grid;
+  align-content: start;
+  gap: 4px;
   min-height: 72px;
   padding: 14px 16px;
   border: 1px solid var(--office-border);
@@ -6273,9 +6346,9 @@ a {
   background: var(--office-surface-muted);
 }
 
+.office-detail-field strong,
 .bm-detail-field strong {
   display: block;
-  margin-top: 4px;
   color: var(--office-text);
   font-size: 0.96rem;
   font-weight: 700;
@@ -6308,6 +6381,7 @@ a {
   font-weight: 700;
 }
 
+.office-detail-field-wide,
 .bm-detail-field-wide {
   grid-column: 1 / -1;
 }
@@ -6347,6 +6421,62 @@ a {
 
 .bm-dashboard-status-chip {
   min-height: 0;
+}
+
+.office-dashboard-goal-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+}
+
+.office-dashboard-transactions-table {
+  border: 1px solid var(--office-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.office-dashboard-transactions-head,
+.office-dashboard-transactions-row {
+  min-width: 0;
+  grid-template-columns: minmax(220px, 1.9fr) minmax(96px, 0.7fr) minmax(110px, 0.74fr) minmax(120px, 0.8fr);
+  gap: 12px;
+}
+
+.office-dashboard-transactions-head > :nth-child(2) {
+  justify-self: end;
+  text-align: right;
+}
+
+.office-dashboard-transactions-main {
+  min-width: 0;
+}
+
+.office-dashboard-transactions-main strong,
+.office-dashboard-transactions-owner,
+.office-dashboard-transactions-amount {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.office-dashboard-transactions-main strong {
+  color: var(--office-accent);
+  font-weight: 700;
+}
+
+.office-dashboard-transactions-main a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.office-dashboard-transactions-amount {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.office-dashboard-transactions-owner {
+  color: var(--office-text-muted);
 }
 
 .bm-transactions-footer,
@@ -6500,6 +6630,49 @@ a {
   color: var(--office-text-muted);
 }
 
+.office-toggle-strip {
+  justify-content: flex-start;
+}
+
+.office-activity-sections-card,
+.office-activity-log-card {
+  align-content: start;
+}
+
+.office-activity-toolbar-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--office-border);
+  border-radius: var(--office-radius-lg);
+  background: var(--office-surface);
+  box-shadow: var(--office-shadow-sm);
+}
+
+.office-activity-comment-composer,
+.bm-activity-comment-composer {
+  display: grid;
+  gap: 10px;
+}
+
+.office-activity-comment-panel,
+.bm-activity-comment-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--office-border);
+  border-radius: 14px;
+  background: var(--office-surface-subtle);
+}
+
+.office-activity-comment-actions,
+.bm-activity-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .office-pipeline-layout {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
@@ -6620,7 +6793,7 @@ a {
 
 .office-data-table-row-main small {
   color: var(--office-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--office-text-meta-size);
 }
 
 .office-agents-layout,
@@ -6921,10 +7094,17 @@ a {
   align-items: flex-start;
 }
 
+.office-help-fab,
 .bm-help-button {
   border-radius: 999px;
   background: linear-gradient(180deg, #173f86 0%, #102f65 100%);
   box-shadow: var(--office-shadow-md);
+  color: #fff;
+}
+
+.office-help-fab:hover {
+  color: #fff;
+  background: linear-gradient(180deg, #173f86 0%, #102f65 100%);
 }
 
 @media (max-width: 1360px) {
@@ -7021,6 +7201,7 @@ a {
   .office-task-filter-actions,
   .office-form-grid-span-2,
   .office-form-grid-span-3,
+  .office-detail-field-wide,
   .bm-detail-field-wide {
     grid-column: 1 / -1;
   }
@@ -7065,6 +7246,7 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .office-detail-grid,
   .bm-detail-grid,
   .office-task-filter-grid,
   .office-task-edit-grid,
@@ -7171,6 +7353,7 @@ a {
     font-size: clamp(1.7rem, 1.35rem + 1vw, 2.25rem);
   }
 
+  .office-help-fab,
   .bm-help-button {
     right: 20px;
     bottom: 18px;

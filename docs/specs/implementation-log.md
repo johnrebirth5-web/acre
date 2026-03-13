@@ -70,6 +70,11 @@
   - shared Back Office table density tightened through smaller table padding, gaps, badges, and utility-column widths
   - major Office list screens moved further toward information-weighted column widths instead of even spacing
   - agents, pipeline, accounting, billing, reports, tasks, contacts, library, and settings tables now reserve more width for primary content and less for short-value columns
+- Back Office UI system unification pass:
+  - `@acre/ui` + `office-*` is now the explicit canonical UI layer for Office pages
+  - major Office shell surfaces, headings, buttons, badges, detail grids, and workspace cards were normalized so older `bm-*` pages read like the same product family
+  - dashboard, activity, library, office navigation, transaction detail, contact detail, and agent profile surfaces moved closer to the shared system
+  - older `bm-*` selectors remain supported as migration bridges, but their visual output is now intentionally governed by the shared Back Office design system
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

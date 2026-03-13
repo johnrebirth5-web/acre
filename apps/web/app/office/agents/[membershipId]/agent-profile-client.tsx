@@ -424,33 +424,33 @@ export function AgentProfileClient({
       </section>
 
       <SectionCard subtitle="Back-office profile, licensing, commission-plan, and internal operating metadata for this agent membership." title="Profile basics">
-        <form className="bm-detail-grid" onSubmit={handleProfileSave}>
-          <FormField className="bm-detail-field" label="Display name">
+        <form className="office-detail-grid" onSubmit={handleProfileSave}>
+          <FormField className="office-detail-field" label="Display name">
             <TextInput onChange={(event) => setProfileField("displayName", event.target.value)} readOnly={!canManageAgents} value={profileState.displayName} />
           </FormField>
-          <FormField className="bm-detail-field" label="License number">
+          <FormField className="office-detail-field" label="License number">
             <TextInput onChange={(event) => setProfileField("licenseNumber", event.target.value)} readOnly={!canManageAgents} value={profileState.licenseNumber} />
           </FormField>
-          <FormField className="bm-detail-field" label="License state">
+          <FormField className="office-detail-field" label="License state">
             <TextInput onChange={(event) => setProfileField("licenseState", event.target.value)} readOnly={!canManageAgents} value={profileState.licenseState} />
           </FormField>
-          <FormField className="bm-detail-field" label="Start date">
+          <FormField className="office-detail-field" label="Start date">
             <TextInput onChange={(event) => setProfileField("startDate", event.target.value)} readOnly={!canManageAgents} type="date" value={profileState.startDate} />
           </FormField>
-          <FormField className="bm-detail-field" label="Commission plan">
+          <FormField className="office-detail-field" label="Commission plan">
             <TextInput onChange={(event) => setProfileField("commissionPlanName", event.target.value)} readOnly={!canManageAgents} value={profileState.commissionPlanName} />
           </FormField>
-          <FormField className="bm-detail-field" label="Internal extension">
+          <FormField className="office-detail-field" label="Internal extension">
             <TextInput onChange={(event) => setProfileField("internalExtension", event.target.value)} readOnly={!canManageAgents} value={profileState.internalExtension} />
           </FormField>
-          <FormField className="bm-detail-field bm-detail-field-wide" label="Bio">
+          <FormField className="office-detail-field office-detail-field-wide" label="Bio">
             <TextareaInput onChange={(event) => setProfileField("bio", event.target.value)} readOnly={!canManageAgents} value={profileState.bio} />
           </FormField>
-          <FormField className="bm-detail-field bm-detail-field-wide" label="Notes">
+          <FormField className="office-detail-field office-detail-field-wide" label="Notes">
             <TextareaInput onChange={(event) => setProfileField("notes", event.target.value)} readOnly={!canManageAgents} value={profileState.notes} />
           </FormField>
           {canManageAgents ? (
-            <div className="bm-transaction-status-form">
+            <div className="office-form-actions">
               <Button disabled={pendingAction === "profile"} type="submit">
                 {pendingAction === "profile" ? "Saving..." : "Save profile"}
               </Button>

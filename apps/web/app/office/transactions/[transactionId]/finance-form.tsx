@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@acre/ui";
 
 type TransactionFinanceFormProps = {
   transactionId: string;
@@ -66,30 +67,30 @@ export function TransactionFinanceForm({
 
   return (
     <div className="bm-transaction-finance-form">
-      <label className="bm-detail-field">
+      <label className="office-detail-field">
         <span>Gross commission</span>
         <input onChange={(event) => updateField("grossCommission", event.target.value)} type="text" value={formState.grossCommission} />
       </label>
-      <label className="bm-detail-field">
+      <label className="office-detail-field">
         <span>Referral fee</span>
         <input onChange={(event) => updateField("referralFee", event.target.value)} type="text" value={formState.referralFee} />
       </label>
-      <label className="bm-detail-field">
+      <label className="office-detail-field">
         <span>Office net</span>
         <input onChange={(event) => updateField("officeNet", event.target.value)} type="text" value={formState.officeNet} />
       </label>
-      <label className="bm-detail-field">
+      <label className="office-detail-field">
         <span>Agent net</span>
         <input onChange={(event) => updateField("agentNet", event.target.value)} type="text" value={formState.agentNet} />
       </label>
-      <label className="bm-detail-field bm-detail-field-wide">
+      <label className="office-detail-field office-detail-field-wide">
         <span>Finance notes</span>
         <textarea onChange={(event) => updateField("financeNotes", event.target.value)} rows={3} value={formState.financeNotes} />
       </label>
-      <div className="bm-transaction-status-form">
-        <button className="bm-create-button" disabled={isSaving} onClick={handleSaveFinance} type="button">
+      <div className="office-form-actions">
+        <Button disabled={isSaving} onClick={handleSaveFinance} type="button">
           {isSaving ? "Saving..." : "Save finance"}
-        </button>
+        </Button>
         {error ? <p className="bm-transaction-submit-error">{error}</p> : null}
       </div>
     </div>
