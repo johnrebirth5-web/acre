@@ -78,6 +78,7 @@
 - `FilterBar`
 - `FilterField`
 - `StatCard`
+- `SummaryChip`
 - `DataTable`
 - `DataTableHeader`
 - `DataTableBody`
@@ -146,10 +147,11 @@
 
 1. `PageShell`
 2. `PageHeader`
-3. `SectionCard`
-4. `FilterBar`
-5. `DataTable`
-6. footer / pager
+3. `PageHeader.actions` 使用统一 `SummaryChip` + primary/secondary actions
+4. `SectionCard`（`office-list-card`）
+5. `FilterBar`（`office-list-filters`）
+6. `DataTable`
+7. footer / pager
 
 ### Detail pages
 
@@ -192,6 +194,7 @@
 - 文本列允许截断或换行，但不能把后续数值列挤偏
 - 数值列默认右对齐并使用 `tabular-nums`
 - badge / status 列保持左对齐，date 列允许使用更紧凑的 label + value 结构
+- list pages 的 header actions 统一使用 `SummaryChip`，避免每页发明不同 KPI 小卡样式
 
 ### Dense table compaction
 

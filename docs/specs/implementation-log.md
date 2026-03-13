@@ -75,6 +75,10 @@
   - major Office shell surfaces, headings, buttons, badges, detail grids, and workspace cards were normalized so older `bm-*` pages read like the same product family
   - dashboard, activity, library, office navigation, transaction detail, contact detail, and agent profile surfaces moved closer to the shared system
   - older `bm-*` selectors remain supported as migration bridges, but their visual output is now intentionally governed by the shared Back Office design system
+- Canonical list-page unification pass (transactions as source of truth):
+  - contacts, agents, reports list sections, accounting workbench list surfaces, and settings users/teams/checklists/fields now share the same list-page rhythm (`PageHeader + SummaryChip`, `office-list-card`, `office-list-filters`, dense table card contract)
+  - settings teams/checklists now expose explicit list inventory tables before deep edit cards, so admin pages read like peer list modules instead of one-off internal forms
+  - shared `SummaryChip` primitive added in `@acre/ui` to reduce repeated page-local KPI chip markup
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

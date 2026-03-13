@@ -1,5 +1,5 @@
 import { canManageOfficeUsers, canViewOfficeUsers } from "@acre/auth";
-import { Badge, PageHeader, PageShell } from "@acre/ui";
+import { PageHeader, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeAdminUsersSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
@@ -33,13 +33,14 @@ export default async function OfficeSettingsUsersPage(props: OfficeSettingsUsers
   });
 
   return (
-    <PageShell>
+    <PageShell className="office-list-page office-settings-list-page">
       <PageHeader
         actions={
-          <>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="neutral">{snapshot.summary.totalUsers} users</Badge>
-          </>
+          <div className="office-page-actions office-list-page-header-actions">
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Total users" tone="accent" value={snapshot.summary.totalUsers} />
+            <SummaryChip label="Active users" value={snapshot.summary.activeUsers} />
+          </div>
         }
         description="Administrative user access for the current organization, including role, active status, and office assignment."
         eyebrow="Office admin"

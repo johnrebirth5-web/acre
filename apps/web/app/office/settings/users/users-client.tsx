@@ -168,8 +168,8 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
         <StatCard hint="Office assignment is org-wide" label="All-office access" value={snapshot.summary.allOfficeAccessCount} />
       </section>
 
-      <SectionCard subtitle="Role, active status, and office assignment are managed at the membership layer." title="Users access">
-        <FilterBar as="form" onSubmit={handleFilterSubmit}>
+      <SectionCard className="office-list-card" subtitle="Role, active status, and office assignment are managed at the membership layer." title="Users access">
+        <FilterBar as="form" className="office-list-filters" onSubmit={handleFilterSubmit}>
           <FilterField label="Search">
             <TextInput onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, email, title, office..." value={searchQuery} />
           </FilterField>
@@ -207,12 +207,12 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
             </SelectInput>
           </FilterField>
 
-          <Button type="submit" variant="secondary">
-            Apply
-          </Button>
-          <Button onClick={handleResetFilters} type="button" variant="secondary">
-            Reset
-          </Button>
+          <div className="office-filter-actions">
+            <Button type="submit">Apply</Button>
+            <Button onClick={handleResetFilters} type="button" variant="secondary">
+              Reset
+            </Button>
+          </div>
         </FilterBar>
 
         {submitError ? <p className="office-inline-error">{submitError}</p> : null}

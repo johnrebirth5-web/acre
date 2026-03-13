@@ -1,5 +1,18 @@
 import Link from "next/link";
-import { Badge, EmptyState, PageHeader, PageShell, SectionCard, SecondaryMetaList, StatusBadge } from "@acre/ui";
+import {
+  Badge,
+  EmptyState,
+  FilterBar,
+  FilterField,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  SecondaryMetaList,
+  SelectInput,
+  StatusBadge,
+  SummaryChip,
+  TextInput
+} from "@acre/ui";
 import { getOfficeReportsSnapshot, type OfficeReportStatus } from "@acre/db";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
@@ -308,109 +321,103 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
   );
 
   return (
-    <PageShell>
+    <PageShell className="office-list-page office-reports-list-page">
       <PageHeader
         actions={
-          <>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="neutral">Database-backed</Badge>
-            <Badge tone="neutral">CSV export active</Badge>
-          </>
+          <div className="office-page-actions office-list-page-header-actions">
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Matching transactions" tone="accent" value={snapshot.totals.totalTransactions} />
+            <SummaryChip label="Total volume" value={snapshot.totals.totalVolumeLabel} />
+            <Link className="office-button office-button-secondary" href={exportHref}>
+              Export CSV
+            </Link>
+          </div>
         }
         description="Manager-facing reports workspace for live transaction, agent/team, commission, accounting, and earnest money data."
         eyebrow="Reports"
         title="Reports"
       />
 
-      <form className="office-report-filters" method="get">
-        <label className="office-report-filter">
-          <span>Start date</span>
-          <input defaultValue={snapshot.filters.startDate} name="startDate" type="date" />
-        </label>
-        <label className="office-report-filter">
-          <span>End date</span>
-          <input defaultValue={snapshot.filters.endDate} name="endDate" type="date" />
-        </label>
-        <label className="office-report-filter">
-          <span>Office</span>
-          <select defaultValue={snapshot.filters.officeId} name="officeId">
-            <option value="">All offices</option>
-            {snapshot.filters.officeOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="office-report-filter">
-          <span>Owner / agent</span>
-          <select defaultValue={snapshot.filters.ownerMembershipId} name="ownerMembershipId">
-            <option value="">All owners</option>
-            {snapshot.filters.ownerOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="office-report-filter">
-          <span>Team</span>
-          <select defaultValue={snapshot.filters.teamId} name="teamId">
-            <option value="">All teams</option>
-            {snapshot.filters.teamOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="office-report-filter">
-          <span>Transaction status</span>
-          <select defaultValue={snapshot.filters.transactionStatus} name="transactionStatus">
-            <option value="">All statuses</option>
-            <option value="opportunity">Opportunity</option>
-            <option value="active">Active</option>
-            <option value="pending">Pending</option>
-            <option value="closed">Closed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </label>
-        <label className="office-report-filter">
-          <span>Transaction type</span>
-          <select defaultValue={snapshot.filters.transactionType} name="transactionType">
-            <option value="">All types</option>
-            <option value="sales">Sales</option>
-            <option value="sales_listing">Sales (listing)</option>
-            <option value="rental_leasing">Rental/Leasing</option>
-            <option value="rental_listing">Rental (listing)</option>
-            <option value="commercial_sales">Commercial Sales</option>
-            <option value="commercial_lease">Commercial Lease</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-        <label className="office-report-filter">
-          <span>Commission plan</span>
-          <select defaultValue={snapshot.filters.commissionPlanId} name="commissionPlanId">
-            <option value="">All calculated plans</option>
-            {snapshot.filters.commissionPlanOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="office-report-filter-actions">
-          <button className="office-button" type="submit">
-            Apply filters
-          </button>
-          <Link className="office-button office-button-secondary" href={exportHref}>
-            Export CSV
-          </Link>
-          <Link className="office-button office-button-secondary" href="/office/reports">
-            Reset
-          </Link>
-        </div>
-      </form>
+      <SectionCard className="office-list-card" subtitle="Shareable query-param filters across transactions, commissions, accounting, and EMD slices." title="Report filters">
+        <FilterBar as="form" className="office-report-filters office-list-filters" method="get">
+          <FilterField label="Start date">
+            <TextInput defaultValue={snapshot.filters.startDate} name="startDate" type="date" />
+          </FilterField>
+          <FilterField label="End date">
+            <TextInput defaultValue={snapshot.filters.endDate} name="endDate" type="date" />
+          </FilterField>
+          <FilterField label="Office">
+            <SelectInput defaultValue={snapshot.filters.officeId} name="officeId">
+              <option value="">All offices</option>
+              {snapshot.filters.officeOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Owner / agent">
+            <SelectInput defaultValue={snapshot.filters.ownerMembershipId} name="ownerMembershipId">
+              <option value="">All owners</option>
+              {snapshot.filters.ownerOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Team">
+            <SelectInput defaultValue={snapshot.filters.teamId} name="teamId">
+              <option value="">All teams</option>
+              {snapshot.filters.teamOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Transaction status">
+            <SelectInput defaultValue={snapshot.filters.transactionStatus} name="transactionStatus">
+              <option value="">All statuses</option>
+              <option value="opportunity">Opportunity</option>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="closed">Closed</option>
+              <option value="cancelled">Cancelled</option>
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Transaction type">
+            <SelectInput defaultValue={snapshot.filters.transactionType} name="transactionType">
+              <option value="">All types</option>
+              <option value="sales">Sales</option>
+              <option value="sales_listing">Sales (listing)</option>
+              <option value="rental_leasing">Rental/Leasing</option>
+              <option value="rental_listing">Rental (listing)</option>
+              <option value="commercial_sales">Commercial Sales</option>
+              <option value="commercial_lease">Commercial Lease</option>
+              <option value="other">Other</option>
+            </SelectInput>
+          </FilterField>
+          <FilterField label="Commission plan">
+            <SelectInput defaultValue={snapshot.filters.commissionPlanId} name="commissionPlanId">
+              <option value="">All calculated plans</option>
+              {snapshot.filters.commissionPlanOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </FilterField>
+          <div className="office-filter-actions">
+            <button className="office-button" type="submit">
+              Apply filters
+            </button>
+            <Link className="office-button office-button-secondary" href="/office/reports">
+              Reset
+            </Link>
+          </div>
+        </FilterBar>
+      </SectionCard>
 
       <nav aria-label="Reports sections" className="office-section-nav">
         <a href="#reports-scope">Scope</a>
@@ -469,6 +476,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
         <div className="office-side-stack">
           <section id="reports-scope">
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
                   Open transactions
@@ -518,6 +526,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
 
           <section id="reports-transactions">
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
                   View filtered list
@@ -618,6 +627,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
 
           <section>
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
                   Open full transaction list
@@ -663,6 +673,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
         <div className="office-side-stack">
           <section id="reports-agents">
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link
                   className="office-button office-button-secondary"
@@ -739,6 +750,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
           {snapshot.teamPerformance.hasTeams ? (
             <section id="reports-teams">
               <SectionCard
+                className="office-list-card"
                 actions={<Badge tone="neutral">{snapshot.teamPerformance.rows.length} visible team rows</Badge>}
                 subtitle="Grouped by each owner's current active team memberships."
                 title="Team performance"
@@ -801,6 +813,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
 
           <section id="reports-commissions">
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link
                   className="office-button office-button-secondary"
@@ -944,6 +957,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
 
           <section id="reports-accounting">
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link
                   className="office-button office-button-secondary"
@@ -1054,6 +1068,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
 
           <section id="reports-emd">
             <SectionCard
+              className="office-list-card"
               actions={
                 <Link
                   className="office-button office-button-secondary"

@@ -150,8 +150,8 @@ export function OfficeAgentsClient({
         <StatCard hint="currently active teams in this office scope" label="Active teams" value={snapshot.summary.activeTeamCount} />
       </section>
 
-      <SectionCard subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
-        <FilterBar as="form" className="office-agents-toolbar" method="get">
+      <SectionCard className="office-list-card" subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
+        <FilterBar as="form" className="office-agents-toolbar office-list-filters" method="get">
           <FilterField className="office-agents-search-field" label="Search">
             <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Search name, email, title, or team" type="search" />
           </FilterField>
@@ -212,7 +212,7 @@ export function OfficeAgentsClient({
         </FilterBar>
 
         {snapshot.rows.length ? (
-          <DataTable className="office-agents-roster-table">
+          <DataTable className="office-table office-agents-roster-table">
             <DataTableHeader className="office-agents-roster-head">
               <span>Agent</span>
               <span>Office</span>
@@ -275,6 +275,7 @@ export function OfficeAgentsClient({
       </SectionCard>
 
       <SectionCard
+        className="office-list-card"
         actions={canManageTeams ? <StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge> : undefined}
         subtitle="Teams are shared roster groupings for visibility and management. Create or rename them here, then manage membership inside each agent profile."
         title="Teams"

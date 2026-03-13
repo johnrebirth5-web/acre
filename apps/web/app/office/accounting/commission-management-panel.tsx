@@ -495,7 +495,7 @@ export function CommissionManagementPanel({
 
   return (
     <section className="office-accounting-panel" id="commissions">
-      <SectionCard subtitle="Commission plans, assignments, calculated rows, and statement-ready visibility." title="Commission management">
+      <SectionCard className="office-list-card" subtitle="Commission plans, assignments, calculated rows, and statement-ready visibility." title="Commission management">
         <div className="office-kpi-grid office-commission-kpi-grid">
           <StatCard hint="active plans configured for this office scope" label="Active plans" value={snapshot.overview.activePlansCount} />
           <StatCard hint="active plan assignments across agents and teams" label="Assignments" value={snapshot.overview.activeAssignmentsCount} />
@@ -506,7 +506,7 @@ export function CommissionManagementPanel({
         </div>
 
         <form
-          className="office-report-filters"
+          className="office-report-filters office-list-filters"
           onSubmit={(event) => {
             event.preventDefault();
             pushNextHref(buildFilterHref(pathname, filterState));
@@ -608,7 +608,7 @@ export function CommissionManagementPanel({
 
         <div className="office-detail-two-column">
           <div className="office-side-stack">
-            <SectionCard subtitle="Reusable split/fee plans for transaction-side commission automation." title="Commission plans">
+            <SectionCard className="office-list-card" subtitle="Reusable split/fee plans for transaction-side commission automation." title="Commission plans">
               <form className="office-form-grid office-form-grid-3" onSubmit={handleSavePlan}>
                 <FormField label="Existing plan">
                   <SelectInput
@@ -741,7 +741,7 @@ export function CommissionManagementPanel({
               </div>
             </SectionCard>
 
-            <SectionCard subtitle="Attach active commission plans to agents or teams with explicit precedence." title="Plan assignments">
+            <SectionCard className="office-list-card" subtitle="Attach active commission plans to agents or teams with explicit precedence." title="Plan assignments">
               <form className="office-inline-form office-inline-form-wrap" onSubmit={handleAssignPlan}>
                 <FormField label="Assign to">
                   <SelectInput
@@ -851,7 +851,7 @@ export function CommissionManagementPanel({
           </div>
 
           <div className="office-side-stack">
-            <SectionCard subtitle="Persisted commission calculations, review queue, and payout-readiness workflow." title="Commission queue">
+            <SectionCard className="office-list-card" subtitle="Persisted commission calculations, review queue, and payout-readiness workflow." title="Commission queue">
               <div className="office-table">
                 <div className="office-table-header office-table-row office-table-row-commission">
                   <span>Transaction</span>
@@ -921,7 +921,7 @@ export function CommissionManagementPanel({
               </div>
             </SectionCard>
 
-            <SectionCard subtitle="On-screen statement snapshot for the selected agent and current date window." title="Statement / payout readiness">
+            <SectionCard className="office-list-card" subtitle="On-screen statement snapshot for the selected agent and current date window." title="Statement / payout readiness">
               {snapshot.statement ? (
                 <>
                   <div className="office-kpi-grid office-commission-kpi-grid">

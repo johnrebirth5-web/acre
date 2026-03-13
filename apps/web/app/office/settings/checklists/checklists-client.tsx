@@ -2,7 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { Button, CheckboxField, FormField, SectionCard, SelectInput, StatCard, TextInput, TextareaInput } from "@acre/ui";
+import {
+  Button,
+  CheckboxField,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FormField,
+  SectionCard,
+  SelectInput,
+  StatCard,
+  StatusBadge,
+  TextInput,
+  TextareaInput
+} from "@acre/ui";
 import type { OfficeChecklistTemplateRecord, OfficeChecklistTemplatesSnapshot } from "@acre/db";
 
 type OfficeSettingsChecklistsClientProps = {
@@ -224,8 +239,40 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
 
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
+      <SectionCard className="office-list-card" subtitle="Canonical list view for template inventory before opening detailed editors." title="Checklist templates">
+        <DataTable className="office-table">
+          <DataTableHeader className="office-table-header office-table-row office-table-row-settings-checklists">
+            <span>Template</span>
+            <span>Context</span>
+            <span>Items</span>
+            <span>Status</span>
+            <span>Updated</span>
+          </DataTableHeader>
+          <DataTableBody>
+            {snapshot.templates.length ? (
+              snapshot.templates.map((template) => (
+                <DataTableRow className="office-table-row office-table-row-settings-checklists" key={`summary-${template.id}`}>
+                  <div className="office-table-primary">
+                    <strong>{template.name}</strong>
+                    <p>{template.description || "No description"}</p>
+                  </div>
+                  <span>{template.transactionTypeLabel}</span>
+                  <span>{template.items.length}</span>
+                  <span>
+                    <StatusBadge tone={template.isActive ? "success" : "neutral"}>{template.isActive ? "Active" : "Inactive"}</StatusBadge>
+                  </span>
+                  <span>{template.updatedByName}</span>
+                </DataTableRow>
+              ))
+            ) : (
+              <EmptyState description="Create the first checklist template to start enforcing office workflow requirements." title="No templates yet" />
+            )}
+          </DataTableBody>
+        </DataTable>
+      </SectionCard>
+
       {canManageChecklists ? (
-        <SectionCard subtitle="Create reusable grouped task templates for office workflows." title="New checklist template">
+        <SectionCard className="office-list-card" subtitle="Create reusable grouped task templates for office workflows." title="New checklist template">
           <form className="office-settings-template-form" onSubmit={handleCreateTemplate}>
             <div className="office-settings-template-meta">
               <FormField label="Template name">
@@ -313,145 +360,150 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
         </SectionCard>
       ) : null}
 
-      <div className="office-settings-card-grid">
-        {snapshot.templates.map((template) => {
-          const draft = templateDrafts[template.id] ?? buildTemplateDraft(template);
+      <SectionCard className="office-list-card" subtitle="Open any template below for full row-level editing." title="Template editor">
+        <div className="office-settings-card-grid">
+          {snapshot.templates.map((template) => {
+            const draft = templateDrafts[template.id] ?? buildTemplateDraft(template);
 
-          return (
-            <SectionCard
-              actions={<Button disabled={!canManageChecklists || pendingAction === `save-template:${template.id}`} onClick={() => handleSaveTemplate(template.id)} size="sm" variant="secondary">{pendingAction === `save-template:${template.id}` ? "Saving..." : "Save"}</Button>}
-              className="office-settings-template-card"
-              key={template.id}
-              subtitle={`${template.createdByName} created · ${template.updatedByName} updated`}
-              title={template.name}
-            >
-              <div className="office-settings-template-meta">
-                <FormField label="Template name">
-                  <TextInput
+            return (
+              <SectionCard
+                actions={<Button disabled={!canManageChecklists || pendingAction === `save-template:${template.id}`} onClick={() => handleSaveTemplate(template.id)} size="sm" variant="secondary">{pendingAction === `save-template:${template.id}` ? "Saving..." : "Save"}</Button>}
+                className="office-settings-template-card"
+                key={template.id}
+                subtitle={`${template.createdByName} created · ${template.updatedByName} updated`}
+                title={template.name}
+              >
+                <div className="office-settings-template-meta">
+                  <FormField label="Template name">
+                    <TextInput
+                      disabled={!canManageChecklists}
+                      onChange={(event) => setTemplateField(template.id, "name", event.target.value)}
+                      value={draft.name}
+                    />
+                  </FormField>
+
+                  <FormField label="Context">
+                    <SelectInput
+                      disabled={!canManageChecklists}
+                      onChange={(event) => setTemplateField(template.id, "transactionType", event.target.value)}
+                      value={draft.transactionType}
+                    >
+                      {snapshot.transactionTypeOptions.map((option) => (
+                        <option key={option.value || "default"} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </SelectInput>
+                  </FormField>
+                </div>
+
+                <FormField label="Description">
+                  <TextareaInput
                     disabled={!canManageChecklists}
-                    onChange={(event) => setTemplateField(template.id, "name", event.target.value)}
-                    value={draft.name}
+                    onChange={(event) => setTemplateField(template.id, "description", event.target.value)}
+                    rows={3}
+                    value={draft.description}
                   />
                 </FormField>
 
-                <FormField label="Context">
-                  <SelectInput
+                <CheckboxField label="Active template">
+                  <input
+                    checked={draft.isActive}
                     disabled={!canManageChecklists}
-                    onChange={(event) => setTemplateField(template.id, "transactionType", event.target.value)}
-                    value={draft.transactionType}
-                  >
-                    {snapshot.transactionTypeOptions.map((option) => (
-                      <option key={option.value || "default"} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </FormField>
-              </div>
+                    onChange={(event) => setTemplateField(template.id, "isActive", event.target.checked)}
+                    type="checkbox"
+                  />
+                </CheckboxField>
 
-              <FormField label="Description">
-                <TextareaInput
-                  disabled={!canManageChecklists}
-                  onChange={(event) => setTemplateField(template.id, "description", event.target.value)}
-                  rows={3}
-                  value={draft.description}
-                />
-              </FormField>
+                <div className="office-settings-template-items">
+                  {draft.items.map((item, index) => (
+                    <div className="office-settings-template-item" key={item.id ?? `${template.id}-${index}`}>
+                      <div className="office-settings-template-item-grid">
+                        <FormField label="Group">
+                          <TextInput
+                            disabled={!canManageChecklists}
+                            onChange={(event) => setTemplateItemField(template.id, index, "checklistGroup", event.target.value)}
+                            value={item.checklistGroup}
+                          />
+                        </FormField>
 
-              <CheckboxField label="Active template">
-                <input
-                  checked={draft.isActive}
-                  disabled={!canManageChecklists}
-                  onChange={(event) => setTemplateField(template.id, "isActive", event.target.checked)}
-                  type="checkbox"
-                />
-              </CheckboxField>
+                        <FormField label="Task title">
+                          <TextInput
+                            disabled={!canManageChecklists}
+                            onChange={(event) => setTemplateItemField(template.id, index, "title", event.target.value)}
+                            value={item.title}
+                          />
+                        </FormField>
 
-              <div className="office-settings-template-items">
-                {draft.items.map((item, index) => (
-                  <div className="office-settings-template-item" key={item.id ?? `${template.id}-${index}`}>
-                    <div className="office-settings-template-item-grid">
-                      <FormField label="Group">
-                        <TextInput
+                        <FormField label="Due offset (days)">
+                          <TextInput
+                            disabled={!canManageChecklists}
+                            onChange={(event) => setTemplateItemField(template.id, index, "dueDaysOffset", event.target.value)}
+                            value={item.dueDaysOffset}
+                          />
+                        </FormField>
+                      </div>
+
+                      <FormField label="Description">
+                        <TextareaInput
                           disabled={!canManageChecklists}
-                          onChange={(event) => setTemplateItemField(template.id, index, "checklistGroup", event.target.value)}
-                          value={item.checklistGroup}
+                          onChange={(event) => setTemplateItemField(template.id, index, "description", event.target.value)}
+                          rows={2}
+                          value={item.description}
                         />
                       </FormField>
 
-                      <FormField label="Task title">
-                        <TextInput
-                          disabled={!canManageChecklists}
-                          onChange={(event) => setTemplateItemField(template.id, index, "title", event.target.value)}
-                          value={item.title}
-                        />
-                      </FormField>
+                      <div className="office-settings-checkbox-grid">
+                        <CheckboxField label="Requires document">
+                          <input
+                            checked={item.requiresDocument}
+                            disabled={!canManageChecklists}
+                            onChange={(event) => setTemplateItemField(template.id, index, "requiresDocument", event.target.checked)}
+                            type="checkbox"
+                          />
+                        </CheckboxField>
+                        <CheckboxField label="Requires document approval">
+                          <input
+                            checked={item.requiresDocumentApproval}
+                            disabled={!canManageChecklists}
+                            onChange={(event) => setTemplateItemField(template.id, index, "requiresDocumentApproval", event.target.checked)}
+                            type="checkbox"
+                          />
+                        </CheckboxField>
+                        <CheckboxField label="Requires secondary approval">
+                          <input
+                            checked={item.requiresSecondaryApproval}
+                            disabled={!canManageChecklists}
+                            onChange={(event) => setTemplateItemField(template.id, index, "requiresSecondaryApproval", event.target.checked)}
+                            type="checkbox"
+                          />
+                        </CheckboxField>
+                      </div>
 
-                      <FormField label="Due offset (days)">
-                        <TextInput
-                          disabled={!canManageChecklists}
-                          onChange={(event) => setTemplateItemField(template.id, index, "dueDaysOffset", event.target.value)}
-                          value={item.dueDaysOffset}
-                        />
-                      </FormField>
+                      {canManageChecklists && draft.items.length > 1 ? (
+                        <button className="office-settings-item-delete" onClick={() => removeTemplateItem(template.id, index)} type="button">
+                          Remove row
+                        </button>
+                      ) : null}
                     </div>
-
-                    <FormField label="Description">
-                      <TextareaInput
-                        disabled={!canManageChecklists}
-                        onChange={(event) => setTemplateItemField(template.id, index, "description", event.target.value)}
-                        rows={2}
-                        value={item.description}
-                      />
-                    </FormField>
-
-                    <div className="office-settings-checkbox-grid">
-                      <CheckboxField label="Requires document">
-                        <input
-                          checked={item.requiresDocument}
-                          disabled={!canManageChecklists}
-                          onChange={(event) => setTemplateItemField(template.id, index, "requiresDocument", event.target.checked)}
-                          type="checkbox"
-                        />
-                      </CheckboxField>
-                      <CheckboxField label="Requires document approval">
-                        <input
-                          checked={item.requiresDocumentApproval}
-                          disabled={!canManageChecklists}
-                          onChange={(event) => setTemplateItemField(template.id, index, "requiresDocumentApproval", event.target.checked)}
-                          type="checkbox"
-                        />
-                      </CheckboxField>
-                      <CheckboxField label="Requires secondary approval">
-                        <input
-                          checked={item.requiresSecondaryApproval}
-                          disabled={!canManageChecklists}
-                          onChange={(event) => setTemplateItemField(template.id, index, "requiresSecondaryApproval", event.target.checked)}
-                          type="checkbox"
-                        />
-                      </CheckboxField>
-                    </div>
-
-                    {canManageChecklists && draft.items.length > 1 ? (
-                      <button className="office-settings-item-delete" onClick={() => removeTemplateItem(template.id, index)} type="button">
-                        Remove row
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-
-              {canManageChecklists ? (
-                <div className="office-settings-actions">
-                  <Button onClick={() => addTemplateItem(template.id)} size="sm" type="button" variant="secondary">
-                    Add row
-                  </Button>
+                  ))}
                 </div>
-              ) : null}
-            </SectionCard>
-          );
-        })}
-      </div>
+
+                {canManageChecklists ? (
+                  <div className="office-settings-actions">
+                    <Button onClick={() => addTemplateItem(template.id)} size="sm" type="button" variant="secondary">
+                      Add row
+                    </Button>
+                  </div>
+                ) : null}
+              </SectionCard>
+            );
+          })}
+          {snapshot.templates.length === 0 ? (
+            <EmptyState description="Create your first checklist template to configure workflow rows." title="No templates to edit" />
+          ) : null}
+        </div>
+      </SectionCard>
     </>
   );
 }

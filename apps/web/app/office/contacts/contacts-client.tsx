@@ -3,7 +3,22 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { Button, DataTable, DataTableBody, DataTableHeader, DataTableRow, EmptyState, FilterBar, FilterField, PageHeader, PageShell, SectionCard, SelectInput, TextInput } from "@acre/ui";
+import {
+  Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FilterBar,
+  FilterField,
+  PageHeader,
+  PageShell,
+  SectionCard,
+  SelectInput,
+  SummaryChip,
+  TextInput
+} from "@acre/ui";
 import type { OfficeContactRecord } from "@acre/db";
 
 type ContactsClientProps = {
@@ -159,11 +174,13 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
       <PageShell className="bm-page office-list-page">
         <PageHeader
           actions={
-            <div className="office-page-actions">
-              <div className="office-transactions-summary-chip">
-                <strong>{totalCount}</strong>
-                <span>Contacts</span>
-              </div>
+            <div className="office-page-actions office-list-page-header-actions">
+              <SummaryChip label="Contacts" value={totalCount} />
+              <SummaryChip
+                label="Current view"
+                tone="accent"
+                value={stageFilter === "All" ? "All stages" : stageFilter}
+              />
               <Button onClick={() => setIsModalOpen(true)} type="button">
                 New contact
               </Button>
@@ -174,7 +191,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
           title="Contacts"
         />
 
-        <SectionCard className="office-list-card" subtitle={summaryLabel} title="Contacts table">
+        <SectionCard className="office-list-card" subtitle={summaryLabel} title="Contact list">
           <FilterBar as="form" className="bm-contacts-toolbar" onSubmit={handleFilterSubmit}>
             <FilterField className="bm-contacts-search-field" label="Search">
               <TextInput
@@ -196,12 +213,12 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
               </SelectInput>
             </FilterField>
 
-            <Button type="submit" variant="secondary">
-              Apply
-            </Button>
-            <Button onClick={handleResetFilters} type="button" variant="secondary">
-              Reset
-            </Button>
+            <div className="office-filter-actions">
+              <Button type="submit">Apply</Button>
+              <Button onClick={handleResetFilters} type="button" variant="secondary">
+                Reset
+              </Button>
+            </div>
           </FilterBar>
 
           <DataTable className="office-table bm-contacts-table">

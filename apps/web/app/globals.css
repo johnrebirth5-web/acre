@@ -4991,6 +4991,13 @@ a {
   gap: 12px;
 }
 
+.office-list-page-header-actions {
+  width: 100%;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.office-summary-chip,
 .office-transactions-summary-chip {
   display: grid;
   min-width: 148px;
@@ -5001,6 +5008,7 @@ a {
   background: var(--office-surface);
 }
 
+.office-summary-chip strong,
 .office-transactions-summary-chip strong {
   color: var(--office-text);
   font-size: 1.2rem;
@@ -5009,6 +5017,7 @@ a {
   letter-spacing: -0.03em;
 }
 
+.office-summary-chip span,
 .office-transactions-summary-chip span {
   color: var(--office-text-muted);
   font-size: 0.78rem;
@@ -5017,6 +5026,7 @@ a {
   text-transform: uppercase;
 }
 
+.office-summary-chip-accent,
 .office-transactions-summary-chip-accent {
   border-color: #c8d8fb;
   background: linear-gradient(180deg, #f4f8ff 0%, #edf3ff 100%);
@@ -5848,6 +5858,14 @@ a {
 .bm-transaction-status-form > .office-button-secondary {
   flex: 0 0 auto;
   min-width: 0;
+}
+
+.office-list-filters > .office-filter-actions {
+  margin-left: auto;
+}
+
+.office-list-filters > .office-filter-actions .office-button {
+  min-width: max-content;
 }
 
 .office-data-table,
@@ -7438,7 +7456,9 @@ a {
 }
 
 .office-table-row-settings-users,
-.office-table-row-settings-fields {
+.office-table-row-settings-fields,
+.office-table-row-settings-teams,
+.office-table-row-settings-checklists {
   display: grid;
   align-items: center;
   gap: 14px;
@@ -7452,6 +7472,27 @@ a {
 .office-table-row-settings-fields {
   min-width: 430px;
   grid-template-columns: minmax(200px, 1.55fr) minmax(92px, 0.68fr) minmax(92px, 0.68fr);
+}
+
+.office-table-row-settings-teams {
+  min-width: 760px;
+  grid-template-columns:
+    minmax(220px, 1.9fr)
+    minmax(90px, 0.72fr)
+    minmax(90px, 0.72fr)
+    minmax(112px, 0.82fr)
+    minmax(100px, 0.72fr)
+    minmax(110px, 0.82fr);
+}
+
+.office-table-row-settings-checklists {
+  min-width: 760px;
+  grid-template-columns:
+    minmax(240px, 2.05fr)
+    minmax(136px, 0.98fr)
+    minmax(72px, 0.56fr)
+    minmax(98px, 0.72fr)
+    minmax(110px, 0.8fr);
 }
 
 .office-table-actions {
@@ -8006,6 +8047,8 @@ a {
 
   .office-table-row-settings-users,
   .office-table-row-settings-fields,
+  .office-table-row-settings-teams,
+  .office-table-row-settings-checklists,
   .office-settings-team-editor,
   .office-settings-team-assign,
   .office-settings-template-meta {

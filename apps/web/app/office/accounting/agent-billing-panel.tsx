@@ -586,7 +586,7 @@ export function AgentBillingPanel({
 
   return (
     <>
-      <section className="bm-table-card" id="agent-billing">
+      <section className="bm-table-card office-list-card" id="agent-billing">
         <div className="bm-card-head">
           <h3>Agent billing</h3>
           <span>Ledger, recurring charges, payment methods, collections, and statement context for agent-side billing.</span>
@@ -626,7 +626,7 @@ export function AgentBillingPanel({
         </section>
 
         <form
-          className="office-report-filters"
+          className="office-report-filters office-list-filters"
           onSubmit={(event) => {
             event.preventDefault();
             pushBillingFilters({});
@@ -737,7 +737,7 @@ export function AgentBillingPanel({
 
         <div className="office-dashboard-grid-wide bm-accounting-grid">
           <div className="office-side-stack">
-            <section className="bm-table-card">
+            <section className="bm-table-card office-list-card">
               <div className="bm-card-head">
                 <h3>Agent ledger</h3>
                 <span>{snapshot.ledgerRows.length} ledger row(s) in the current filtered window.</span>
@@ -784,7 +784,7 @@ export function AgentBillingPanel({
               </div>
             </section>
 
-            <section className="bm-table-card">
+            <section className="bm-table-card office-list-card">
               <div className="bm-card-head">
                 <h3>Recurring billing rules</h3>
                 <span>{snapshot.recurringRules.length} rule(s) currently loaded.</span>
@@ -831,7 +831,7 @@ export function AgentBillingPanel({
           </div>
 
           <div className="office-side-stack">
-            <section className="bm-table-card">
+            <section className="bm-table-card office-list-card">
               <div className="bm-card-head">
                 <h3>Payment methods</h3>
                 <span>{snapshot.paymentMethods.length} configured method(s).</span>
@@ -874,7 +874,7 @@ export function AgentBillingPanel({
               </div>
             </section>
 
-            <section className="bm-table-card">
+            <section className="bm-table-card office-list-card">
               <div className="bm-card-head">
                 <h3>Agent statement</h3>
                 <span>

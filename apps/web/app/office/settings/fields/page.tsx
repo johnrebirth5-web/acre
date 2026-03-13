@@ -1,5 +1,5 @@
 import { canManageOfficeFields, canViewOfficeFields } from "@acre/auth";
-import { Badge, PageHeader, PageShell } from "@acre/ui";
+import { PageHeader, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeFieldSettingsSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
@@ -19,13 +19,14 @@ export default async function OfficeSettingsFieldsPage() {
   });
 
   return (
-    <PageShell>
+    <PageShell className="office-list-page office-settings-list-page">
       <PageHeader
         actions={
-          <>
-            <Badge tone="neutral">{context.currentOffice?.name ?? context.currentOrganization.name}</Badge>
-            <Badge tone="neutral">{snapshot.summary.requiredRoleCount} required roles</Badge>
-          </>
+          <div className="office-page-actions office-list-page-header-actions">
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Required roles" tone="accent" value={snapshot.summary.requiredRoleCount} />
+            <SummaryChip label="Required fields" value={snapshot.summary.requiredFieldCount} />
+          </div>
         }
         description="Transaction workflow requirements for contact roles and field visibility/requiredness in the current office scope."
         eyebrow="Office admin"

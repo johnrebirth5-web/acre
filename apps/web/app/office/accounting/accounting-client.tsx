@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot, OfficeCommissionManagementSnapshot } from "@acre/db";
+import { Button, FilterBar, FilterField, SelectInput, TextInput } from "@acre/ui";
 import { AgentBillingPanel } from "./agent-billing-panel";
 import { CommissionManagementPanel } from "./commission-management-panel";
 
@@ -570,39 +571,37 @@ export function OfficeAccountingClient({
         </article>
       </section>
 
-      <form
+      <FilterBar
+        as="form"
         id="accounting-overview"
-        className="office-report-filters"
+        className="office-report-filters office-list-filters"
         onSubmit={(event) => {
           event.preventDefault();
           navigateWithFilters({ ...filterState, entryId: "" });
         }}
       >
-        <label className="office-report-filter">
-          <span>Type</span>
-          <select onChange={(event) => setFilterState((current) => ({ ...current, type: event.target.value }))} value={filterState.type}>
+        <FilterField label="Type">
+          <SelectInput onChange={(event) => setFilterState((current) => ({ ...current, type: event.target.value }))} value={filterState.type}>
             {accountingFilterTypeOptions.map((option) => (
               <option key={option.value || "all"} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FilterField>
 
-        <label className="office-report-filter">
-          <span>Status</span>
-          <select onChange={(event) => setFilterState((current) => ({ ...current, status: event.target.value }))} value={filterState.status}>
+        <FilterField label="Status">
+          <SelectInput onChange={(event) => setFilterState((current) => ({ ...current, status: event.target.value }))} value={filterState.status}>
             {accountingFilterStatusOptions.map((option) => (
               <option key={option.value || "all"} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FilterField>
 
-        <label className="office-report-filter">
-          <span>Owner / agent</span>
-          <select
+        <FilterField label="Owner / agent">
+          <SelectInput
             onChange={(event) => setFilterState((current) => ({ ...current, ownerMembershipId: event.target.value }))}
             value={filterState.ownerMembershipId}
           >
@@ -612,53 +611,48 @@ export function OfficeAccountingClient({
                 {option.label}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectInput>
+        </FilterField>
 
-        <label className="office-report-filter">
-          <span>Search</span>
-          <input
+        <FilterField label="Search">
+          <TextInput
             onChange={(event) => setFilterState((current) => ({ ...current, q: event.target.value }))}
             placeholder="Search reference, counterparty, transaction..."
             type="text"
             value={filterState.q}
           />
-        </label>
+        </FilterField>
 
-        <label className="office-report-filter">
-          <span>Start date</span>
-          <input onChange={(event) => setFilterState((current) => ({ ...current, startDate: event.target.value }))} type="date" value={filterState.startDate} />
-        </label>
+        <FilterField label="Start date">
+          <TextInput onChange={(event) => setFilterState((current) => ({ ...current, startDate: event.target.value }))} type="date" value={filterState.startDate} />
+        </FilterField>
 
-        <label className="office-report-filter">
-          <span>End date</span>
-          <input onChange={(event) => setFilterState((current) => ({ ...current, endDate: event.target.value }))} type="date" value={filterState.endDate} />
-        </label>
+        <FilterField label="End date">
+          <TextInput onChange={(event) => setFilterState((current) => ({ ...current, endDate: event.target.value }))} type="date" value={filterState.endDate} />
+        </FilterField>
 
-        <div className="office-report-filter-actions">
-          <button className="office-button" type="submit">
-            Apply filters
-          </button>
-          <button className="office-button office-button-secondary" onClick={resetFilters} type="button">
+        <div className="office-filter-actions">
+          <Button type="submit">Apply filters</Button>
+          <Button onClick={resetFilters} type="button" variant="secondary">
             Reset
-          </button>
+          </Button>
         </div>
 
         {canManageAccounting ? (
-          <div className="office-report-filter-actions">
-            <button className="bm-create-button" onClick={openCreateEntryModal} type="button">
+          <div className="office-filter-actions">
+            <Button className="bm-create-button" onClick={openCreateEntryModal} type="button">
               New accounting entry
-            </button>
-            <button className="office-button office-button-secondary" onClick={() => openEarnestMoneyModal()} type="button">
+            </Button>
+            <Button onClick={() => openEarnestMoneyModal()} type="button" variant="secondary">
               New EMD
-            </button>
+            </Button>
           </div>
         ) : null}
-      </form>
+      </FilterBar>
 
       <section className="office-dashboard-grid-wide bm-accounting-grid">
         <div className="office-side-stack">
-          <section className="bm-table-card" id="accounting-ledger">
+          <section className="bm-table-card office-list-card" id="accounting-ledger">
             <div className="bm-card-head">
               <h3>Accounting transactions</h3>
               <span>{snapshot.transactions.length} records in the current filtered window</span>
@@ -701,7 +695,7 @@ export function OfficeAccountingClient({
             </div>
           </section>
 
-          <section className="bm-table-card" id="chart-of-accounts">
+          <section className="bm-table-card office-list-card" id="chart-of-accounts">
             <div className="bm-card-head">
               <h3>General ledger</h3>
               <span>Latest {snapshot.generalLedgerEntries.length} posted entries</span>
@@ -733,7 +727,7 @@ export function OfficeAccountingClient({
         </div>
 
         <div className="office-side-stack">
-          <section className="bm-table-card">
+          <section className="bm-table-card office-list-card">
             <div className="bm-card-head">
               <h3>{snapshot.selectedTransaction ? "Accounting entry detail" : "Select an accounting entry"}</h3>
               <span>
@@ -777,7 +771,7 @@ export function OfficeAccountingClient({
             )}
           </section>
 
-          <section className="bm-table-card" id="earnest-money">
+          <section className="bm-table-card office-list-card" id="earnest-money">
             <div className="bm-card-head">
               <h3>Earnest money</h3>
               <span>{snapshot.earnestMoneyRecords.length} active EMD records</span>
@@ -818,7 +812,7 @@ export function OfficeAccountingClient({
             </div>
           </section>
 
-          <section className="bm-table-card">
+          <section className="bm-table-card office-list-card">
             <div className="bm-card-head">
               <h3>Chart of accounts</h3>
               <span>System accounts are seeded and ready; custom account editing is intentionally not exposed yet.</span>

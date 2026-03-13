@@ -174,6 +174,20 @@ export function StatCard(props: {
   );
 }
 
+export function SummaryChip(props: {
+  label: string;
+  value: ReactNode;
+  tone?: "default" | "accent";
+  className?: string;
+}) {
+  return (
+    <article className={cx("office-summary-chip", props.tone === "accent" && "office-summary-chip-accent", props.className)}>
+      <strong>{props.value}</strong>
+      <span>{props.label}</span>
+    </article>
+  );
+}
+
 export function DataTable(props: { className?: string; style?: CSSProperties; children: ReactNode }) {
   return (
     <div className={cx("office-data-table", props.className)} role="table" style={props.style}>

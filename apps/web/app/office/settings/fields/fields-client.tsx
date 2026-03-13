@@ -103,7 +103,7 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
 
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
-      <SectionCard subtitle="These roles are required for the office workflow before a transaction is considered fully staffed." title="Required contact roles">
+      <SectionCard className="office-list-card" subtitle="These roles are required for the office workflow before a transaction is considered fully staffed." title="Required contact roles">
         <div className="office-settings-checkbox-grid">
           {snapshot.contactRoleSettings.map((entry) => (
             <CheckboxField className="office-settings-checkbox-item" key={entry.role} label={entry.label}>
@@ -118,7 +118,7 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
         </div>
       </SectionCard>
 
-      <SectionCard subtitle="Control which transaction fields stay visible and which are enforced as required in Back Office." title="Transaction field behavior">
+      <SectionCard className="office-list-card" subtitle="Control which transaction fields stay visible and which are enforced as required in Back Office." title="Transaction field behavior">
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-fields">
             <span>Field</span>

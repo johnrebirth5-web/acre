@@ -3,7 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
-import { Badge, Button, EmptyState, FormField, SectionCard, SelectInput, StatCard, TextInput } from "@acre/ui";
+import {
+  Badge,
+  Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FormField,
+  SectionCard,
+  SelectInput,
+  StatCard,
+  StatusBadge,
+  TextInput
+} from "@acre/ui";
 import type { OfficeAgentsRosterSnapshot } from "@acre/db";
 
 type OfficeSettingsTeamsClientProps = {
@@ -186,8 +200,47 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
         <StatCard hint="Members visible in roster" label="Rostered members" value={snapshot.summary.totalMembers} />
       </section>
 
-      <SectionCard subtitle="Create and manage operational teams without leaving Back Office." title="Team administration">
-        {submitError ? <p className="office-inline-error">{submitError}</p> : null}
+      {submitError ? <p className="office-inline-error">{submitError}</p> : null}
+
+      <SectionCard className="office-list-card" subtitle="Same list/table rhythm as Transactions, with team-level operational metrics." title="Teams list">
+        <DataTable className="office-table">
+          <DataTableHeader className="office-table-header office-table-row office-table-row-settings-teams">
+            <span>Team</span>
+            <span>Members</span>
+            <span>Open tasks</span>
+            <span>Open transactions</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </DataTableHeader>
+          <DataTableBody>
+            {snapshot.teams.length ? (
+              snapshot.teams.map((team) => (
+                <DataTableRow className="office-table-row office-table-row-settings-teams" key={`summary-${team.id}`}>
+                  <div className="office-table-primary">
+                    <strong>{team.name}</strong>
+                    <p>{team.slug}</p>
+                  </div>
+                  <span>{team.memberCount}</span>
+                  <span>{team.openTaskCount}</span>
+                  <span>{team.openTransactionCount}</span>
+                  <span>
+                    <StatusBadge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</StatusBadge>
+                  </span>
+                  <div className="office-table-actions">
+                    <Link className="office-inline-action" href={`/office/agents?teamId=${team.id}`}>
+                      View roster
+                    </Link>
+                  </div>
+                </DataTableRow>
+              ))
+            ) : (
+              <EmptyState description="Create the first operational team for this office to start grouping agents." title="No teams configured yet" />
+            )}
+          </DataTableBody>
+        </DataTable>
+      </SectionCard>
+
+      <SectionCard className="office-list-card" subtitle="Create and manage operational teams without leaving Back Office." title="Team administration">
 
         {canManageTeams ? (
           <form className="office-settings-inline-form" onSubmit={handleCreateTeam}>

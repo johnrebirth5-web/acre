@@ -16,6 +16,7 @@ import {
   PageShell,
   SectionCard,
   SelectInput,
+  SummaryChip,
   TextInput
 } from "@acre/ui";
 import type {
@@ -385,15 +386,9 @@ export function TransactionsClient({
       <PageShell className="bm-transactions-page office-list-page">
         <PageHeader
           actions={
-            <div className="office-page-actions office-transactions-page-actions">
-              <div className="office-transactions-summary-chip">
-                <strong>{summary.totalCount}</strong>
-                <span>Transactions</span>
-              </div>
-              <div className="office-transactions-summary-chip office-transactions-summary-chip-accent">
-                <strong>{summary.totalNetIncome}</strong>
-                <span>My net income</span>
-              </div>
+            <div className="office-page-actions office-list-page-header-actions office-transactions-page-actions">
+              <SummaryChip label="Transactions" value={summary.totalCount} />
+              <SummaryChip label="My net income" tone="accent" value={summary.totalNetIncome} />
               <Button className="bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
                 Create transaction
               </Button>
