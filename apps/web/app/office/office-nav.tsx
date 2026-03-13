@@ -62,9 +62,23 @@ type OfficeNavProps = {
   currentOfficeName: string;
 };
 
+function normalizeHref(href: string) {
+  const [path, hashFragment] = href.split("#");
+  return `${path}${hashFragment ? `#${hashFragment}` : ""}`;
+}
+
+function splitLocationKey(locationKey: string) {
+  const [path, hashFragment] = locationKey.split("#");
+  return {
+    path,
+    hash: hashFragment ? `#${hashFragment}` : ""
+  };
+}
+
 export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
   const pathname = usePathname();
   const [currentHash, setCurrentHash] = useState("");
+  const [pendingLocationKey, setPendingLocationKey] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     function syncHash() {
@@ -89,31 +103,37 @@ export function OfficeNav({ currentOfficeName }: OfficeNavProps) {
     };
   }, []);
 
+  const actualLocationKey = `${pathname}${currentHash}`;
+  const effectiveLocationKey = pendingLocationKey ?? actualLocationKey;
+  const effectiveLocation = splitLocationKey(effectiveLocationKey);
+
+  useEffect(() => {
+    if (pendingLocationKey && pendingLocationKey === actualLocationKey) {
+      setPendingLocationKey(null);
+    }
+  }, [actualLocationKey, pendingLocationKey]);
+
   function hasHashVariant(path: string) {
     return navGroups.some((group) => group.items.some((item) => item.href?.startsWith(`${path}#`)));
   }
 
-  function getHrefHash(href: string) {
-    const [, hashFragment] = href.split("#");
-    return hashFragment ? `#${hashFragment}` : "";
-  }
-
   function handleNavIntent(href: string) {
-    setCurrentHash(getHrefHash(href));
+    setPendingLocationKey(normalizeHref(href));
   }
 
   function isSidebarItemActive(href: string) {
     const [path, hashFragment] = href.split("#");
+    const targetHash = hashFragment ? `#${hashFragment}` : "";
 
-    if (hashFragment) {
-      return pathname === path && currentHash === `#${hashFragment}`;
+    if (targetHash) {
+      return effectiveLocation.path === path && effectiveLocation.hash === targetHash;
     }
 
     if (hasHashVariant(path)) {
-      return pathname === path && currentHash.length === 0;
+      return effectiveLocation.path === path && effectiveLocation.hash.length === 0;
     }
 
-    return pathname === path;
+    return effectiveLocation.path === path;
   }
 
   function isMobileSectionActive(href: string) {
