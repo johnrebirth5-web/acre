@@ -1437,7 +1437,7 @@ select {
 
 .bm-goal-chart {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 370px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
   gap: 24px;
   align-items: stretch;
 }
@@ -1460,14 +1460,15 @@ select {
 
 .bm-chart-line-shell {
   min-height: 312px;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: visible;
 }
 
 .bm-chart-canvas {
   position: relative;
+  width: max(100%, 560px);
+  min-width: 560px;
   min-height: 312px;
-  width: 100%;
 }
 
 .bm-chart-series {
@@ -1500,17 +1501,25 @@ select {
 }
 
 .bm-chart-months {
+  position: absolute;
+  left: 0;
+  right: 28px;
+  bottom: 0;
   display: grid;
   grid-template-columns: repeat(13, minmax(0, 1fr));
   gap: 6px;
   align-items: end;
-  padding-right: 28px;
   color: #b1b1b1;
   font-size: 0.66rem;
+  pointer-events: none;
 }
 
 .bm-chart-months span {
   position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
   padding-top: 14px;
   text-align: center;
 }
@@ -1524,6 +1533,27 @@ select {
   height: 8px;
   background: #d7dce6;
   transform: translateX(-50%);
+}
+
+.bm-chart-month-label,
+.bm-chart-year-label {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bm-chart-month-label {
+  font-weight: 700;
+}
+
+.bm-chart-year-label {
+  font-size: 0.62rem;
+}
+
+.bm-chart-year-label.is-placeholder {
+  visibility: hidden;
 }
 
 .bm-goal-side {

@@ -49,6 +49,19 @@ function buildChartPath(values: number[], width: number, height: number, maxValu
     .join(" ");
 }
 
+function getChartTick(label: string, index: number, labels: string[]) {
+  const [monthLabel = label, yearLabel = ""] = label.split(" ");
+  const previousYear = index > 0 ? labels[index - 1]?.split(" ")[1] : undefined;
+  const isLast = index === labels.length - 1;
+  const showYear = index === 0 || isLast || previousYear !== yearLabel;
+
+  return {
+    monthLabel,
+    yearLabel,
+    showYear
+  };
+}
+
 function getTransactionStatusTone(stage: string) {
   if (stage === "Closed") {
     return "success" as const;
@@ -80,6 +93,7 @@ export default async function OfficeDashboardPage() {
   const chartWidth = 1000;
   const chartHeight = 220;
   const chartValues = snapshot.chart.points.map((point) => point.value);
+  const chartPointLabels = snapshot.chart.points.map((point) => point.label);
   const chartPath = buildChartPath(chartValues, chartWidth, chartHeight, snapshot.chart.maxValue);
   const livePipelineCount = snapshot.transactionCountsByStatus
     .filter((metric) => metric.status !== "Closed" && metric.status !== "Cancelled")
@@ -153,9 +167,16 @@ export default async function OfficeDashboardPage() {
                     </div>
 
                     <div className="bm-chart-months">
-                      {snapshot.chart.points.map((point) => (
-                        <span key={point.label}>{point.label}</span>
-                      ))}
+                      {snapshot.chart.points.map((point, index) => {
+                        const tick = getChartTick(point.label, index, chartPointLabels);
+
+                        return (
+                          <span key={point.label} title={point.label}>
+                            <span className="bm-chart-month-label">{tick.monthLabel}</span>
+                            {tick.showYear ? <span className="bm-chart-year-label">{tick.yearLabel}</span> : <span aria-hidden="true" className="bm-chart-year-label is-placeholder">0000</span>}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
