@@ -1460,14 +1460,14 @@ select {
 
 .bm-chart-line-shell {
   min-height: 312px;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: visible;
 }
 
 .bm-chart-canvas {
   position: relative;
-  width: max(100%, 560px);
-  min-width: 560px;
+  width: 100%;
+  min-width: 0;
   min-height: 312px;
 }
 
@@ -4495,19 +4495,19 @@ select {
 
   .bm-chart-line-shell {
     min-height: 240px;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: visible;
   }
 
   .bm-chart-canvas {
-    min-width: 680px;
+    width: 100%;
+    min-width: 0;
     min-height: 240px;
   }
 
   .bm-chart-months {
-    grid-template-columns: repeat(13, minmax(40px, 1fr));
+    grid-template-columns: repeat(13, minmax(0, 1fr));
     row-gap: 0;
-    padding-right: 28px;
   }
 
   .bm-transaction-row {
@@ -6672,6 +6672,10 @@ a {
 .office-dashboard-transactions-head > :nth-child(2) {
   justify-self: end;
   text-align: right;
+}
+
+.office-dashboard-page .office-dashboard-grid-wide {
+  grid-template-columns: 1fr;
 }
 
 .office-dashboard-transactions-main {
