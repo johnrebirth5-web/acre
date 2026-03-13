@@ -13,7 +13,7 @@ import {
   FilterField,
   ListPageFilters,
   ListPageFooter,
-  ListPageSection,
+  ListPageTableSection,
   SelectInput,
   TextInput
 } from "@acre/ui";
@@ -172,55 +172,57 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
     }
   }
 
+  const userFilters = (
+    <ListPageFilters as="form" onSubmit={handleFilterSubmit}>
+      <FilterField label="Search">
+        <TextInput onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, email, title, office..." value={searchQuery} />
+      </FilterField>
+
+      <FilterField label="Role">
+        <SelectInput onChange={(event) => setRoleFilter(event.target.value)} value={roleFilter}>
+          <option value="">All roles</option>
+          {snapshot.filters.roleOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <FilterField label="Status">
+        <SelectInput onChange={(event) => setStatusFilter(event.target.value)} value={statusFilter}>
+          <option value="">All statuses</option>
+          {snapshot.filters.statusOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <FilterField label="Office access">
+        <SelectInput onChange={(event) => setOfficeFilter(event.target.value)} value={officeFilter}>
+          <option value="">All assignments</option>
+          {officeOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <div className="office-filter-actions">
+        <Button type="submit">Apply filters</Button>
+        <Button onClick={handleResetFilters} type="button" variant="secondary">
+          Reset
+        </Button>
+      </div>
+    </ListPageFilters>
+  );
+
   return (
     <>
-      <ListPageSection subtitle="Role, active status, and office assignment are managed at the membership layer." title="Users access">
-        <ListPageFilters as="form" onSubmit={handleFilterSubmit}>
-          <FilterField label="Search">
-            <TextInput onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, email, title, office..." value={searchQuery} />
-          </FilterField>
-
-          <FilterField label="Role">
-            <SelectInput onChange={(event) => setRoleFilter(event.target.value)} value={roleFilter}>
-              <option value="">All roles</option>
-              {snapshot.filters.roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </SelectInput>
-          </FilterField>
-
-          <FilterField label="Status">
-            <SelectInput onChange={(event) => setStatusFilter(event.target.value)} value={statusFilter}>
-              <option value="">All statuses</option>
-              {snapshot.filters.statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </SelectInput>
-          </FilterField>
-
-          <FilterField label="Office access">
-            <SelectInput onChange={(event) => setOfficeFilter(event.target.value)} value={officeFilter}>
-              <option value="">All assignments</option>
-              {officeOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </SelectInput>
-          </FilterField>
-
-          <div className="office-filter-actions">
-            <Button type="submit">Apply filters</Button>
-            <Button onClick={handleResetFilters} type="button" variant="secondary">
-              Reset
-            </Button>
-          </div>
-        </ListPageFilters>
-
+      <ListPageTableSection filters={userFilters} footer={<ListPageFooter summary={`${snapshot.rows.length} user access rows`} />} subtitle="Role, active status, and office assignment are managed at the membership layer." title="Users access">
         {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
         <DataTable className="office-table">
@@ -308,8 +310,7 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
             )}
           </DataTableBody>
         </DataTable>
-        <ListPageFooter summary={`${snapshot.rows.length} user access rows`} />
-      </ListPageSection>
+      </ListPageTableSection>
     </>
   );
 }

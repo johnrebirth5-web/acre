@@ -1,5 +1,5 @@
 import { canManageOfficeTeams, canViewOfficeTeams } from "@acre/auth";
-import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
+import { ListPageStack, PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeAgentsRosterSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
@@ -34,9 +34,10 @@ export default async function OfficeSettingsTeamsPage() {
         title="Teams"
       />
 
-      <OfficeSettingsNav />
-
-      <OfficeSettingsTeamsClient canManageTeams={canManageOfficeTeams(context.currentMembership.role)} snapshot={snapshot} />
+      <ListPageStack className="office-settings-list-stack">
+        <OfficeSettingsNav />
+        <OfficeSettingsTeamsClient canManageTeams={canManageOfficeTeams(context.currentMembership.role)} snapshot={snapshot} />
+      </ListPageStack>
     </PageShell>
   );
 }

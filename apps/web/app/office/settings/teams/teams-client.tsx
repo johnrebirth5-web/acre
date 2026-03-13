@@ -14,6 +14,8 @@ import {
   FormField,
   ListPageFooter,
   ListPageSection,
+  ListPageStack,
+  ListPageTableSection,
   SelectInput,
   StatusBadge,
   TextInput
@@ -192,10 +194,10 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
   }
 
   return (
-    <>
+    <ListPageStack>
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
-      <ListPageSection subtitle="Same list/table rhythm as Transactions, with team-level operational metrics." title="Teams list">
+      <ListPageTableSection footer={<ListPageFooter summary={`${snapshot.teams.length} team rows`} />} subtitle="Same list/table rhythm as Transactions, with team-level operational metrics." title="Teams list">
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-teams">
             <span>Team</span>
@@ -231,8 +233,7 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
             )}
           </DataTableBody>
         </DataTable>
-        <ListPageFooter summary={`${snapshot.teams.length} team rows`} />
-      </ListPageSection>
+      </ListPageTableSection>
 
       <ListPageSection subtitle="Create and manage operational teams without leaving Back Office." title="Team administration">
 
@@ -354,6 +355,6 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
           )}
         </div>
       </ListPageSection>
-    </>
+    </ListPageStack>
   );
 }

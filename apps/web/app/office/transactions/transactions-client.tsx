@@ -13,7 +13,7 @@ import {
   FilterField,
   ListPageFilters,
   ListPageFooter,
-  ListPageSection,
+  ListPageTableSection,
   PageHeader,
   PageHeaderSummary,
   PageShell,
@@ -404,6 +404,148 @@ export function TransactionsClient({
     }
   }
 
+  const transactionFilters = (
+    <ListPageFilters as="form" className="bm-transactions-toolbar" onSubmit={handleApplyFilters}>
+      <FilterField className="bm-transactions-search" label="Search">
+        <TextInput
+          aria-label="Search transactions"
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search address, contact, mls # ..."
+          value={searchQuery}
+        />
+      </FilterField>
+
+      <FilterField label="Current view">
+        <SelectInput
+          aria-label="Filter transactions by status"
+          onChange={(event) => setStatusFilter(event.target.value as (typeof listStatusOptions)[number])}
+          value={statusFilter}
+        >
+          {listStatusOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <FilterField label="Owner / agent">
+        <SelectInput onChange={(event) => setOwnerMembershipId(event.target.value)} value={ownerMembershipId}>
+          <option value="">All owners</option>
+          {filterOptions.ownerOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <FilterField label="Team">
+        <SelectInput onChange={(event) => setTeamId(event.target.value)} value={teamId}>
+          <option value="">All teams</option>
+          {filterOptions.teamOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <FilterField label="Type">
+        <SelectInput onChange={(event) => setTypeFilter(event.target.value)} value={typeFilter}>
+          {transactionTypeFilterOptions.map((option) => (
+            <option key={option.value || "all"} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </SelectInput>
+      </FilterField>
+
+      <FilterField label="Start date">
+        <TextInput onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
+      </FilterField>
+
+      <FilterField label="End date">
+        <TextInput onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
+      </FilterField>
+
+      <div className="office-filter-actions">
+        <Button type="submit">Apply filters</Button>
+        <Button onClick={resetFilters} type="button" variant="secondary">
+          Reset
+        </Button>
+      </div>
+    </ListPageFilters>
+  );
+
+  const transactionFooter = (
+    <ListPageFooter
+      controls={
+        <>
+          <label className="office-list-page-size">
+            <span>Rows</span>
+            <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
+              {pageSizeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
+
+          <div className="office-list-pager">
+            {page > 1 ? (
+              <Link
+                className="office-list-page-button"
+                href={buildTransactionsHref(pathname, {
+                  q: filters.q,
+                  status: filters.status,
+                  ownerMembershipId: filters.ownerMembershipId,
+                  teamId: filters.teamId,
+                  type: filters.type,
+                  startDate: filters.startDate,
+                  endDate: filters.endDate,
+                  page: page - 1,
+                  pageSize
+                })}
+              >
+                «
+              </Link>
+            ) : (
+              <span className="office-list-page-button is-disabled">«</span>
+            )}
+
+            <span className="office-list-page-indicator">
+              Page {page} / {totalPages}
+            </span>
+
+            {page < totalPages ? (
+              <Link
+                className="office-list-page-button"
+                href={buildTransactionsHref(pathname, {
+                  q: filters.q,
+                  status: filters.status,
+                  ownerMembershipId: filters.ownerMembershipId,
+                  teamId: filters.teamId,
+                  type: filters.type,
+                  startDate: filters.startDate,
+                  endDate: filters.endDate,
+                  page: page + 1,
+                  pageSize
+                })}
+              >
+                »
+              </Link>
+            ) : (
+              <span className="office-list-page-button is-disabled">»</span>
+            )}
+          </div>
+        </>
+      }
+      summary={`${pageStart}-${pageEnd} of ${totalCount}`}
+    />
+  );
+
   return (
     <>
       <PageShell className="bm-transactions-page office-list-page">
@@ -422,79 +564,12 @@ export function TransactionsClient({
           title="Transactions"
         />
 
-        <ListPageSection subtitle="Search, filter, and review the current office transaction set." title="Transaction list">
-          <ListPageFilters as="form" className="bm-transactions-toolbar" onSubmit={handleApplyFilters}>
-            <FilterField className="bm-transactions-search" label="Search">
-              <TextInput
-                aria-label="Search transactions"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search address, contact, mls # ..."
-                value={searchQuery}
-              />
-            </FilterField>
-
-            <FilterField label="Current view">
-              <SelectInput
-                aria-label="Filter transactions by status"
-                onChange={(event) => setStatusFilter(event.target.value as (typeof listStatusOptions)[number])}
-                value={statusFilter}
-              >
-                {listStatusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </SelectInput>
-            </FilterField>
-
-            <FilterField label="Owner / agent">
-              <SelectInput onChange={(event) => setOwnerMembershipId(event.target.value)} value={ownerMembershipId}>
-                <option value="">All owners</option>
-                {filterOptions.ownerOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </FilterField>
-
-            <FilterField label="Team">
-              <SelectInput onChange={(event) => setTeamId(event.target.value)} value={teamId}>
-                <option value="">All teams</option>
-                {filterOptions.teamOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </FilterField>
-
-            <FilterField label="Type">
-              <SelectInput onChange={(event) => setTypeFilter(event.target.value)} value={typeFilter}>
-                {transactionTypeFilterOptions.map((option) => (
-                  <option key={option.value || "all"} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </FilterField>
-
-            <FilterField label="Start date">
-              <TextInput onChange={(event) => setStartDate(event.target.value)} type="date" value={startDate} />
-            </FilterField>
-
-            <FilterField label="End date">
-              <TextInput onChange={(event) => setEndDate(event.target.value)} type="date" value={endDate} />
-            </FilterField>
-
-            <div className="office-filter-actions">
-              <Button type="submit">Apply filters</Button>
-              <Button onClick={resetFilters} type="button" variant="secondary">
-                Reset
-              </Button>
-            </div>
-          </ListPageFilters>
-
+        <ListPageTableSection
+          filters={transactionFilters}
+          footer={transactionFooter}
+          subtitle="Search, filter, and review the current office transaction set."
+          title="Transaction list"
+        >
           <DataTable className="bm-transactions-list-shell">
             <DataTableHeader className="bm-transactions-columns">
               <span />
@@ -531,73 +606,7 @@ export function TransactionsClient({
               ) : null}
             </DataTableBody>
           </DataTable>
-
-          <ListPageFooter
-            controls={
-              <>
-                <label className="office-list-page-size">
-                  <span>Rows</span>
-                  <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
-                    {pageSizeOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-
-                <div className="office-list-pager">
-                  {page > 1 ? (
-                    <Link
-                      className="office-list-page-button"
-                      href={buildTransactionsHref(pathname, {
-                        q: filters.q,
-                        status: filters.status,
-                        ownerMembershipId: filters.ownerMembershipId,
-                        teamId: filters.teamId,
-                        type: filters.type,
-                        startDate: filters.startDate,
-                        endDate: filters.endDate,
-                        page: page - 1,
-                        pageSize
-                      })}
-                    >
-                      «
-                    </Link>
-                  ) : (
-                    <span className="office-list-page-button is-disabled">«</span>
-                  )}
-
-                  <span className="office-list-page-indicator">
-                    Page {page} / {totalPages}
-                  </span>
-
-                  {page < totalPages ? (
-                    <Link
-                      className="office-list-page-button"
-                      href={buildTransactionsHref(pathname, {
-                        q: filters.q,
-                        status: filters.status,
-                        ownerMembershipId: filters.ownerMembershipId,
-                        teamId: filters.teamId,
-                        type: filters.type,
-                        startDate: filters.startDate,
-                        endDate: filters.endDate,
-                        page: page + 1,
-                        pageSize
-                      })}
-                    >
-                      »
-                    </Link>
-                  ) : (
-                    <span className="office-list-page-button is-disabled">»</span>
-                  )}
-                </div>
-              </>
-            }
-            summary={`${pageStart}-${pageEnd} of ${totalCount}`}
-          />
-        </ListPageSection>
+        </ListPageTableSection>
       </PageShell>
 
       {isModalOpen ? (

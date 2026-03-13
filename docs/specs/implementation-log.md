@@ -98,6 +98,10 @@
   - shared `ListPageSection`, `ListPageFilters`, `ListPageStatsGrid`, and `ListPageFooter` helpers were added to `@acre/ui` so peer list pages stop drifting into page-local shells
   - contacts, agents roster, reports list sections, accounting workbench sections, and settings users / teams / checklists / fields now compose through the same list-page skeleton instead of duplicating summary strips, filter shells, and section headers
   - settings admin pages now push secondary summary metrics back into page-header chips and use the same list-card rhythm as transactions
+- Canonical list-page composition tightening:
+  - `ListPageTableSection`, `ListPageStack`, and `ListPageSplit` now formalize the transactions-style list-page composition instead of relying on each page to hand-assemble the same structure
+  - transactions and contacts now explicitly compose their main inventory module through the same `filters -> table -> footer` helper contract
+  - agents roster, reports list modules, accounting list modules, and settings admin list pages now use the same shared list-page stack/split rhythm and more consistent `DataTable`-based inventory shells
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

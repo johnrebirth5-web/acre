@@ -2,11 +2,19 @@ import Link from "next/link";
 import {
   Badge,
   Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
   EmptyState,
   FilterField,
+  ListPageFooter,
   ListPageFilters,
   ListPageSection,
+  ListPageSplit,
+  ListPageStack,
   ListPageStatsGrid,
+  ListPageTableSection,
   PageHeader,
   PageHeaderSummary,
   PageShell,
@@ -447,8 +455,8 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
         </ListPageStatsGrid>
       </ListPageSection>
 
-      <section className="office-dashboard-grid-wide office-reports-workspace">
-        <div className="office-side-stack">
+      <ListPageSplit className="office-reports-workspace">
+        <ListPageStack>
           <section id="reports-scope">
             <ListPageSection
               className="office-list-card"
@@ -601,53 +609,56 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
           </section>
 
           <section>
-            <ListPageSection
+            <ListPageTableSection
               className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
                   Open full transaction list
                 </Link>
               }
+              footer={<ListPageFooter summary={`${snapshot.recentTransactions.length} recent transaction rows`} />}
               subtitle="Most recent matching transaction rows with direct links into detail."
               title="Recent transactions"
             >
-              <div className="office-table">
-                <div className="office-table-header office-table-row office-table-row-report-transactions">
+              <DataTable className="office-table">
+                <DataTableHeader className="office-table-header office-table-row office-table-row-report-transactions">
                   <span>Transaction</span>
                   <span>Status</span>
                   <span>Type</span>
                   <span>Owner</span>
                   <span>Price</span>
                   <span>Office net</span>
-                </div>
-                {snapshot.recentTransactions.map((transaction) => (
-                  <Link className="office-table-row office-table-row-report-transactions" href={transaction.href} key={transaction.id}>
-                    <div className="office-table-primary">
-                      <strong>{transaction.title}</strong>
-                      <p>
-                        {transaction.addressLine} · Created {transaction.createdAtLabel} · Closing {transaction.closingDateLabel}
-                      </p>
-                    </div>
-                    <span>
-                      <StatusBadge tone={getTransactionStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
-                    </span>
-                    <span>{transaction.type}</span>
-                    <span>{transaction.ownerName}</span>
-                    <span>{transaction.priceLabel}</span>
-                    <span>{transaction.officeNetLabel}</span>
-                  </Link>
-                ))}
-                {snapshot.recentTransactions.length === 0 ? (
-                  <EmptyState description="No records matched the current transaction filters." title="No transactions" />
-                ) : null}
-              </div>
-            </ListPageSection>
+                </DataTableHeader>
+                <DataTableBody>
+                  {snapshot.recentTransactions.map((transaction) => (
+                    <Link className="office-data-table-row office-table-row office-table-row-report-transactions" href={transaction.href} key={transaction.id} role="row">
+                      <div className="office-table-primary">
+                        <strong>{transaction.title}</strong>
+                        <p>
+                          {transaction.addressLine} · Created {transaction.createdAtLabel} · Closing {transaction.closingDateLabel}
+                        </p>
+                      </div>
+                      <span>
+                        <StatusBadge tone={getTransactionStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
+                      </span>
+                      <span>{transaction.type}</span>
+                      <span>{transaction.ownerName}</span>
+                      <span>{transaction.priceLabel}</span>
+                      <span>{transaction.officeNetLabel}</span>
+                    </Link>
+                  ))}
+                  {snapshot.recentTransactions.length === 0 ? (
+                    <EmptyState description="No records matched the current transaction filters." title="No transactions" />
+                  ) : null}
+                </DataTableBody>
+              </DataTable>
+            </ListPageTableSection>
           </section>
-        </div>
+        </ListPageStack>
 
-        <div className="office-side-stack">
+        <ListPageStack>
           <section id="reports-agents">
-            <ListPageSection
+            <ListPageTableSection
               className="office-list-card"
               actions={
                 <Link
@@ -657,11 +668,12 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   Clear people filters
                 </Link>
               }
+              footer={<ListPageFooter summary={`${snapshot.agentPerformance.length} agent performance rows`} />}
               subtitle="Owner-level transaction finance rollup with drill-down into profiles and transaction lists."
               title="Agent performance"
             >
-              <div className="office-table">
-                <div className="office-table-header office-table-row office-table-row-report-agents">
+              <DataTable className="office-table">
+                <DataTableHeader className="office-table-header office-table-row office-table-row-report-agents">
                   <span>Agent</span>
                   <span>Team</span>
                   <span>Deals</span>
@@ -669,120 +681,125 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   <span>Volume</span>
                   <span>Gross / office net</span>
                   <span>Actions</span>
-                </div>
-                {snapshot.agentPerformance.map((row) => (
-                  <div className="office-table-row office-table-row-report-agents" key={row.ownerMembershipId ?? row.ownerName}>
-                    <div className="office-table-primary">
-                      <strong>{row.ownerName}</strong>
-                      <p>
-                        {row.pendingTransactionCount} pending · avg {row.averageVolumeLabel} · agent net {row.agentNetLabel}
-                      </p>
-                    </div>
-                    <span>{row.teamLabel}</span>
-                    <span>{row.transactionCount}</span>
-                    <span>{row.closedTransactionCount}</span>
-                    <span>{row.totalVolumeLabel}</span>
-                    <div className="office-table-primary">
-                      <strong>{row.grossCommissionLabel}</strong>
-                      <p>{row.officeNetLabel}</p>
-                    </div>
-                    <div className="office-report-row-actions">
-                      {row.ownerMembershipId ? (
-                        <Link
-                          className="office-inline-action"
-                          href={buildTransactionsHref(
-                            {
-                              startDate: snapshot.filters.startDate,
-                              endDate: snapshot.filters.endDate,
-                              ownerMembershipId: snapshot.filters.ownerMembershipId,
-                              teamId: snapshot.filters.teamId,
-                              transactionStatus: snapshot.filters.transactionStatus,
-                              transactionType: snapshot.filters.transactionType
-                            },
-                            {
-                              ownerMembershipId: row.ownerMembershipId
-                            }
-                          )}
-                        >
-                          Transactions
-                        </Link>
-                      ) : null}
-                      {row.profileHref ? (
-                        <Link className="office-inline-action" href={row.profileHref}>
-                          Profile
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-                {snapshot.agentPerformance.length === 0 ? (
-                  <EmptyState description="No owner-attributed production matched the current slice." title="No agent rows" />
-                ) : null}
-              </div>
-            </ListPageSection>
+                </DataTableHeader>
+                <DataTableBody>
+                  {snapshot.agentPerformance.map((row) => (
+                    <DataTableRow className="office-table-row office-table-row-report-agents" key={row.ownerMembershipId ?? row.ownerName}>
+                      <div className="office-table-primary">
+                        <strong>{row.ownerName}</strong>
+                        <p>
+                          {row.pendingTransactionCount} pending · avg {row.averageVolumeLabel} · agent net {row.agentNetLabel}
+                        </p>
+                      </div>
+                      <span>{row.teamLabel}</span>
+                      <span>{row.transactionCount}</span>
+                      <span>{row.closedTransactionCount}</span>
+                      <span>{row.totalVolumeLabel}</span>
+                      <div className="office-table-primary">
+                        <strong>{row.grossCommissionLabel}</strong>
+                        <p>{row.officeNetLabel}</p>
+                      </div>
+                      <div className="office-report-row-actions">
+                        {row.ownerMembershipId ? (
+                          <Link
+                            className="office-inline-action"
+                            href={buildTransactionsHref(
+                              {
+                                startDate: snapshot.filters.startDate,
+                                endDate: snapshot.filters.endDate,
+                                ownerMembershipId: snapshot.filters.ownerMembershipId,
+                                teamId: snapshot.filters.teamId,
+                                transactionStatus: snapshot.filters.transactionStatus,
+                                transactionType: snapshot.filters.transactionType
+                              },
+                              {
+                                ownerMembershipId: row.ownerMembershipId
+                              }
+                            )}
+                          >
+                            Transactions
+                          </Link>
+                        ) : null}
+                        {row.profileHref ? (
+                          <Link className="office-inline-action" href={row.profileHref}>
+                            Profile
+                          </Link>
+                        ) : null}
+                      </div>
+                    </DataTableRow>
+                  ))}
+                  {snapshot.agentPerformance.length === 0 ? (
+                    <EmptyState description="No owner-attributed production matched the current slice." title="No agent rows" />
+                  ) : null}
+                </DataTableBody>
+              </DataTable>
+            </ListPageTableSection>
           </section>
 
           {snapshot.teamPerformance.hasTeams ? (
             <section id="reports-teams">
-              <ListPageSection
+              <ListPageTableSection
                 className="office-list-card"
                 actions={<Badge tone="neutral">{snapshot.teamPerformance.rows.length} visible team rows</Badge>}
+                footer={<ListPageFooter summary={`${snapshot.teamPerformance.rows.length} team performance rows`} />}
                 subtitle="Grouped by each owner's current active team memberships."
                 title="Team performance"
               >
                 {snapshot.teamPerformance.limitation ? (
                   <p className="office-report-section-note">{snapshot.teamPerformance.limitation}</p>
                 ) : null}
-                <div className="office-table">
-                  <div className="office-table-header office-table-row office-table-row-report-teams">
+                <DataTable className="office-table">
+                  <DataTableHeader className="office-table-header office-table-row office-table-row-report-teams">
                     <span>Team</span>
                     <span>Agents</span>
                     <span>Deals</span>
                     <span>Closed</span>
                     <span>Volume</span>
                     <span>Actions</span>
-                  </div>
-                  {snapshot.teamPerformance.rows.map((row) => (
-                    <div className="office-table-row office-table-row-report-teams" key={row.teamId}>
-                      <div className="office-table-primary">
-                        <strong>{row.teamName}</strong>
-                        <p>{row.officeNetLabel} office net</p>
-                      </div>
-                      <span>{row.agentCount}</span>
-                      <span>{row.transactionCount}</span>
-                      <span>{row.closedTransactionCount}</span>
-                      <span>{row.totalVolumeLabel}</span>
-                      <div className="office-report-row-actions">
-                        <Link
-                          className="office-inline-action"
-                          href={buildTransactionsHref(
-                            {
-                              startDate: snapshot.filters.startDate,
-                              endDate: snapshot.filters.endDate,
-                              ownerMembershipId: snapshot.filters.ownerMembershipId,
-                              teamId: snapshot.filters.teamId,
-                              transactionStatus: snapshot.filters.transactionStatus,
-                              transactionType: snapshot.filters.transactionType
-                            },
-                            {
-                              teamId: row.teamId,
-                              ownerMembershipId: null
-                            }
-                          )}
-                        >
-                          Transactions
-                        </Link>
-                        <Link className="office-inline-action" href={`/office/agents?teamId=${row.teamId}`}>
-                          Roster
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                  {snapshot.teamPerformance.rows.length === 0 ? (
-                    <EmptyState description="No team performance rows matched the current filters." title="No team rows" />
-                  ) : null}
-                </div>
-              </ListPageSection>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {snapshot.teamPerformance.rows.map((row) => (
+                      <DataTableRow className="office-table-row office-table-row-report-teams" key={row.teamId}>
+                        <div className="office-table-primary">
+                          <strong>{row.teamName}</strong>
+                          <p>{row.officeNetLabel} office net</p>
+                        </div>
+                        <span>{row.agentCount}</span>
+                        <span>{row.transactionCount}</span>
+                        <span>{row.closedTransactionCount}</span>
+                        <span>{row.totalVolumeLabel}</span>
+                        <div className="office-report-row-actions">
+                          <Link
+                            className="office-inline-action"
+                            href={buildTransactionsHref(
+                              {
+                                startDate: snapshot.filters.startDate,
+                                endDate: snapshot.filters.endDate,
+                                ownerMembershipId: snapshot.filters.ownerMembershipId,
+                                teamId: snapshot.filters.teamId,
+                                transactionStatus: snapshot.filters.transactionStatus,
+                                transactionType: snapshot.filters.transactionType
+                              },
+                              {
+                                teamId: row.teamId,
+                                ownerMembershipId: null
+                              }
+                            )}
+                          >
+                            Transactions
+                          </Link>
+                          <Link className="office-inline-action" href={`/office/agents?teamId=${row.teamId}`}>
+                            Roster
+                          </Link>
+                        </div>
+                      </DataTableRow>
+                    ))}
+                    {snapshot.teamPerformance.rows.length === 0 ? (
+                      <EmptyState description="No team performance rows matched the current filters." title="No team rows" />
+                    ) : null}
+                  </DataTableBody>
+                </DataTable>
+              </ListPageTableSection>
             </section>
           ) : null}
 
@@ -915,6 +932,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   <EmptyState description="No commission calculations matched the current filters." title="No commission rows" />
                 ) : null}
               </div>
+              <ListPageFooter summary={`${snapshot.commissionSummary.recentCalculations.length} recent commission rows`} />
             </ListPageSection>
           </section>
 
@@ -1013,6 +1031,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   ) : null}
                 </div>
               </div>
+              <ListPageFooter summary={`${snapshot.accountingSummary.recentTransactions.length} recent accounting rows`} />
             </ListPageSection>
           </section>
 
@@ -1114,10 +1133,11 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   ) : null}
                 </div>
               </div>
+              <ListPageFooter summary={`${snapshot.emdSummary.recentRecords.length} recent earnest money rows`} />
             </ListPageSection>
           </section>
-        </div>
-      </section>
+        </ListPageStack>
+      </ListPageSplit>
     </PageShell>
   );
 }

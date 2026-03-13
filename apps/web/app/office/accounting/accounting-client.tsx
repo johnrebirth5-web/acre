@@ -4,7 +4,26 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot, OfficeCommissionManagementSnapshot } from "@acre/db";
-import { Button, FilterField, ListPageFilters, ListPageSection, ListPageStatsGrid, SelectInput, StatCard, TextInput } from "@acre/ui";
+import {
+  Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FilterField,
+  ListPageFilters,
+  ListPageFooter,
+  ListPageSection,
+  ListPageSplit,
+  ListPageStack,
+  ListPageStatsGrid,
+  ListPageTableSection,
+  SelectInput,
+  StatCard,
+  StatusBadge,
+  TextInput
+} from "@acre/ui";
 import { AgentBillingPanel } from "./agent-billing-panel";
 import { CommissionManagementPanel } from "./commission-management-panel";
 
@@ -117,6 +136,38 @@ const accountingFilterStatusOptions = [
   { value: "completed", label: "Completed" },
   { value: "void", label: "Void" }
 ];
+
+function getAccountingStatusTone(status: string) {
+  if (status === "Completed" || status === "Posted") {
+    return "success" as const;
+  }
+
+  if (status === "Open") {
+    return "accent" as const;
+  }
+
+  if (status === "Void") {
+    return "danger" as const;
+  }
+
+  return "warning" as const;
+}
+
+function getEarnestMoneyTone(status: string) {
+  if (status === "Fully deposited" || status === "Completed") {
+    return "success" as const;
+  }
+
+  if (status === "Pending bank deposit" || status === "Received") {
+    return "accent" as const;
+  }
+
+  if (status === "Overdue" || status === "Not received") {
+    return "warning" as const;
+  }
+
+  return "neutral" as const;
+}
 
 function createEmptyLineItem(): AccountingLineItemFormState {
   return {
@@ -616,7 +667,7 @@ export function OfficeAccountingClient({
 
           {canManageAccounting ? (
             <div className="office-filter-actions">
-              <Button className="bm-create-button" onClick={openCreateEntryModal} type="button">
+              <Button onClick={openCreateEntryModal} type="button">
                 New accounting entry
               </Button>
               <Button onClick={() => openEarnestMoneyModal()} type="button" variant="secondary">
@@ -627,15 +678,16 @@ export function OfficeAccountingClient({
         </ListPageFilters>
       </ListPageSection>
 
-      <section className="office-dashboard-grid-wide bm-accounting-grid">
-        <div className="office-side-stack">
-          <ListPageSection
+      <ListPageSplit className="office-accounting-workspace">
+        <ListPageStack>
+          <ListPageTableSection
+            footer={<ListPageFooter summary={`${snapshot.transactions.length} accounting rows in the current filtered window`} />}
             id="accounting-ledger"
             subtitle={`${snapshot.transactions.length} records in the current filtered window`}
             title="Accounting transactions"
           >
-            <div className="office-table">
-              <div className="office-table-header office-table-row office-table-row-accounting">
+            <DataTable className="office-table">
+              <DataTableHeader className="office-table-header office-table-row office-table-row-accounting">
                 <span>Date</span>
                 <span>Type</span>
                 <span>Counterparty</span>
@@ -643,65 +695,72 @@ export function OfficeAccountingClient({
                 <span>Status</span>
                 <span>Linked transaction</span>
                 <span>Created by</span>
-              </div>
+              </DataTableHeader>
+              <DataTableBody>
+                {snapshot.transactions.map((transaction) => (
+                  <Link className="office-data-table-row office-table-row office-table-row-accounting" href={transaction.href} key={transaction.id} role="row">
+                    <span>{transaction.accountingDate}</span>
+                    <span>{transaction.type}</span>
+                    <div className="office-table-primary">
+                      <strong>{transaction.counterparty}</strong>
+                      <p>{transaction.referenceNumber || transaction.ownerName}</p>
+                    </div>
+                    <span>{transaction.amountLabel}</span>
+                    <span>
+                      <StatusBadge tone={getAccountingStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
+                    </span>
+                    <div className="office-table-primary">
+                      <strong>{transaction.linkedTransactionHref ? "Open transaction" : "—"}</strong>
+                      <p>{transaction.linkedTransactionLabel}</p>
+                    </div>
+                    <span>{transaction.createdBy}</span>
+                  </Link>
+                ))}
 
-              {snapshot.transactions.map((transaction) => (
-                <Link className="office-table-row office-table-row-accounting" href={transaction.href} key={transaction.id}>
-                  <span>{transaction.accountingDate}</span>
-                  <span>{transaction.type}</span>
-                  <div className="office-table-primary">
-                    <strong>{transaction.counterparty}</strong>
-                    <p>{transaction.referenceNumber || transaction.ownerName}</p>
-                  </div>
-                  <span>{transaction.amountLabel}</span>
-                  <span>{transaction.status}</span>
-                  <div className="office-table-primary">
-                    <strong>{transaction.linkedTransactionHref ? "Open transaction" : "—"}</strong>
-                    <p>{transaction.linkedTransactionLabel}</p>
-                  </div>
-                  <span>{transaction.createdBy}</span>
-                </Link>
-              ))}
+                {snapshot.transactions.length === 0 ? (
+                  <EmptyState description="Try widening the current accounting filters." title="No accounting transactions matched" />
+                ) : null}
+              </DataTableBody>
+            </DataTable>
+          </ListPageTableSection>
 
-              {snapshot.transactions.length === 0 ? (
-                <div className="bm-accounting-empty">
-                  <p>No accounting transactions match the current filters.</p>
-                </div>
-              ) : null}
-            </div>
-          </ListPageSection>
-
-          <ListPageSection
+          <ListPageTableSection
+            footer={<ListPageFooter summary={`${snapshot.generalLedgerEntries.length} ledger entries in the current slice`} />}
             id="chart-of-accounts"
             subtitle={`Latest ${snapshot.generalLedgerEntries.length} posted entries`}
             title="General ledger"
           >
-            <div className="office-table">
-              <div className="office-table-header office-table-row office-table-row-ledger">
+            <DataTable className="office-table">
+              <DataTableHeader className="office-table-header office-table-row office-table-row-ledger">
                 <span>Date</span>
                 <span>Account</span>
                 <span>Debit</span>
                 <span>Credit</span>
                 <span>Memo</span>
-              </div>
+              </DataTableHeader>
+              <DataTableBody>
+                {snapshot.generalLedgerEntries.map((entry) => (
+                  <Link className="office-data-table-row office-table-row office-table-row-ledger" href={entry.accountingTransactionHref} key={entry.id} role="row">
+                    <span>{entry.entryDate}</span>
+                    <div className="office-table-primary">
+                      <strong>{entry.accountLabel}</strong>
+                      <p>{entry.accountingTransactionLabel}</p>
+                    </div>
+                    <span>{entry.debitAmount}</span>
+                    <span>{entry.creditAmount}</span>
+                    <span>{entry.memo || "—"}</span>
+                  </Link>
+                ))}
 
-              {snapshot.generalLedgerEntries.map((entry) => (
-                <Link className="office-table-row office-table-row-ledger" href={entry.accountingTransactionHref} key={entry.id}>
-                  <span>{entry.entryDate}</span>
-                  <div className="office-table-primary">
-                    <strong>{entry.accountLabel}</strong>
-                    <p>{entry.accountingTransactionLabel}</p>
-                  </div>
-                  <span>{entry.debitAmount}</span>
-                  <span>{entry.creditAmount}</span>
-                  <span>{entry.memo || "—"}</span>
-                </Link>
-              ))}
-            </div>
-          </ListPageSection>
-        </div>
+                {snapshot.generalLedgerEntries.length === 0 ? (
+                  <EmptyState description="Posted entries will appear here when accounting transactions hit the ledger." title="No ledger entries yet" />
+                ) : null}
+              </DataTableBody>
+            </DataTable>
+          </ListPageTableSection>
+        </ListPageStack>
 
-        <div className="office-side-stack">
+        <ListPageStack>
           <ListPageSection
             subtitle={
               snapshot.selectedTransaction
@@ -726,9 +785,9 @@ export function OfficeAccountingClient({
                 />
 
                 <div className="bm-accounting-form-actions">
-                  <button className="bm-create-button" disabled={!canManageAccounting || isSavingEntry} type="submit">
+                  <Button disabled={!canManageAccounting || isSavingEntry} type="submit">
                     {isSavingEntry ? "Saving..." : "Save accounting entry"}
-                  </button>
+                  </Button>
                   {snapshot.selectedTransaction.relatedTransactionId ? (
                     <Link className="office-button office-button-secondary" href={`/office/transactions/${snapshot.selectedTransaction.relatedTransactionId}`}>
                       Open linked transaction
@@ -744,69 +803,89 @@ export function OfficeAccountingClient({
             )}
           </ListPageSection>
 
-          <ListPageSection id="earnest-money" subtitle={`${snapshot.earnestMoneyRecords.length} active EMD records`} title="Earnest money">
-            <div className="office-table">
-              <div className="office-table-header office-table-row office-table-row-emd">
+          <ListPageTableSection
+            footer={<ListPageFooter summary={`${snapshot.earnestMoneyRecords.length} active earnest money records`} />}
+            id="earnest-money"
+            subtitle={`${snapshot.earnestMoneyRecords.length} active EMD records`}
+            title="Earnest money"
+          >
+            <DataTable className="office-table">
+              <DataTableHeader className="office-table-header office-table-row office-table-row-emd">
                 <span>Transaction</span>
                 <span>Expected</span>
                 <span>Received</span>
                 <span>Refunded</span>
                 <span>Status</span>
                 <span>Due date</span>
-              </div>
+              </DataTableHeader>
+              <DataTableBody>
+                {snapshot.earnestMoneyRecords.map((record) => (
+                  <DataTableRow className="office-table-row office-table-row-emd" key={record.id}>
+                    <div className="office-table-primary">
+                      <strong>
+                        <Link href={record.transactionHref}>{record.transactionLabel}</Link>
+                      </strong>
+                      <p>{record.heldExternally ? "Held externally" : record.heldByOffice ? "Held by office" : "Holding mode unset"}</p>
+                    </div>
+                    <span>{record.expectedAmount}</span>
+                    <span>{record.receivedAmount}</span>
+                    <span>{record.refundedAmount}</span>
+                    <span>
+                      <StatusBadge tone={getEarnestMoneyTone(record.status)}>{record.status}</StatusBadge>
+                    </span>
+                    <div className="bm-accounting-inline-actions">
+                      <span>{record.dueAt}</span>
+                      {canManageAccounting ? (
+                        <button className="office-inline-action" onClick={() => openEarnestMoneyModal(record)} type="button">
+                          Edit
+                        </button>
+                      ) : null}
+                    </div>
+                  </DataTableRow>
+                ))}
 
-              {snapshot.earnestMoneyRecords.map((record) => (
-                <div className="office-table-row office-table-row-emd" key={record.id}>
-                  <div className="office-table-primary">
-                    <strong>
-                      <Link href={record.transactionHref}>{record.transactionLabel}</Link>
-                    </strong>
-                    <p>{record.heldExternally ? "Held externally" : record.heldByOffice ? "Held by office" : "Holding mode unset"}</p>
-                  </div>
-                  <span>{record.expectedAmount}</span>
-                  <span>{record.receivedAmount}</span>
-                  <span>{record.refundedAmount}</span>
-                  <span>{record.status}</span>
-                  <div className="bm-accounting-inline-actions">
-                    <span>{record.dueAt}</span>
-                    {canManageAccounting ? (
-                      <button className="office-inline-action" onClick={() => openEarnestMoneyModal(record)} type="button">
-                        Edit
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ListPageSection>
+                {snapshot.earnestMoneyRecords.length === 0 ? (
+                  <EmptyState description="Create or import an earnest money record to track deposits and due dates." title="No earnest money records" />
+                ) : null}
+              </DataTableBody>
+            </DataTable>
+          </ListPageTableSection>
 
-          <ListPageSection
+          <ListPageTableSection
+            footer={<ListPageFooter summary={`${snapshot.chartAccounts.length} chart accounts available in this scope`} />}
             subtitle="System accounts are seeded and ready; custom account editing is intentionally not exposed yet."
             title="Chart of accounts"
           >
-            <div className="office-table">
-              <div className="office-table-header office-table-row office-table-row-chart">
+            <DataTable className="office-table">
+              <DataTableHeader className="office-table-header office-table-row office-table-row-chart">
                 <span>Code</span>
                 <span>Name</span>
                 <span>Type</span>
                 <span>Status</span>
-              </div>
+              </DataTableHeader>
+              <DataTableBody>
+                {snapshot.chartAccounts.map((account) => (
+                  <DataTableRow className="office-table-row office-table-row-chart" key={account.id}>
+                    <span>{account.code || "—"}</span>
+                    <div className="office-table-primary">
+                      <strong>{account.name}</strong>
+                      <p>{account.isSystem ? "System account" : "Custom account"}</p>
+                    </div>
+                    <span>{account.accountType}</span>
+                    <span>
+                      <StatusBadge tone={account.isActive ? "success" : "neutral"}>{account.isActive ? "Active" : "Inactive"}</StatusBadge>
+                    </span>
+                  </DataTableRow>
+                ))}
 
-              {snapshot.chartAccounts.map((account) => (
-                <div className="office-table-row office-table-row-chart" key={account.id}>
-                  <span>{account.code || "—"}</span>
-                  <div className="office-table-primary">
-                    <strong>{account.name}</strong>
-                    <p>{account.isSystem ? "System account" : "Custom account"}</p>
-                  </div>
-                  <span>{account.accountType}</span>
-                  <span>{account.isActive ? "Active" : "Inactive"}</span>
-                </div>
-              ))}
-            </div>
-          </ListPageSection>
-        </div>
-      </section>
+                {snapshot.chartAccounts.length === 0 ? (
+                  <EmptyState description="System accounts are seeded automatically once accounting is enabled." title="No chart accounts available" />
+                ) : null}
+              </DataTableBody>
+            </DataTable>
+          </ListPageTableSection>
+        </ListPageStack>
+      </ListPageSplit>
 
       <CommissionManagementPanel
         canApproveCommissions={canApproveCommissions}
@@ -849,9 +928,9 @@ export function OfficeAccountingClient({
 
               <footer className="bm-transaction-modal-footer">
                 <span>{entryModalConfig.supportsLineItems ? "Line items drive the posted total for this type." : "Payments and received payments use the total amount field directly."}</span>
-                <button className="bm-create-button" disabled={isSavingEntry} type="submit">
+                <Button disabled={isSavingEntry} type="submit">
                   {isSavingEntry ? "Saving..." : "Create entry"}
-                </button>
+                </Button>
               </footer>
               {entryError ? <p className="bm-transaction-submit-error">{entryError}</p> : null}
             </form>
@@ -980,9 +1059,9 @@ export function OfficeAccountingClient({
 
               <footer className="bm-transaction-modal-footer">
                 <span>EMD status is derived from due date, received amount, refunded amount, and deposit progress.</span>
-                <button className="bm-create-button" disabled={isSavingEarnestMoney} type="submit">
+                <Button disabled={isSavingEarnestMoney} type="submit">
                   {isSavingEarnestMoney ? "Saving..." : editingEarnestMoneyId ? "Save EMD" : "Create EMD"}
-                </button>
+                </Button>
               </footer>
               {earnestMoneyError ? <p className="bm-transaction-submit-error">{earnestMoneyError}</p> : null}
             </form>

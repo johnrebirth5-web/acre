@@ -113,6 +113,39 @@ export function ListPageSection(props: {
   return <SectionCard {...props} className={cx("office-list-card", props.className)} />;
 }
 
+export function ListPageTableSection(props: {
+  id?: string;
+  title?: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  className?: string;
+  filters?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <ListPageSection {...props} className={cx("office-list-page-table-section", props.className)}>
+      {props.filters}
+      {props.children}
+      {props.footer}
+    </ListPageSection>
+  );
+}
+
+export function ListPageStack(props: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <div className={cx("office-list-page-stack", props.className)}>{props.children}</div>;
+}
+
+export function ListPageSplit(props: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <div className={cx("office-list-page-split", props.className)}>{props.children}</div>;
+}
+
 export function Panel(props: { title?: string; subtitle?: string; actions?: ReactNode; className?: string; children: ReactNode }) {
   return <SectionCard {...props} />;
 }

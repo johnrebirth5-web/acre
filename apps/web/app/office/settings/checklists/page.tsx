@@ -1,5 +1,5 @@
 import { canManageOfficeChecklists, canViewOfficeChecklists } from "@acre/auth";
-import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
+import { ListPageStack, PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeChecklistTemplatesSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
@@ -34,9 +34,10 @@ export default async function OfficeSettingsChecklistsPage() {
         title="Checklists"
       />
 
-      <OfficeSettingsNav />
-
-      <OfficeSettingsChecklistsClient canManageChecklists={canManageOfficeChecklists(context.currentMembership.role)} snapshot={snapshot} />
+      <ListPageStack className="office-settings-list-stack">
+        <OfficeSettingsNav />
+        <OfficeSettingsChecklistsClient canManageChecklists={canManageOfficeChecklists(context.currentMembership.role)} snapshot={snapshot} />
+      </ListPageStack>
     </PageShell>
   );
 }

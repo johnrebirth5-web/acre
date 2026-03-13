@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, CheckboxField, DataTable, DataTableBody, DataTableHeader, DataTableRow, ListPageSection } from "@acre/ui";
+import { Button, CheckboxField, DataTable, DataTableBody, DataTableHeader, DataTableRow, ListPageFooter, ListPageSection, ListPageStack, ListPageTableSection } from "@acre/ui";
 import type { OfficeFieldSettingsSnapshot } from "@acre/db";
 
 type OfficeSettingsFieldsClientProps = {
@@ -94,7 +94,7 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
   }
 
   return (
-    <>
+    <ListPageStack>
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
       <ListPageSection subtitle="These roles are required for the office workflow before a transaction is considered fully staffed." title="Required contact roles">
@@ -112,7 +112,11 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
         </div>
       </ListPageSection>
 
-      <ListPageSection subtitle="Control which transaction fields stay visible and which are enforced as required in Back Office." title="Transaction field behavior">
+      <ListPageTableSection
+        footer={<ListPageFooter summary={`${snapshot.transactionFieldSettings.length} configurable transaction fields`} />}
+        subtitle="Control which transaction fields stay visible and which are enforced as required in Back Office."
+        title="Transaction field behavior"
+      >
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-fields">
             <span>Field</span>
@@ -151,7 +155,7 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
             </Button>
           </div>
         ) : null}
-      </ListPageSection>
-    </>
+      </ListPageTableSection>
+    </ListPageStack>
   );
 }

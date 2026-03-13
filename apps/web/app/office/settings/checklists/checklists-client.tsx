@@ -13,6 +13,8 @@ import {
   FormField,
   ListPageFooter,
   ListPageSection,
+  ListPageStack,
+  ListPageTableSection,
   SelectInput,
   StatusBadge,
   TextInput,
@@ -230,10 +232,14 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
   }
 
   return (
-    <>
+    <ListPageStack>
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
-      <ListPageSection subtitle="Canonical list view for template inventory before opening detailed editors." title="Checklist templates">
+      <ListPageTableSection
+        footer={<ListPageFooter summary={`${snapshot.templates.length} checklist templates`} />}
+        subtitle="Canonical list view for template inventory before opening detailed editors."
+        title="Checklist templates"
+      >
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-checklists">
             <span>Template</span>
@@ -263,8 +269,7 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
             )}
           </DataTableBody>
         </DataTable>
-        <ListPageFooter summary={`${snapshot.templates.length} checklist templates`} />
-      </ListPageSection>
+      </ListPageTableSection>
 
       {canManageChecklists ? (
         <ListPageSection subtitle="Create reusable grouped task templates for office workflows." title="New checklist template">
@@ -499,6 +504,6 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
           ) : null}
         </div>
       </ListPageSection>
-    </>
+    </ListPageStack>
   );
 }

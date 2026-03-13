@@ -75,6 +75,9 @@
 - `SectionHeader`
 - `SectionCard`
 - `ListPageSection`
+- `ListPageTableSection`
+- `ListPageStack`
+- `ListPageSplit`
 - `DetailSection`
 - `FormSection`
 - `FilterBar`
@@ -161,13 +164,16 @@
 3. `PageHeader.actions` 优先使用 `PageHeaderSummary`
 4. `PageHeaderSummary` 内统一放 `SummaryChip` + primary/secondary actions
 5. `ListPageSection`
-6. `ListPageFilters`
-7. `DataTable` 或共享 `office-table-*` table contract
-8. `ListPageFooter` / `office-list-footer`
+6. `ListPageTableSection`
+7. `ListPageFilters`
+8. `DataTable` 或共享 `office-table-*` table contract
+9. `ListPageFooter` / `office-list-footer`
 
 补充结构规则：
 
 - transactions 的 `PageHeader + SummaryChip + list card + filter bar + dense table + footer` 是 peer list pages 的直接参考，不要再为 contacts / agents / reports / accounting / settings 各自发明另一套 page composition
+- 现在优先使用 `ListPageTableSection` 把 `filters -> table/list -> footer` 固定成一套顺序，避免每页各自排列 inventory section
+- 当一个页面需要多个 peer list modules 时，优先使用 `ListPageStack` 和 `ListPageSplit` 组织主列表与次级列表/明细区，而不是重新回到 `dashboard` 式 page-local grid
 - 如果页面还需要一层二级 summary，只能用 `ListPageSection + ListPageStatsGrid + StatCard`，不能再额外长出第二套 floating KPI strip
 - settings admin 页也按 list page 看待：先 inventory/list，再 editor/admin block；不要直接从页头跳进大表单
 - accounting / reports 允许保留多 section，但每个 section 也必须看起来像同一家族的 list-page card，而不是旧 `bm-card-head` 模块
