@@ -5664,7 +5664,9 @@ a {
 .bm-transaction-status {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  justify-self: start;
+  text-align: left;
   min-height: 26px;
   padding: 0 9px;
   border-radius: 999px;
@@ -6498,8 +6500,8 @@ a {
 .office-list-table-row-transactions > :nth-child(3),
 .bm-office-table-row-transactions > :is(:nth-child(5), :nth-child(6)),
 .office-pipeline-cell-number {
-  justify-self: end;
-  text-align: right;
+  justify-self: start;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
 
@@ -6670,8 +6672,8 @@ a {
 }
 
 .office-dashboard-transactions-head > :nth-child(2) {
-  justify-self: end;
-  text-align: right;
+  justify-self: start;
+  text-align: left;
 }
 
 .office-dashboard-page .office-dashboard-grid-wide {
@@ -6703,9 +6705,9 @@ a {
 }
 
 .office-dashboard-transactions-amount {
-  justify-content: flex-end;
+  justify-content: flex-start;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: left;
 }
 
 .office-dashboard-transactions-owner {
@@ -8827,8 +8829,8 @@ a {
 }
 
 .office-pipeline-table-head-number {
-  justify-content: flex-end;
-  text-align: right;
+  justify-content: flex-start;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
 
@@ -8900,10 +8902,10 @@ a {
 .office-pipeline-cell-number {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   justify-self: stretch;
   min-width: 0;
-  text-align: right;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
 
