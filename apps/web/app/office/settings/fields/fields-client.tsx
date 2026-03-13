@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, CheckboxField, DataTable, DataTableBody, DataTableHeader, DataTableRow, SectionCard, StatCard } from "@acre/ui";
+import { Button, CheckboxField, DataTable, DataTableBody, DataTableHeader, DataTableRow, ListPageSection } from "@acre/ui";
 import type { OfficeFieldSettingsSnapshot } from "@acre/db";
 
 type OfficeSettingsFieldsClientProps = {
@@ -95,15 +95,9 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
 
   return (
     <>
-      <section className="office-settings-summary-grid">
-        <StatCard hint="Transaction contacts" label="Required roles" value={snapshot.summary.requiredRoleCount} />
-        <StatCard hint="Workflow-enforced fields" label="Required fields" value={snapshot.summary.requiredFieldCount} />
-        <StatCard hint="Shown in transaction forms" label="Visible fields" value={snapshot.summary.visibleFieldCount} />
-      </section>
-
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
-      <SectionCard className="office-list-card" subtitle="These roles are required for the office workflow before a transaction is considered fully staffed." title="Required contact roles">
+      <ListPageSection subtitle="These roles are required for the office workflow before a transaction is considered fully staffed." title="Required contact roles">
         <div className="office-settings-checkbox-grid">
           {snapshot.contactRoleSettings.map((entry) => (
             <CheckboxField className="office-settings-checkbox-item" key={entry.role} label={entry.label}>
@@ -116,9 +110,9 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
             </CheckboxField>
           ))}
         </div>
-      </SectionCard>
+      </ListPageSection>
 
-      <SectionCard className="office-list-card" subtitle="Control which transaction fields stay visible and which are enforced as required in Back Office." title="Transaction field behavior">
+      <ListPageSection subtitle="Control which transaction fields stay visible and which are enforced as required in Back Office." title="Transaction field behavior">
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-fields">
             <span>Field</span>
@@ -157,7 +151,7 @@ export function OfficeSettingsFieldsClient({ snapshot, canManageFields }: Office
             </Button>
           </div>
         ) : null}
-      </SectionCard>
+      </ListPageSection>
     </>
   );
 }

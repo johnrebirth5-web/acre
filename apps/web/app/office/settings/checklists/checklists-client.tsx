@@ -11,9 +11,9 @@ import {
   DataTableRow,
   EmptyState,
   FormField,
-  SectionCard,
+  ListPageFooter,
+  ListPageSection,
   SelectInput,
-  StatCard,
   StatusBadge,
   TextInput,
   TextareaInput
@@ -231,15 +231,9 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
 
   return (
     <>
-      <section className="office-settings-summary-grid">
-        <StatCard hint="Current office scope" label="Templates" value={snapshot.summary.totalTemplates} />
-        <StatCard hint="Available for operational use" label="Active templates" value={snapshot.summary.activeTemplates} />
-        <StatCard hint="Total template rows" label="Checklist items" value={snapshot.summary.totalItems} />
-      </section>
-
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
-      <SectionCard className="office-list-card" subtitle="Canonical list view for template inventory before opening detailed editors." title="Checklist templates">
+      <ListPageSection subtitle="Canonical list view for template inventory before opening detailed editors." title="Checklist templates">
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-checklists">
             <span>Template</span>
@@ -269,10 +263,11 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
             )}
           </DataTableBody>
         </DataTable>
-      </SectionCard>
+        <ListPageFooter summary={`${snapshot.templates.length} checklist templates`} />
+      </ListPageSection>
 
       {canManageChecklists ? (
-        <SectionCard className="office-list-card" subtitle="Create reusable grouped task templates for office workflows." title="New checklist template">
+        <ListPageSection subtitle="Create reusable grouped task templates for office workflows." title="New checklist template">
           <form className="office-settings-template-form" onSubmit={handleCreateTemplate}>
             <div className="office-settings-template-meta">
               <FormField label="Template name">
@@ -357,16 +352,16 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
               </Button>
             </div>
           </form>
-        </SectionCard>
+        </ListPageSection>
       ) : null}
 
-      <SectionCard className="office-list-card" subtitle="Open any template below for full row-level editing." title="Template editor">
+      <ListPageSection subtitle="Open any template below for full row-level editing." title="Template editor">
         <div className="office-settings-card-grid">
           {snapshot.templates.map((template) => {
             const draft = templateDrafts[template.id] ?? buildTemplateDraft(template);
 
             return (
-              <SectionCard
+              <ListPageSection
                 actions={<Button disabled={!canManageChecklists || pendingAction === `save-template:${template.id}`} onClick={() => handleSaveTemplate(template.id)} size="sm" variant="secondary">{pendingAction === `save-template:${template.id}` ? "Saving..." : "Save"}</Button>}
                 className="office-settings-template-card"
                 key={template.id}
@@ -496,14 +491,14 @@ export function OfficeSettingsChecklistsClient({ snapshot, canManageChecklists }
                     </Button>
                   </div>
                 ) : null}
-              </SectionCard>
+              </ListPageSection>
             );
           })}
           {snapshot.templates.length === 0 ? (
             <EmptyState description="Create your first checklist template to configure workflow rows." title="No templates to edit" />
           ) : null}
         </div>
-      </SectionCard>
+      </ListPageSection>
     </>
   );
 }

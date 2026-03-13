@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { OfficeCommissionManagementSnapshot } from "@acre/db";
-import { Button, FormField, SectionCard, SelectInput, StatCard, StatusBadge, TextInput, TextareaInput } from "@acre/ui";
+import { Button, FormField, ListPageFilters, ListPageSection, ListPageStatsGrid, SelectInput, StatCard, StatusBadge, TextInput, TextareaInput } from "@acre/ui";
 
 type CommissionManagementPanelProps = {
   snapshot: OfficeCommissionManagementSnapshot | null;
@@ -495,18 +495,19 @@ export function CommissionManagementPanel({
 
   return (
     <section className="office-accounting-panel" id="commissions">
-      <SectionCard className="office-list-card" subtitle="Commission plans, assignments, calculated rows, and statement-ready visibility." title="Commission management">
-        <div className="office-kpi-grid office-commission-kpi-grid">
+      <ListPageSection subtitle="Commission plans, assignments, calculated rows, and statement-ready visibility." title="Commission management">
+        <ListPageStatsGrid className="office-commission-kpi-grid">
           <StatCard hint="active plans configured for this office scope" label="Active plans" value={snapshot.overview.activePlansCount} />
           <StatCard hint="active plan assignments across agents and teams" label="Assignments" value={snapshot.overview.activeAssignmentsCount} />
           <StatCard hint="persisted commission rows in the current filter window" label="Calculated rows" value={snapshot.overview.calculatedRowsCount} />
           <StatCard hint="rows ready for statement packaging" label="Statement ready" value={snapshot.overview.statementReadyLabel} />
           <StatCard hint="rows marked payable" label="Payable" value={snapshot.overview.payableLabel} />
           <StatCard hint="rows marked paid" label="Paid" value={snapshot.overview.paidLabel} />
-        </div>
+        </ListPageStatsGrid>
 
-        <form
-          className="office-report-filters office-list-filters"
+        <ListPageFilters
+          as="form"
+          className="office-report-filters"
           onSubmit={(event) => {
             event.preventDefault();
             pushNextHref(buildFilterHref(pathname, filterState));
@@ -604,11 +605,11 @@ export function CommissionManagementPanel({
               {pendingAction === "statement" ? "Generating..." : "Generate statement"}
             </Button>
           </div>
-        </form>
+        </ListPageFilters>
 
         <div className="office-detail-two-column">
           <div className="office-side-stack">
-            <SectionCard className="office-list-card" subtitle="Reusable split/fee plans for transaction-side commission automation." title="Commission plans">
+            <ListPageSection subtitle="Reusable split/fee plans for transaction-side commission automation." title="Commission plans">
               <form className="office-form-grid office-form-grid-3" onSubmit={handleSavePlan}>
                 <FormField label="Existing plan">
                   <SelectInput
@@ -739,9 +740,9 @@ export function CommissionManagementPanel({
                   </article>
                 ))}
               </div>
-            </SectionCard>
+            </ListPageSection>
 
-            <SectionCard className="office-list-card" subtitle="Attach active commission plans to agents or teams with explicit precedence." title="Plan assignments">
+            <ListPageSection subtitle="Attach active commission plans to agents or teams with explicit precedence." title="Plan assignments">
               <form className="office-inline-form office-inline-form-wrap" onSubmit={handleAssignPlan}>
                 <FormField label="Assign to">
                   <SelectInput
@@ -847,11 +848,11 @@ export function CommissionManagementPanel({
                   </div>
                 ))}
               </div>
-            </SectionCard>
+            </ListPageSection>
           </div>
 
           <div className="office-side-stack">
-            <SectionCard className="office-list-card" subtitle="Persisted commission calculations, review queue, and payout-readiness workflow." title="Commission queue">
+            <ListPageSection subtitle="Persisted commission calculations, review queue, and payout-readiness workflow." title="Commission queue">
               <div className="office-table">
                 <div className="office-table-header office-table-row office-table-row-commission">
                   <span>Transaction</span>
@@ -919,19 +920,19 @@ export function CommissionManagementPanel({
                   </div>
                 ) : null}
               </div>
-            </SectionCard>
+            </ListPageSection>
 
-            <SectionCard className="office-list-card" subtitle="On-screen statement snapshot for the selected agent and current date window." title="Statement / payout readiness">
+            <ListPageSection subtitle="On-screen statement snapshot for the selected agent and current date window." title="Statement / payout readiness">
               {snapshot.statement ? (
                 <>
-                  <div className="office-kpi-grid office-commission-kpi-grid">
+                  <ListPageStatsGrid className="office-commission-kpi-grid">
                     <StatCard hint="agent currently selected for statement view" label="Agent" value={snapshot.statement.agentLabel} />
                     <StatCard hint="calculated + reviewed rows" label="Open calculated" value={snapshot.statement.openCalculatedLabel} />
                     <StatCard hint="rows ready for statement packaging" label="Statement ready" value={snapshot.statement.statementReadyLabel} />
                     <StatCard hint="rows marked payable" label="Payable" value={snapshot.statement.payableLabel} />
                     <StatCard hint="rows marked paid" label="Paid" value={snapshot.statement.paidLabel} />
                     <StatCard hint="sum of agent share rows in this snapshot" label="Agent net total" value={snapshot.statement.totalAgentNetLabel} />
-                  </div>
+                  </ListPageStatsGrid>
                   <div className="office-note-list">
                     {snapshot.statement.lineItems.map((item) => (
                       <article className="office-note-item" key={item.id}>
@@ -949,12 +950,12 @@ export function CommissionManagementPanel({
                   <p>Select an agent and generate a statement snapshot to review payout-ready commission totals.</p>
                 </div>
               )}
-            </SectionCard>
+            </ListPageSection>
           </div>
         </div>
 
         {error ? <p className="office-form-error">{error}</p> : null}
-      </SectionCard>
+      </ListPageSection>
     </section>
   );
 }

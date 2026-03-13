@@ -74,12 +74,16 @@
 - `PageHeaderSummary`
 - `SectionHeader`
 - `SectionCard`
+- `ListPageSection`
 - `DetailSection`
 - `FormSection`
 - `FilterBar`
+- `ListPageFilters`
 - `FilterField`
 - `StatCard`
 - `SummaryChip`
+- `ListPageStatsGrid`
+- `ListPageFooter`
 - `DataTable`
 - `DataTableHeader`
 - `DataTableBody`
@@ -139,11 +143,14 @@
 
 适用：
 
+- `/office/transactions` 是 canonical source of truth
 - `Transactions`
 - `Contacts`
+- `Agents` roster
+- `Reports` 的 list / table sections
+- `Accounting` 的 list / workbench sections
+- `Settings` users / teams / checklists / fields
 - `Tasks`
-- `Accounting`
-- `Reports` 的主列表区
 - `Notifications`
 - `Approve docs`
 
@@ -153,14 +160,21 @@
 2. `PageHeader`
 3. `PageHeader.actions` 优先使用 `PageHeaderSummary`
 4. `PageHeaderSummary` 内统一放 `SummaryChip` + primary/secondary actions
-5. `SectionCard`（`office-list-card`）
-6. `FilterBar`（`office-list-filters`）
-7. `DataTable`
-8. footer / pager（共享 `office-list-footer` family）
+5. `ListPageSection`
+6. `ListPageFilters`
+7. `DataTable` 或共享 `office-table-*` table contract
+8. `ListPageFooter` / `office-list-footer`
+
+补充结构规则：
+
+- transactions 的 `PageHeader + SummaryChip + list card + filter bar + dense table + footer` 是 peer list pages 的直接参考，不要再为 contacts / agents / reports / accounting / settings 各自发明另一套 page composition
+- 如果页面还需要一层二级 summary，只能用 `ListPageSection + ListPageStatsGrid + StatCard`，不能再额外长出第二套 floating KPI strip
+- settings admin 页也按 list page 看待：先 inventory/list，再 editor/admin block；不要直接从页头跳进大表单
+- accounting / reports 允许保留多 section，但每个 section 也必须看起来像同一家族的 list-page card，而不是旧 `bm-card-head` 模块
 
 补充约束：
 
-- `Tasks`、`Notifications`、`Approve docs` 这类“过滤 + 工作清单”页面也必须走 `SectionCard + FilterBar + StatusBadge` 合同，不能继续保留单页私有 `bm-table-card` / `bm-create-button` / `bm-status-pill` 视觉
+- `Tasks`、`Notifications`、`Approve docs` 这类“过滤 + 工作清单”页面也必须走 `ListPageSection + ListPageFilters + StatusBadge` 合同，不能继续保留单页私有 `bm-table-card` / `bm-create-button` / `bm-status-pill` 视觉
 - 页头右上角 summary/actions 统一通过 `PageHeaderSummary` 组织，不再手写一层又一层不同页面容器
 
 ### Detail pages

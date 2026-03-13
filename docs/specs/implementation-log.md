@@ -93,6 +93,11 @@
   - `notifications` filter and list areas now use the same list-card rhythm as the rest of Office instead of a separate legacy card shell
   - `approve docs` and `pipeline` status presentation now map back to `StatusBadge`, reducing one more visible layer of parallel status styling
   - agents, accounting, reports, and settings list pages now use `PageHeaderSummary` consistently instead of mixing direct `office-page-actions` markup
+- List page canonicalization follow-up:
+  - `/office/transactions` is now explicitly documented and implemented as the canonical Office list-page source
+  - shared `ListPageSection`, `ListPageFilters`, `ListPageStatsGrid`, and `ListPageFooter` helpers were added to `@acre/ui` so peer list pages stop drifting into page-local shells
+  - contacts, agents roster, reports list sections, accounting workbench sections, and settings users / teams / checklists / fields now compose through the same list-page skeleton instead of duplicating summary strips, filter shells, and section headers
+  - settings admin pages now push secondary summary metrics back into page-header chips and use the same list-card rhythm as transactions
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

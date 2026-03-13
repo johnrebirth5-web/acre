@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import type { OfficeAgentBillingSnapshot } from "@acre/db";
+import { Button, ListPageFilters, ListPageSection, ListPageStatsGrid, StatCard } from "@acre/ui";
 
 type AgentBillingPanelProps = {
   snapshot: OfficeAgentBillingSnapshot | null;
@@ -586,47 +587,23 @@ export function AgentBillingPanel({
 
   return (
     <>
-      <section className="bm-table-card office-list-card" id="agent-billing">
-        <div className="bm-card-head">
-          <h3>Agent billing</h3>
-          <span>Ledger, recurring charges, payment methods, collections, and statement context for agent-side billing.</span>
-        </div>
+      <ListPageSection
+        id="agent-billing"
+        subtitle="Ledger, recurring charges, payment methods, collections, and statement context for agent-side billing."
+        title="Agent billing"
+      >
+        <ListPageStatsGrid className="office-kpi-grid-compact">
+          <StatCard hint={`${snapshot.overview.openChargesCount} open ledger item(s).`} label="Open charges" value={snapshot.overview.openChargesLabel} />
+          <StatCard hint={`${snapshot.overview.pendingChargesCount} future or upcoming charges.`} label="Pending charges" value={snapshot.overview.pendingChargesLabel} />
+          <StatCard hint="Applied from real accounting payment records." label="Received payments" value={snapshot.overview.receivedPaymentsLabel} />
+          <StatCard hint="Open invoice balance after payments and credits." label="Current balance" value={snapshot.overview.currentBalanceLabel} />
+          <StatCard hint="Active recurring rules with future due charges." label="Upcoming recurring" value={snapshot.overview.upcomingRecurringCount} />
+          <StatCard hint="Configured methods in active status." label="Payment methods" value={snapshot.overview.paymentMethodsConfiguredCount} />
+        </ListPageStatsGrid>
 
-        <section className="office-kpi-grid office-kpi-grid-compact">
-          <article className="office-kpi-card office-kpi-card-accent">
-            <span>Open charges</span>
-            <strong>{snapshot.overview.openChargesLabel}</strong>
-            <p>{snapshot.overview.openChargesCount} open ledger item(s).</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Pending charges</span>
-            <strong>{snapshot.overview.pendingChargesLabel}</strong>
-            <p>{snapshot.overview.pendingChargesCount} future or upcoming charges.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Received payments</span>
-            <strong>{snapshot.overview.receivedPaymentsLabel}</strong>
-            <p>Applied from real accounting payment records.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Current balance</span>
-            <strong>{snapshot.overview.currentBalanceLabel}</strong>
-            <p>Open invoice balance after payments and credits.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Upcoming recurring</span>
-            <strong>{snapshot.overview.upcomingRecurringCount}</strong>
-            <p>Active recurring rules with future due charges.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Payment methods</span>
-            <strong>{snapshot.overview.paymentMethodsConfiguredCount}</strong>
-            <p>Configured methods in active status.</p>
-          </article>
-        </section>
-
-        <form
-          className="office-report-filters office-list-filters"
+        <ListPageFilters
+          as="form"
+          className="office-report-filters"
           onSubmit={(event) => {
             event.preventDefault();
             pushBillingFilters({});
@@ -696,53 +673,46 @@ export function AgentBillingPanel({
           </label>
 
           <div className="office-report-filter-actions">
-            <button className="office-button" type="submit">
-              Apply filters
-            </button>
-            <button className="office-button office-button-secondary" onClick={resetFilters} type="button">
+            <Button type="submit">Apply filters</Button>
+            <Button onClick={resetFilters} type="button" variant="secondary">
               Reset
-            </button>
+            </Button>
           </div>
 
           {canManageAgentBilling ? (
             <div className="office-report-filter-actions">
-              <button className="bm-create-button" onClick={openChargeModal} type="button">
+              <Button className="bm-create-button" onClick={openChargeModal} type="button">
                 New one-time charge
-              </button>
-              <button className="office-button office-button-secondary" onClick={() => openRecurringRuleModal()} type="button">
+              </Button>
+              <Button onClick={() => openRecurringRuleModal()} type="button" variant="secondary">
                 New recurring rule
-              </button>
-              <button className="office-button office-button-secondary" onClick={handleGenerateRecurringCharges} type="button">
+              </Button>
+              <Button onClick={handleGenerateRecurringCharges} type="button" variant="secondary">
                 Generate due charges
-              </button>
-              <button className="office-button office-button-secondary" onClick={() => openPaymentMethodModal()} type="button">
+              </Button>
+              <Button onClick={() => openPaymentMethodModal()} type="button" variant="secondary">
                 New payment method
-              </button>
+              </Button>
             </div>
           ) : null}
 
           {canManagePayments ? (
             <div className="office-report-filter-actions">
-              <button className="office-button office-button-secondary" onClick={openPaymentModal} type="button">
+              <Button onClick={openPaymentModal} type="button" variant="secondary">
                 Record payment
-              </button>
-              <button className="office-button office-button-secondary" onClick={openCreditModal} type="button">
+              </Button>
+              <Button onClick={openCreditModal} type="button" variant="secondary">
                 Apply credit
-              </button>
+              </Button>
             </div>
           ) : null}
-        </form>
+        </ListPageFilters>
 
         {formError ? <p className="bm-transaction-submit-error">{formError}</p> : null}
 
         <div className="office-dashboard-grid-wide bm-accounting-grid">
           <div className="office-side-stack">
-            <section className="bm-table-card office-list-card">
-              <div className="bm-card-head">
-                <h3>Agent ledger</h3>
-                <span>{snapshot.ledgerRows.length} ledger row(s) in the current filtered window.</span>
-              </div>
-
+            <ListPageSection subtitle={`${snapshot.ledgerRows.length} ledger row(s) in the current filtered window.`} title="Agent ledger">
               <div className="office-table">
                 <div className="office-table-header office-table-row office-table-row-agent-billing-ledger">
                   <span>Date</span>
@@ -782,14 +752,9 @@ export function AgentBillingPanel({
                   </div>
                 ) : null}
               </div>
-            </section>
+            </ListPageSection>
 
-            <section className="bm-table-card office-list-card">
-              <div className="bm-card-head">
-                <h3>Recurring billing rules</h3>
-                <span>{snapshot.recurringRules.length} rule(s) currently loaded.</span>
-              </div>
-
+            <ListPageSection subtitle={`${snapshot.recurringRules.length} rule(s) currently loaded.`} title="Recurring billing rules">
               <div className="office-table">
                 <div className="office-table-header office-table-row office-table-row-recurring-rules">
                   <span>Agent</span>
@@ -827,16 +792,11 @@ export function AgentBillingPanel({
                   </div>
                 ) : null}
               </div>
-            </section>
+            </ListPageSection>
           </div>
 
           <div className="office-side-stack">
-            <section className="bm-table-card office-list-card">
-              <div className="bm-card-head">
-                <h3>Payment methods</h3>
-                <span>{snapshot.paymentMethods.length} configured method(s).</span>
-              </div>
-
+            <ListPageSection subtitle={`${snapshot.paymentMethods.length} configured method(s).`} title="Payment methods">
               <div className="office-table">
                 <div className="office-table-header office-table-row office-table-row-payment-methods">
                   <span>Agent</span>
@@ -872,16 +832,14 @@ export function AgentBillingPanel({
                   </div>
                 ) : null}
               </div>
-            </section>
+            </ListPageSection>
 
-            <section className="bm-table-card office-list-card">
-              <div className="bm-card-head">
-                <h3>Agent statement</h3>
-                <span>
-                  {snapshot.statement ? `Showing current statement context for ${snapshot.statement.agentLabel}.` : "Select an agent in the filter to view a statement summary."}
-                </span>
-              </div>
-
+            <ListPageSection
+              subtitle={
+                snapshot.statement ? `Showing current statement context for ${snapshot.statement.agentLabel}.` : "Select an agent in the filter to view a statement summary."
+              }
+              title="Agent statement"
+            >
               {snapshot.statement ? (
                 <div className="bm-agent-statement">
                   <div className="bm-agent-statement-metrics">
@@ -930,10 +888,10 @@ export function AgentBillingPanel({
                   <p>Select an agent to inspect statement-ready billing context, including open charges, pending charges, credits, and recent activity.</p>
                 </div>
               )}
-            </section>
+            </ListPageSection>
           </div>
         </div>
-      </section>
+      </ListPageSection>
 
       {isChargeModalOpen ? (
         <div className="bm-modal-overlay" onClick={() => setIsChargeModalOpen(false)}>

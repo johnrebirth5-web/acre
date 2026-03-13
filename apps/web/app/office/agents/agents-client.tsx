@@ -10,10 +10,11 @@ import {
   DataTableHeader,
   DataTableRow,
   EmptyState,
-  FilterBar,
   FilterField,
   FormField,
-  SectionCard,
+  ListPageFilters,
+  ListPageFooter,
+  ListPageSection,
   SelectInput,
   StatusBadge,
   TextInput
@@ -76,6 +77,14 @@ export function OfficeAgentsClient({
   const [teamName, setTeamName] = useState("");
   const [teamError, setTeamError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const hasActiveRosterFilters = Boolean(
+    snapshot.filters.q ||
+      snapshot.filters.officeId ||
+      snapshot.filters.role ||
+      snapshot.filters.teamId ||
+      snapshot.filters.onboardingStatus ||
+      snapshot.filters.membershipStatus
+  );
 
   async function handleCreateTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,8 +151,8 @@ export function OfficeAgentsClient({
 
   return (
     <div className="office-agents-layout">
-      <SectionCard className="office-list-card" subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
-        <FilterBar as="form" className="office-agents-toolbar office-list-filters" method="get">
+      <ListPageSection subtitle="Search and filter the current office roster without leaving the back-office workflow." title="Agent roster">
+        <ListPageFilters as="form" className="office-agents-toolbar" method="get">
           <FilterField className="office-agents-search-field" label="Search">
             <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Search name, email, title, or team" type="search" />
           </FilterField>
@@ -201,7 +210,7 @@ export function OfficeAgentsClient({
               Reset
             </Link>
           </div>
-        </FilterBar>
+        </ListPageFilters>
 
         {snapshot.rows.length ? (
           <DataTable className="office-table office-agents-roster-table">
@@ -264,10 +273,19 @@ export function OfficeAgentsClient({
             title="No agents matched the current roster filters"
           />
         )}
-      </SectionCard>
+        <ListPageFooter
+          controls={
+            hasActiveRosterFilters ? (
+              <Link className="office-list-page-button" href="/office/agents">
+                Clear filters
+              </Link>
+            ) : null
+          }
+          summary={`${snapshot.rows.length} roster rows in the current scope`}
+        />
+      </ListPageSection>
 
-      <SectionCard
-        className="office-list-card"
+      <ListPageSection
         actions={<StatusBadge tone="neutral">{snapshot.teams.length} total teams</StatusBadge>}
         subtitle="Quick inventory of teams, membership, active work, and status across the current office scope."
         title="Teams overview"
@@ -298,10 +316,10 @@ export function OfficeAgentsClient({
           </DataTable>
           {snapshot.teams.length === 0 ? <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" /> : null}
         </div>
-      </SectionCard>
+        <ListPageFooter summary={`${snapshot.teams.length} visible teams in the current office scope`} />
+      </ListPageSection>
 
-      <SectionCard
-        className="office-list-card"
+      <ListPageSection
         subtitle="Create, rename, activate, and maintain teams here. Membership remains managed inside each agent profile."
         title="Team administration"
       >
@@ -400,7 +418,7 @@ export function OfficeAgentsClient({
         {!canManageAgents && !canManageOnboarding && !canManageGoals && !canManageTeams ? (
           <p className="office-form-helper">This roster is read-only for your current role.</p>
         ) : null}
-      </SectionCard>
+      </ListPageSection>
     </div>
   );
 }

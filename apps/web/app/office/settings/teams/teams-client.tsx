@@ -12,9 +12,9 @@ import {
   DataTableRow,
   EmptyState,
   FormField,
-  SectionCard,
+  ListPageFooter,
+  ListPageSection,
   SelectInput,
-  StatCard,
   StatusBadge,
   TextInput
 } from "@acre/ui";
@@ -193,16 +193,9 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
 
   return (
     <>
-      <section className="office-settings-summary-grid">
-        <StatCard hint="Current office scope" label="Teams" value={snapshot.summary.activeTeamCount} />
-        <StatCard hint="Onboarding still in progress" label="Roster in onboarding" value={snapshot.summary.onboardingInProgressCount} />
-        <StatCard hint="Members currently inactive" label="Inactive roster members" value={snapshot.summary.inactiveMemberCount} />
-        <StatCard hint="Members visible in roster" label="Rostered members" value={snapshot.summary.totalMembers} />
-      </section>
-
       {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
-      <SectionCard className="office-list-card" subtitle="Same list/table rhythm as Transactions, with team-level operational metrics." title="Teams list">
+      <ListPageSection subtitle="Same list/table rhythm as Transactions, with team-level operational metrics." title="Teams list">
         <DataTable className="office-table">
           <DataTableHeader className="office-table-header office-table-row office-table-row-settings-teams">
             <span>Team</span>
@@ -238,9 +231,10 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
             )}
           </DataTableBody>
         </DataTable>
-      </SectionCard>
+        <ListPageFooter summary={`${snapshot.teams.length} team rows`} />
+      </ListPageSection>
 
-      <SectionCard className="office-list-card" subtitle="Create and manage operational teams without leaving Back Office." title="Team administration">
+      <ListPageSection subtitle="Create and manage operational teams without leaving Back Office." title="Team administration">
 
         {canManageTeams ? (
           <form className="office-settings-inline-form" onSubmit={handleCreateTeam}>
@@ -260,7 +254,7 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
               const availableMembers = memberOptions.filter((option) => !team.members.some((member) => member.membershipId === option.membershipId));
 
               return (
-                <SectionCard
+                <ListPageSection
                   actions={<Badge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</Badge>}
                   className="office-settings-team-card"
                   key={team.id}
@@ -352,14 +346,14 @@ export function OfficeSettingsTeamsClient({ snapshot, canManageTeams }: OfficeSe
                       </Button>
                     </div>
                   ) : null}
-                </SectionCard>
+                </ListPageSection>
               );
             })
           ) : (
             <EmptyState description="Create the first operational team for this office to start grouping agents." title="No teams configured yet" />
           )}
         </div>
-      </SectionCard>
+      </ListPageSection>
     </>
   );
 }

@@ -26,6 +26,7 @@ export default async function OfficeSettingsFieldsPage() {
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Required roles" tone="accent" value={snapshot.summary.requiredRoleCount} />
             <SummaryChip label="Required fields" value={snapshot.summary.requiredFieldCount} />
+            <SummaryChip label="Visible fields" value={snapshot.summary.visibleFieldCount} />
           </PageHeaderSummary>
         }
         description="Transaction workflow requirements for contact roles and field visibility/requiredness in the current office scope."

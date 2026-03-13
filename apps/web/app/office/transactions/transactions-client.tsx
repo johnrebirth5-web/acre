@@ -10,12 +10,13 @@ import {
   DataTableHeader,
   DataTableRow,
   EmptyState,
-  FilterBar,
   FilterField,
+  ListPageFilters,
+  ListPageFooter,
+  ListPageSection,
   PageHeader,
   PageHeaderSummary,
   PageShell,
-  SectionCard,
   SelectInput,
   StatusBadge,
   SummaryChip,
@@ -421,8 +422,8 @@ export function TransactionsClient({
           title="Transactions"
         />
 
-        <SectionCard className="office-list-card" subtitle="Search, filter, and review the current office transaction set." title="Transaction list">
-          <FilterBar as="form" className="bm-transactions-toolbar office-list-filters" onSubmit={handleApplyFilters}>
+        <ListPageSection subtitle="Search, filter, and review the current office transaction set." title="Transaction list">
+          <ListPageFilters as="form" className="bm-transactions-toolbar" onSubmit={handleApplyFilters}>
             <FilterField className="bm-transactions-search" label="Search">
               <TextInput
                 aria-label="Search transactions"
@@ -492,7 +493,7 @@ export function TransactionsClient({
                 Reset
               </Button>
             </div>
-          </FilterBar>
+          </ListPageFilters>
 
           <DataTable className="bm-transactions-list-shell">
             <DataTableHeader className="bm-transactions-columns">
@@ -531,72 +532,72 @@ export function TransactionsClient({
             </DataTableBody>
           </DataTable>
 
-          <footer className="office-list-footer">
-            <span>
-              {pageStart}-{pageEnd} of {totalCount}
-            </span>
-            <div className="office-list-footer-controls">
-              <label className="office-list-page-size">
-                <span>Rows</span>
-                <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
-                  {pageSizeOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </SelectInput>
-              </label>
+          <ListPageFooter
+            controls={
+              <>
+                <label className="office-list-page-size">
+                  <span>Rows</span>
+                  <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
+                    {pageSizeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
 
-              <div className="office-list-pager">
-                {page > 1 ? (
-                  <Link
-                    className="office-list-page-button"
-                    href={buildTransactionsHref(pathname, {
-                      q: filters.q,
-                      status: filters.status,
-                      ownerMembershipId: filters.ownerMembershipId,
-                      teamId: filters.teamId,
-                      type: filters.type,
-                      startDate: filters.startDate,
-                      endDate: filters.endDate,
-                      page: page - 1,
-                      pageSize
-                    })}
-                  >
-                    «
-                  </Link>
-                ) : (
-                  <span className="office-list-page-button is-disabled">«</span>
-                )}
+                <div className="office-list-pager">
+                  {page > 1 ? (
+                    <Link
+                      className="office-list-page-button"
+                      href={buildTransactionsHref(pathname, {
+                        q: filters.q,
+                        status: filters.status,
+                        ownerMembershipId: filters.ownerMembershipId,
+                        teamId: filters.teamId,
+                        type: filters.type,
+                        startDate: filters.startDate,
+                        endDate: filters.endDate,
+                        page: page - 1,
+                        pageSize
+                      })}
+                    >
+                      «
+                    </Link>
+                  ) : (
+                    <span className="office-list-page-button is-disabled">«</span>
+                  )}
 
-                <span className="office-list-page-indicator">
-                  Page {page} / {totalPages}
-                </span>
+                  <span className="office-list-page-indicator">
+                    Page {page} / {totalPages}
+                  </span>
 
-                {page < totalPages ? (
-                  <Link
-                    className="office-list-page-button"
-                    href={buildTransactionsHref(pathname, {
-                      q: filters.q,
-                      status: filters.status,
-                      ownerMembershipId: filters.ownerMembershipId,
-                      teamId: filters.teamId,
-                      type: filters.type,
-                      startDate: filters.startDate,
-                      endDate: filters.endDate,
-                      page: page + 1,
-                      pageSize
-                    })}
-                  >
-                    »
-                  </Link>
-                ) : (
-                  <span className="office-list-page-button is-disabled">»</span>
-                )}
-              </div>
-            </div>
-          </footer>
-        </SectionCard>
+                  {page < totalPages ? (
+                    <Link
+                      className="office-list-page-button"
+                      href={buildTransactionsHref(pathname, {
+                        q: filters.q,
+                        status: filters.status,
+                        ownerMembershipId: filters.ownerMembershipId,
+                        teamId: filters.teamId,
+                        type: filters.type,
+                        startDate: filters.startDate,
+                        endDate: filters.endDate,
+                        page: page + 1,
+                        pageSize
+                      })}
+                    >
+                      »
+                    </Link>
+                  ) : (
+                    <span className="office-list-page-button is-disabled">»</span>
+                  )}
+                </div>
+              </>
+            }
+            summary={`${pageStart}-${pageEnd} of ${totalCount}`}
+          />
+        </ListPageSection>
       </PageShell>
 
       {isModalOpen ? (

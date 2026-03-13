@@ -1,15 +1,18 @@
 import Link from "next/link";
 import {
   Badge,
+  Button,
   EmptyState,
-  FilterBar,
   FilterField,
+  ListPageFilters,
+  ListPageSection,
+  ListPageStatsGrid,
   PageHeader,
   PageHeaderSummary,
   PageShell,
-  SectionCard,
   SecondaryMetaList,
   SelectInput,
+  StatCard,
   StatusBadge,
   SummaryChip,
   TextInput
@@ -339,8 +342,8 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
         title="Reports"
       />
 
-      <SectionCard className="office-list-card" subtitle="Shareable query-param filters across transactions, commissions, accounting, and EMD slices." title="Report filters">
-        <FilterBar as="form" className="office-report-filters office-list-filters" method="get">
+      <ListPageSection subtitle="Shareable query-param filters across transactions, commissions, accounting, and EMD slices." title="Report filters">
+        <ListPageFilters as="form" className="office-report-filters" method="get">
           <FilterField label="Start date">
             <TextInput defaultValue={snapshot.filters.startDate} name="startDate" type="date" />
           </FilterField>
@@ -410,15 +413,13 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
             </SelectInput>
           </FilterField>
           <div className="office-filter-actions">
-            <button className="office-button" type="submit">
-              Apply filters
-            </button>
+            <Button type="submit">Apply filters</Button>
             <Link className="office-button office-button-secondary" href="/office/reports">
               Reset
             </Link>
           </div>
-        </FilterBar>
-      </SectionCard>
+        </ListPageFilters>
+      </ListPageSection>
 
       <nav aria-label="Reports sections" className="office-section-nav">
         <a href="#reports-scope">Scope</a>
@@ -430,53 +431,26 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
         <a href="#reports-emd">EMD</a>
       </nav>
 
-      <section className="office-kpi-grid office-reports-kpi-grid">
-        <article className="office-kpi-card office-kpi-card-accent">
-          <span>Matching transactions</span>
-          <strong>{snapshot.totals.totalTransactions}</strong>
-          <p>Real transactions inside the current reporting window.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Total volume</span>
-          <strong>{snapshot.totals.totalVolumeLabel}</strong>
-          <p>Total price across the current filtered transaction set.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Gross commission</span>
-          <strong>{snapshot.totals.totalGrossCommissionLabel}</strong>
-          <p>Pulled from persisted transaction finance values; no missing values are inferred.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Office net</span>
-          <strong>{snapshot.totals.totalOfficeNetLabel}</strong>
-          <p>Sum of persisted office net values from transaction finance.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Closed transactions</span>
-          <strong>{snapshot.totals.closedTransactionCount}</strong>
-          <p>Can drill directly into the filtered transaction list.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Active owners</span>
-          <strong>{snapshot.totals.activeOwnerCount}</strong>
-          <p>Owners with at least one matching deal in the current slice.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Statement ready / payable</span>
-          <strong>{snapshot.totals.statementReadyCommissionLabel}</strong>
-          <p>{snapshot.totals.payableCommissionLabel} already in payable status.</p>
-        </article>
-        <article className="office-kpi-card">
-          <span>Received payments / overdue EMD</span>
-          <strong>{snapshot.totals.receivedPaymentsLabel}</strong>
-          <p>{snapshot.totals.overdueEmdCount} overdue EMD records in the current slice.</p>
-        </article>
-      </section>
+      <ListPageSection
+        subtitle="Top-level report totals stay query-param scoped and derived only from persisted transaction, commission, accounting, and EMD data."
+        title="Report summary"
+      >
+        <ListPageStatsGrid className="office-reports-kpi-grid">
+          <StatCard hint="Real transactions inside the current reporting window." label="Matching transactions" value={snapshot.totals.totalTransactions} />
+          <StatCard hint="Total price across the current filtered transaction set." label="Total volume" value={snapshot.totals.totalVolumeLabel} />
+          <StatCard hint="Pulled from persisted transaction finance values; no missing values are inferred." label="Gross commission" value={snapshot.totals.totalGrossCommissionLabel} />
+          <StatCard hint="Sum of persisted office net values from transaction finance." label="Office net" value={snapshot.totals.totalOfficeNetLabel} />
+          <StatCard hint="Can drill directly into the filtered transaction list." label="Closed transactions" value={snapshot.totals.closedTransactionCount} />
+          <StatCard hint="Owners with at least one matching deal in the current slice." label="Active owners" value={snapshot.totals.activeOwnerCount} />
+          <StatCard hint={`${snapshot.totals.payableCommissionLabel} already in payable status.`} label="Statement ready / payable" value={snapshot.totals.statementReadyCommissionLabel} />
+          <StatCard hint={`${snapshot.totals.overdueEmdCount} overdue EMD records in the current slice.`} label="Received payments / overdue EMD" value={snapshot.totals.receivedPaymentsLabel} />
+        </ListPageStatsGrid>
+      </ListPageSection>
 
       <section className="office-dashboard-grid-wide office-reports-workspace">
         <div className="office-side-stack">
           <section id="reports-scope">
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
@@ -522,11 +496,11 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   ))}
                 </ul>
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
 
           <section id="reports-transactions">
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
@@ -623,11 +597,11 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   </article>
                 ))}
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
 
           <section>
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link className="office-button office-button-secondary" href={allTransactionsHref}>
@@ -667,13 +641,13 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   <EmptyState description="No records matched the current transaction filters." title="No transactions" />
                 ) : null}
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
         </div>
 
         <div className="office-side-stack">
           <section id="reports-agents">
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link
@@ -745,12 +719,12 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   <EmptyState description="No owner-attributed production matched the current slice." title="No agent rows" />
                 ) : null}
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
 
           {snapshot.teamPerformance.hasTeams ? (
             <section id="reports-teams">
-              <SectionCard
+              <ListPageSection
                 className="office-list-card"
                 actions={<Badge tone="neutral">{snapshot.teamPerformance.rows.length} visible team rows</Badge>}
                 subtitle="Grouped by each owner's current active team memberships."
@@ -808,12 +782,12 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                     <EmptyState description="No team performance rows matched the current filters." title="No team rows" />
                   ) : null}
                 </div>
-              </SectionCard>
+              </ListPageSection>
             </section>
           ) : null}
 
           <section id="reports-commissions">
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link
@@ -839,24 +813,12 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
               subtitle="Shows only real commission calculations. No statement or payout data is fabricated."
               title="Commission summary"
             >
-              <div className="office-report-stat-strip">
-                <article className="office-report-stat">
-                  <span>Calculation rows</span>
-                  <strong>{snapshot.commissionSummary.calculationCount}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Statement ready</span>
-                  <strong>{snapshot.commissionSummary.statementReadyLabel}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Payable</span>
-                  <strong>{snapshot.commissionSummary.payableLabel}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Paid</span>
-                  <strong>{snapshot.commissionSummary.paidLabel}</strong>
-                </article>
-              </div>
+              <ListPageStatsGrid className="office-report-stat-strip">
+                <StatCard hint="Persisted commission rows in the current filter window." label="Calculation rows" value={snapshot.commissionSummary.calculationCount} />
+                <StatCard hint="Rows ready for statement packaging." label="Statement ready" value={snapshot.commissionSummary.statementReadyLabel} />
+                <StatCard hint="Rows already in payable status." label="Payable" value={snapshot.commissionSummary.payableLabel} />
+                <StatCard hint="Rows already marked paid." label="Paid" value={snapshot.commissionSummary.paidLabel} />
+              </ListPageStatsGrid>
 
               <div className="office-dashboard-grid-wide office-reports-subgrid">
                 <div className="office-table">
@@ -953,11 +915,11 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   <EmptyState description="No commission calculations matched the current filters." title="No commission rows" />
                 ) : null}
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
 
           <section id="reports-accounting">
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link
@@ -983,25 +945,12 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
               subtitle="Accounting and payment summary built from the current ledger-backed foundations."
               title="Accounting and payment summary"
             >
-              <div className="office-report-stat-strip">
-                <article className="office-report-stat">
-                  <span>Accounting rows</span>
-                  <strong>{snapshot.accountingSummary.transactionCount}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Invoices</span>
-                  <strong>{snapshot.accountingSummary.totalInvoices}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Open bills</span>
-                  <strong>{snapshot.accountingSummary.openBills}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Received / made payments</span>
-                  <strong>{snapshot.accountingSummary.receivedPaymentsLabel}</strong>
-                  <p>{snapshot.accountingSummary.madePaymentsLabel}</p>
-                </article>
-              </div>
+              <ListPageStatsGrid className="office-report-stat-strip">
+                <StatCard hint="Ledger-backed accounting rows in scope." label="Accounting rows" value={snapshot.accountingSummary.transactionCount} />
+                <StatCard hint="Invoices inside the current reporting slice." label="Invoices" value={snapshot.accountingSummary.totalInvoices} />
+                <StatCard hint="Bills still open for payment." label="Open bills" value={snapshot.accountingSummary.openBills} />
+                <StatCard hint={snapshot.accountingSummary.madePaymentsLabel} label="Received / made payments" value={snapshot.accountingSummary.receivedPaymentsLabel} />
+              </ListPageStatsGrid>
 
               <div className="office-dashboard-grid-wide office-reports-subgrid">
                 <div className="office-table">
@@ -1064,11 +1013,11 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   ) : null}
                 </div>
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
 
           <section id="reports-emd">
-            <SectionCard
+            <ListPageSection
               className="office-list-card"
               actions={
                 <Link
@@ -1094,25 +1043,12 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
               subtitle="Only persisted earnest money records are included in this summary."
               title="Earnest money summary"
             >
-              <div className="office-report-stat-strip">
-                <article className="office-report-stat">
-                  <span>EMD records</span>
-                  <strong>{snapshot.emdSummary.recordCount}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Outstanding</span>
-                  <strong>{snapshot.emdSummary.outstandingCount}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Overdue</span>
-                  <strong>{snapshot.emdSummary.overdueCount}</strong>
-                </article>
-                <article className="office-report-stat">
-                  <span>Expected / received</span>
-                  <strong>{snapshot.emdSummary.expectedAmountLabel}</strong>
-                  <p>{snapshot.emdSummary.receivedAmountLabel}</p>
-                </article>
-              </div>
+              <ListPageStatsGrid className="office-report-stat-strip">
+                <StatCard hint="Persisted earnest money records in scope." label="EMD records" value={snapshot.emdSummary.recordCount} />
+                <StatCard hint="Records not yet fully resolved." label="Outstanding" value={snapshot.emdSummary.outstandingCount} />
+                <StatCard hint="Records already past their due date." label="Overdue" value={snapshot.emdSummary.overdueCount} />
+                <StatCard hint={snapshot.emdSummary.receivedAmountLabel} label="Expected / received" value={snapshot.emdSummary.expectedAmountLabel} />
+              </ListPageStatsGrid>
 
               <div className="office-dashboard-grid-wide office-reports-subgrid">
                 <div className="office-table">
@@ -1178,7 +1114,7 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
                   ) : null}
                 </div>
               </div>
-            </SectionCard>
+            </ListPageSection>
           </section>
         </div>
       </section>

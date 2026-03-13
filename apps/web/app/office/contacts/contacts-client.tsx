@@ -10,12 +10,13 @@ import {
   DataTableHeader,
   DataTableRow,
   EmptyState,
-  FilterBar,
   FilterField,
+  ListPageFilters,
+  ListPageFooter,
+  ListPageSection,
   PageHeader,
   PageHeaderSummary,
   PageShell,
-  SectionCard,
   SelectInput,
   StatusBadge,
   SummaryChip,
@@ -209,8 +210,8 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
           title="Contacts"
         />
 
-        <SectionCard className="office-list-card" subtitle={summaryLabel} title="Contact list">
-          <FilterBar as="form" className="bm-contacts-toolbar office-list-filters" onSubmit={handleFilterSubmit}>
+        <ListPageSection subtitle={summaryLabel} title="Contact list">
+          <ListPageFilters as="form" className="bm-contacts-toolbar" onSubmit={handleFilterSubmit}>
             <FilterField className="bm-contacts-search-field" label="Search">
               <TextInput
                 aria-label="Search contacts"
@@ -232,12 +233,12 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
             </FilterField>
 
             <div className="office-filter-actions">
-              <Button type="submit">Apply</Button>
+              <Button type="submit">Apply filters</Button>
               <Button onClick={handleResetFilters} type="button" variant="secondary">
                 Reset
               </Button>
             </div>
-          </FilterBar>
+          </ListPageFilters>
 
           <DataTable className="office-table bm-contacts-table">
             <DataTableHeader className="office-table-header bm-contacts-table-header">
@@ -270,62 +271,62 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
             </DataTableBody>
           </DataTable>
 
-          <footer className="office-list-footer">
-            <span>
-              {pageStart}-{pageEnd} of {totalCount}
-            </span>
-            <div className="office-list-footer-controls">
-              <label className="office-list-page-size">
-                <span>Rows</span>
-                <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
-                  {pageSizeOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </SelectInput>
-              </label>
+          <ListPageFooter
+            controls={
+              <>
+                <label className="office-list-page-size">
+                  <span>Rows</span>
+                  <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
+                    {pageSizeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
 
-              <div className="office-list-pager">
-                {page > 1 ? (
-                  <Link
-                    className="office-list-page-button"
-                    href={buildContactsHref(pathname, {
-                      q: filters.q,
-                      stage: filters.stage,
-                      page: page - 1,
-                      pageSize
-                    })}
-                  >
-                    «
-                  </Link>
-                ) : (
-                  <span className="office-list-page-button is-disabled">«</span>
-                )}
+                <div className="office-list-pager">
+                  {page > 1 ? (
+                    <Link
+                      className="office-list-page-button"
+                      href={buildContactsHref(pathname, {
+                        q: filters.q,
+                        stage: filters.stage,
+                        page: page - 1,
+                        pageSize
+                      })}
+                    >
+                      «
+                    </Link>
+                  ) : (
+                    <span className="office-list-page-button is-disabled">«</span>
+                  )}
 
-                <span className="office-list-page-indicator">
-                  Page {page} / {totalPages}
-                </span>
+                  <span className="office-list-page-indicator">
+                    Page {page} / {totalPages}
+                  </span>
 
-                {page < totalPages ? (
-                  <Link
-                    className="office-list-page-button"
-                    href={buildContactsHref(pathname, {
-                      q: filters.q,
-                      stage: filters.stage,
-                      page: page + 1,
-                      pageSize
-                    })}
-                  >
-                    »
-                  </Link>
-                ) : (
-                  <span className="office-list-page-button is-disabled">»</span>
-                )}
-              </div>
-            </div>
-          </footer>
-        </SectionCard>
+                  {page < totalPages ? (
+                    <Link
+                      className="office-list-page-button"
+                      href={buildContactsHref(pathname, {
+                        q: filters.q,
+                        stage: filters.stage,
+                        page: page + 1,
+                        pageSize
+                      })}
+                    >
+                      »
+                    </Link>
+                  ) : (
+                    <span className="office-list-page-button is-disabled">»</span>
+                  )}
+                </div>
+              </>
+            }
+            summary={`${pageStart}-${pageEnd} of ${totalCount}`}
+          />
+        </ListPageSection>
       </PageShell>
 
       {isModalOpen ? (

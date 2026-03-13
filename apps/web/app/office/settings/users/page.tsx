@@ -40,6 +40,7 @@ export default async function OfficeSettingsUsersPage(props: OfficeSettingsUsers
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Total users" tone="accent" value={snapshot.summary.totalUsers} />
             <SummaryChip label="Active users" value={snapshot.summary.activeUsers} />
+            <SummaryChip label="All-office access" value={snapshot.summary.allOfficeAccessCount} />
           </PageHeaderSummary>
         }
         description="Administrative user access for the current organization, including role, active status, and office assignment."

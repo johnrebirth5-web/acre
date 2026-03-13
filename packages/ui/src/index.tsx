@@ -85,6 +85,7 @@ export function SectionHeader(props: {
 }
 
 export function SectionCard(props: {
+  id?: string;
   title?: string;
   subtitle?: string;
   actions?: ReactNode;
@@ -92,13 +93,24 @@ export function SectionCard(props: {
   children: ReactNode;
 }) {
   return (
-    <section className={cx("office-section-card", props.className)}>
+    <section className={cx("office-section-card", props.className)} id={props.id}>
       {props.title || props.actions ? (
         <SectionHeader actions={props.actions} subtitle={props.subtitle} title={props.title ?? ""} />
       ) : null}
       <div className="office-section-body">{props.children}</div>
     </section>
   );
+}
+
+export function ListPageSection(props: {
+  id?: string;
+  title?: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return <SectionCard {...props} className={cx("office-list-card", props.className)} />;
 }
 
 export function Panel(props: { title?: string; subtitle?: string; actions?: ReactNode; className?: string; children: ReactNode }) {
@@ -152,6 +164,23 @@ export function FilterBar<T extends "div" | "form" = "div">(
   );
 }
 
+export function ListPageFilters<T extends "div" | "form" = "div">(
+  props: {
+    as?: T;
+    className?: string;
+    children: ReactNode;
+  } & Omit<ComponentPropsWithoutRef<T>, "className" | "children" | "as">
+) {
+  const { as, className, children, ...rest } = props;
+  const Component = (as ?? "div") as ElementType;
+
+  return (
+    <Component className={cx("office-filter-bar", "office-list-filters", className)} {...rest}>
+      {children}
+    </Component>
+  );
+}
+
 export function FilterField(props: {
   label: string;
   className?: string;
@@ -192,6 +221,26 @@ export function SummaryChip(props: {
       <strong>{props.value}</strong>
       <span>{props.label}</span>
     </article>
+  );
+}
+
+export function ListPageStatsGrid(props: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <section className={cx("office-list-page-stats", props.className)}>{props.children}</section>;
+}
+
+export function ListPageFooter(props: {
+  summary: ReactNode;
+  controls?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <footer className={cx("office-list-footer", props.className)}>
+      <span>{props.summary}</span>
+      {props.controls ? <div className="office-list-footer-controls">{props.controls}</div> : null}
+    </footer>
   );
 }
 

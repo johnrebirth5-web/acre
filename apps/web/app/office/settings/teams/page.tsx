@@ -26,6 +26,7 @@ export default async function OfficeSettingsTeamsPage() {
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Teams" tone="accent" value={snapshot.teams.length} />
             <SummaryChip label="Rostered members" value={snapshot.summary.totalMembers} />
+            <SummaryChip label="Onboarding in progress" value={snapshot.summary.onboardingInProgressCount} />
           </PageHeaderSummary>
         }
         description="Administrative team roster management for operational grouping, assignment, and active/inactive team structure."

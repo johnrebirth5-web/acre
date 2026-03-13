@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import type { OfficeAccountingSnapshot, OfficeAgentBillingSnapshot, OfficeCommissionManagementSnapshot } from "@acre/db";
-import { Button, FilterBar, FilterField, SectionCard, SelectInput, TextInput } from "@acre/ui";
+import { Button, FilterField, ListPageFilters, ListPageSection, ListPageStatsGrid, SelectInput, StatCard, TextInput } from "@acre/ui";
 import { AgentBillingPanel } from "./agent-billing-panel";
 import { CommissionManagementPanel } from "./commission-management-panel";
 
@@ -528,57 +528,24 @@ export function OfficeAccountingClient({
         <a href="#chart-of-accounts">Chart of accounts</a>
       </nav>
 
-      <SectionCard
-        className="office-list-card"
+      <ListPageSection
+        id="accounting-overview"
         subtitle="Review live ledger metrics, narrow the current scope, and jump into accounting entries without leaving the list workspace."
         title="Accounting workbench"
       >
-        <section className="office-kpi-grid">
-          <article className="office-kpi-card office-kpi-card-accent">
-            <span>Total invoices</span>
-            <strong>{snapshot.overview.totalInvoices}</strong>
-            <p>Invoices currently in the filtered accounting window.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Open bills</span>
-            <strong>{snapshot.overview.openBills}</strong>
-            <p>Outstanding bills still open for payment.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Received payments</span>
-            <strong>{snapshot.overview.receivedPaymentsLabel}</strong>
-            <p>Cash-in recorded inside the current result set.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Made payments</span>
-            <strong>{snapshot.overview.madePaymentsLabel}</strong>
-            <p>Cash-out recorded inside the current result set.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Office net ledger impact</span>
-            <strong>{snapshot.overview.officeNetLedgerImpactLabel}</strong>
-            <p>Income/expense effect derived from ledger entries.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Outstanding EMD</span>
-            <strong>{snapshot.overview.outstandingEmdCount}</strong>
-            <p>Earnest money records not yet complete.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Overdue EMD</span>
-            <strong>{snapshot.overview.overdueEmdCount}</strong>
-            <p>Earnest money items already past due.</p>
-          </article>
-          <article className="office-kpi-card">
-            <span>Scope</span>
-            <strong>{officeLabel}</strong>
-            <p>Shared org-level accounts remain visible when office scope allows it.</p>
-          </article>
-        </section>
+        <ListPageStatsGrid>
+          <StatCard hint="Invoices currently in the filtered accounting window." label="Total invoices" value={snapshot.overview.totalInvoices} />
+          <StatCard hint="Outstanding bills still open for payment." label="Open bills" value={snapshot.overview.openBills} />
+          <StatCard hint="Cash-in recorded inside the current result set." label="Received payments" value={snapshot.overview.receivedPaymentsLabel} />
+          <StatCard hint="Cash-out recorded inside the current result set." label="Made payments" value={snapshot.overview.madePaymentsLabel} />
+          <StatCard hint="Income/expense effect derived from ledger entries." label="Office net ledger impact" value={snapshot.overview.officeNetLedgerImpactLabel} />
+          <StatCard hint="Earnest money records not yet complete." label="Outstanding EMD" value={snapshot.overview.outstandingEmdCount} />
+          <StatCard hint="Earnest money items already past due." label="Overdue EMD" value={snapshot.overview.overdueEmdCount} />
+          <StatCard hint="Shared org-level accounts remain visible when office scope allows it." label="Scope" value={officeLabel} />
+        </ListPageStatsGrid>
 
-        <FilterBar
+        <ListPageFilters
           as="form"
-          id="accounting-overview"
           className="office-report-filters office-list-filters"
           onSubmit={(event) => {
             event.preventDefault();
@@ -657,17 +624,16 @@ export function OfficeAccountingClient({
               </Button>
             </div>
           ) : null}
-        </FilterBar>
-      </SectionCard>
+        </ListPageFilters>
+      </ListPageSection>
 
       <section className="office-dashboard-grid-wide bm-accounting-grid">
         <div className="office-side-stack">
-          <section className="bm-table-card office-list-card" id="accounting-ledger">
-            <div className="bm-card-head">
-              <h3>Accounting transactions</h3>
-              <span>{snapshot.transactions.length} records in the current filtered window</span>
-            </div>
-
+          <ListPageSection
+            id="accounting-ledger"
+            subtitle={`${snapshot.transactions.length} records in the current filtered window`}
+            title="Accounting transactions"
+          >
             <div className="office-table">
               <div className="office-table-header office-table-row office-table-row-accounting">
                 <span>Date</span>
@@ -703,14 +669,13 @@ export function OfficeAccountingClient({
                 </div>
               ) : null}
             </div>
-          </section>
+          </ListPageSection>
 
-          <section className="bm-table-card office-list-card" id="chart-of-accounts">
-            <div className="bm-card-head">
-              <h3>General ledger</h3>
-              <span>Latest {snapshot.generalLedgerEntries.length} posted entries</span>
-            </div>
-
+          <ListPageSection
+            id="chart-of-accounts"
+            subtitle={`Latest ${snapshot.generalLedgerEntries.length} posted entries`}
+            title="General ledger"
+          >
             <div className="office-table">
               <div className="office-table-header office-table-row office-table-row-ledger">
                 <span>Date</span>
@@ -733,20 +698,18 @@ export function OfficeAccountingClient({
                 </Link>
               ))}
             </div>
-          </section>
+          </ListPageSection>
         </div>
 
         <div className="office-side-stack">
-          <section className="bm-table-card office-list-card">
-            <div className="bm-card-head">
-              <h3>{snapshot.selectedTransaction ? "Accounting entry detail" : "Select an accounting entry"}</h3>
-              <span>
-                {snapshot.selectedTransaction
-                  ? `${snapshot.selectedTransaction.typeLabel} · ${snapshot.selectedTransaction.statusLabel}`
-                  : "Choose a row from the accounting table to inspect or edit it."}
-              </span>
-            </div>
-
+          <ListPageSection
+            subtitle={
+              snapshot.selectedTransaction
+                ? `${snapshot.selectedTransaction.typeLabel} · ${snapshot.selectedTransaction.statusLabel}`
+                : "Choose a row from the accounting table to inspect or edit it."
+            }
+            title={snapshot.selectedTransaction ? "Accounting entry detail" : "Select an accounting entry"}
+          >
             {snapshot.selectedTransaction ? (
               <form className="bm-accounting-form" onSubmit={handleSaveSelectedEntry}>
                 <AccountingEntryFormFields
@@ -779,14 +742,9 @@ export function OfficeAccountingClient({
                 <p>Use the transaction table to open an accounting record, or create a new invoice, bill, payment, deposit, refund, or journal entry.</p>
               </div>
             )}
-          </section>
+          </ListPageSection>
 
-          <section className="bm-table-card office-list-card" id="earnest-money">
-            <div className="bm-card-head">
-              <h3>Earnest money</h3>
-              <span>{snapshot.earnestMoneyRecords.length} active EMD records</span>
-            </div>
-
+          <ListPageSection id="earnest-money" subtitle={`${snapshot.earnestMoneyRecords.length} active EMD records`} title="Earnest money">
             <div className="office-table">
               <div className="office-table-header office-table-row office-table-row-emd">
                 <span>Transaction</span>
@@ -820,14 +778,12 @@ export function OfficeAccountingClient({
                 </div>
               ))}
             </div>
-          </section>
+          </ListPageSection>
 
-          <section className="bm-table-card office-list-card">
-            <div className="bm-card-head">
-              <h3>Chart of accounts</h3>
-              <span>System accounts are seeded and ready; custom account editing is intentionally not exposed yet.</span>
-            </div>
-
+          <ListPageSection
+            subtitle="System accounts are seeded and ready; custom account editing is intentionally not exposed yet."
+            title="Chart of accounts"
+          >
             <div className="office-table">
               <div className="office-table-header office-table-row office-table-row-chart">
                 <span>Code</span>
@@ -848,7 +804,7 @@ export function OfficeAccountingClient({
                 </div>
               ))}
             </div>
-          </section>
+          </ListPageSection>
         </div>
       </section>
 

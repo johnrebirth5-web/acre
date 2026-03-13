@@ -133,6 +133,7 @@ For deployment or production-sync work:
 - Use shared tokens and primitives from:
   - [apps/web/app/globals.css](/Users/openclaw_john/工作文件夹/Acre/apps/web/app/globals.css)
   - [packages/ui/src/index.tsx](/Users/openclaw_john/工作文件夹/Acre/packages/ui/src/index.tsx)
+- Treat `/office/transactions` as the canonical list-page composition reference for peer Office list pages. Reuse its page-header, summary, filter-card, table-card, and footer rhythm instead of inventing page-local list shells.
 - Treat `@acre/ui` + `office-*` styles as the canonical Office system. When touching older `bm-*` surfaces, migrate or normalize them toward that system instead of extending `bm-*` as a parallel visual language.
 - Prefer shared heading, button, card, badge, table, and detail-field patterns over page-local styling. If a visual pattern appears twice, it should usually move toward a shared primitive or canonical class.
 - For responsive behavior:

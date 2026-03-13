@@ -3,7 +3,20 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Button, DataTable, DataTableBody, DataTableHeader, DataTableRow, EmptyState, FilterBar, FilterField, SectionCard, SelectInput, StatCard, TextInput } from "@acre/ui";
+import {
+  Button,
+  DataTable,
+  DataTableBody,
+  DataTableHeader,
+  DataTableRow,
+  EmptyState,
+  FilterField,
+  ListPageFilters,
+  ListPageFooter,
+  ListPageSection,
+  SelectInput,
+  TextInput
+} from "@acre/ui";
 import type { OfficeAdminUsersSnapshot } from "@acre/db";
 
 type OfficeSettingsUsersClientProps = {
@@ -161,15 +174,8 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
 
   return (
     <>
-      <section className="office-settings-summary-grid">
-        <StatCard hint="Current organization" label="Total users" value={snapshot.summary.totalUsers} />
-        <StatCard hint="Membership status = active" label="Active users" value={snapshot.summary.activeUsers} />
-        <StatCard hint="Invited or disabled" label="Inactive users" value={snapshot.summary.inactiveUsers} />
-        <StatCard hint="Office assignment is org-wide" label="All-office access" value={snapshot.summary.allOfficeAccessCount} />
-      </section>
-
-      <SectionCard className="office-list-card" subtitle="Role, active status, and office assignment are managed at the membership layer." title="Users access">
-        <FilterBar as="form" className="office-list-filters" onSubmit={handleFilterSubmit}>
+      <ListPageSection subtitle="Role, active status, and office assignment are managed at the membership layer." title="Users access">
+        <ListPageFilters as="form" onSubmit={handleFilterSubmit}>
           <FilterField label="Search">
             <TextInput onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, email, title, office..." value={searchQuery} />
           </FilterField>
@@ -208,12 +214,12 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
           </FilterField>
 
           <div className="office-filter-actions">
-            <Button type="submit">Apply</Button>
+            <Button type="submit">Apply filters</Button>
             <Button onClick={handleResetFilters} type="button" variant="secondary">
               Reset
             </Button>
           </div>
-        </FilterBar>
+        </ListPageFilters>
 
         {submitError ? <p className="office-inline-error">{submitError}</p> : null}
 
@@ -302,7 +308,8 @@ export function OfficeSettingsUsersClient({ snapshot, canManageUsers }: OfficeSe
             )}
           </DataTableBody>
         </DataTable>
-      </SectionCard>
+        <ListPageFooter summary={`${snapshot.rows.length} user access rows`} />
+      </ListPageSection>
     </>
   );
 }
