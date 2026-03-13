@@ -8,7 +8,6 @@ import {
   DataTable,
   DataTableBody,
   DataTableHeader,
-  DataTableRow,
   EmptyState,
   FilterBar,
   FilterField,
@@ -228,44 +227,42 @@ export function OfficeAgentsClient({
             </DataTableHeader>
             <DataTableBody>
               {snapshot.rows.map((row) => (
-                <DataTableRow className="office-agents-roster-row-shell" key={row.membershipId}>
-                  <Link className="office-agents-roster-link" href={row.href}>
-                    <span className="office-data-table-row-main office-agents-roster-stack office-agents-roster-primary">
-                      <strong>{row.name}</strong>
-                      <small>{row.email}</small>
-                    </span>
-                    <span className="office-agents-roster-plain">{row.officeName}</span>
-                    <span className="office-agents-roster-stack">
-                      <strong>{row.role}</strong>
-                      <small>{row.title}</small>
-                    </span>
-                    <span className="office-agents-roster-plain">{row.teamLabel}</span>
-                    <span className="office-agents-roster-stack office-agents-roster-status">
-                      <StatusBadge tone={getMembershipTone(row.membershipStatusValue)}>{row.membershipStatus}</StatusBadge>
-                      <small>{row.membershipStatusValue === "active" ? "In roster" : "Needs review"}</small>
-                    </span>
-                    <span className="office-agents-roster-stack office-agents-roster-status">
-                      <StatusBadge tone={getOnboardingTone(row.onboardingStatus)}>{row.onboardingStatus}</StatusBadge>
-                      <small>{row.onboardingProgressLabel}</small>
-                    </span>
-                    <span className="office-agents-roster-stack office-agents-roster-metric">
-                      <strong>{row.activeTasksCount} active</strong>
-                      <small>{row.activeTasksCount === 0 ? "No open workload" : "Tasks currently assigned"}</small>
-                    </span>
-                    <span className="office-agents-roster-stack office-agents-roster-metric">
-                      <strong>{row.transactionSummaryLabel}</strong>
-                      <small>{row.openTransactionCount} open pipeline</small>
-                    </span>
-                    <span className="office-agents-roster-stack office-agents-roster-metric">
-                      <strong>{row.goalProgressSummary}</strong>
-                      <small>{row.recentClosedTransactionCount} closed in 90d</small>
-                    </span>
-                    <span className="office-agents-roster-stack office-agents-roster-metric">
-                      <strong>{row.billingBalanceLabel}</strong>
-                      <small>{row.billingSummaryLabel}</small>
-                    </span>
-                  </Link>
-                </DataTableRow>
+                <Link className="office-data-table-row office-agents-roster-row" href={row.href} key={row.membershipId} role="row">
+                  <span className="office-data-table-row-main office-agents-roster-stack office-agents-roster-primary">
+                    <strong>{row.name}</strong>
+                    <small>{row.email}</small>
+                  </span>
+                  <span className="office-agents-roster-plain">{row.officeName}</span>
+                  <span className="office-agents-roster-stack">
+                    <strong>{row.role}</strong>
+                    <small>{row.title}</small>
+                  </span>
+                  <span className="office-agents-roster-plain">{row.teamLabel}</span>
+                  <span className="office-agents-roster-stack office-agents-roster-status">
+                    <StatusBadge tone={getMembershipTone(row.membershipStatusValue)}>{row.membershipStatus}</StatusBadge>
+                    <small>{row.membershipStatusValue === "active" ? "In roster" : "Needs review"}</small>
+                  </span>
+                  <span className="office-agents-roster-stack office-agents-roster-status">
+                    <StatusBadge tone={getOnboardingTone(row.onboardingStatus)}>{row.onboardingStatus}</StatusBadge>
+                    <small>{row.onboardingProgressLabel}</small>
+                  </span>
+                  <span className="office-agents-roster-stack office-agents-roster-metric">
+                    <strong>{row.activeTasksCount} active</strong>
+                    <small>{row.activeTasksCount === 0 ? "No open workload" : "Tasks currently assigned"}</small>
+                  </span>
+                  <span className="office-agents-roster-stack office-agents-roster-metric">
+                    <strong>{row.transactionSummaryLabel}</strong>
+                    <small>{row.openTransactionCount} open pipeline</small>
+                  </span>
+                  <span className="office-agents-roster-stack office-agents-roster-metric">
+                    <strong>{row.goalProgressSummary}</strong>
+                    <small>{row.recentClosedTransactionCount} closed in 90d</small>
+                  </span>
+                  <span className="office-agents-roster-stack office-agents-roster-metric">
+                    <strong>{row.billingBalanceLabel}</strong>
+                    <small>{row.billingSummaryLabel}</small>
+                  </span>
+                </Link>
               ))}
             </DataTableBody>
           </DataTable>
