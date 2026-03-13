@@ -93,6 +93,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/acre"
 
 - 本地开发不是强制必填，因为代码里有 development fallback
 - 但建议配置，避免不同环境共享默认 secret
+- 生产环境现在应视为必填；缺失时登录签名不会继续回退到仓库内默认值
 
 示例格式：
 
@@ -104,6 +105,7 @@ ACRE_SESSION_SECRET="replace-with-a-long-random-string"
 
 - 本地登录仍然可以工作
 - 但会退回到仓库内的开发默认值，不适合长期共享环境
+- 生产环境下如果缺失，session 创建会直接失败并暴露配置问题
 
 开发和生产差异：
 
@@ -120,7 +122,8 @@ ACRE_SESSION_SECRET="replace-with-a-long-random-string"
 是否必填：
 
 - 不是必填
-- 不配置时，默认落到仓库根目录下的 `.local-storage/documents`
+- 开发环境不配置时，默认落到仓库根目录下的 `.local-storage/documents`
+- 生产环境不配置时，默认落到 `/var/lib/acre/documents`
 
 示例格式：
 
@@ -132,12 +135,14 @@ ACRE_DOCUMENTS_STORAGE_DIR="/absolute/path/to/acre-documents"
 
 - 不会导致应用报错
 - 会使用默认本地目录
-- 这适合开发，不适合作为生产对象存储方案
+- 当前新写入的 `storageKey` 会以 storage root 下的相对路径保存，避免把仓库目录写死进 metadata
+- 这适合当前单 Droplet 生产模型，但前提是目录必须是持久化磁盘路径，而不是 deploy 目录
 
 开发和生产差异：
 
 - 开发环境可直接使用默认目录或显式指定一个本地路径
-- 生产环境如果继续保留这个实现，需要保证文件系统持久化；更合理的方向仍是后续替换到对象存储
+- 生产环境如果继续保留这个实现，需要保证文件系统持久化、目录权限正确、并把该目录纳入备份
+- 更合理的长期方向仍是后续替换到对象存储
 
 ### `ACRE_SECURE_COOKIES`
 

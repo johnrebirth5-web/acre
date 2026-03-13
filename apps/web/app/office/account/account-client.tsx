@@ -274,7 +274,7 @@ export function OfficeAccountClient({ snapshot }: OfficeAccountClientProps) {
                     </SelectInput>
                   </FormField>
 
-                  <FormField className="office-form-grid-span-3" helper="Email stays read-only because the current login flow is seeded-user based." label="Email">
+                  <FormField className="office-form-grid-span-3" helper="Email stays read-only because the current local login flow is membership-email based." label="Email">
                     <TextInput disabled value={snapshot.profile.email} />
                   </FormField>
 
@@ -485,7 +485,7 @@ export function OfficeAccountClient({ snapshot }: OfficeAccountClientProps) {
             </div>
 
             <p className="office-account-security-note">
-              Password reset and 2-step setup are not available in-app yet because the current Office access flow uses seeded-user local login.
+              Password reset and 2-step setup are not available in-app yet because the current Office access flow still uses local membership-email sign-in.
             </p>
           </SectionCard>
         </div>

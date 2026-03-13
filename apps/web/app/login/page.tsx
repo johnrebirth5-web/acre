@@ -1,6 +1,6 @@
 import { getDefaultAppPath } from "@acre/auth";
 import { getSeededWorkspaceSnapshot } from "@acre/db";
-import { getCurrentSessionContext } from "../../lib/auth-session";
+import { getCurrentSessionContext, shouldShowSeededUsers } from "../../lib/auth-session";
 import { redirect } from "next/navigation";
 import { SiteReleaseBadge } from "../site-release-badge";
 
@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   const params = searchParams ? await searchParams : undefined;
-  const seededWorkspace = await getSeededWorkspaceSnapshot().catch(() => null);
+  const seededWorkspace = shouldShowSeededUsers() ? await getSeededWorkspaceSnapshot().catch(() => null) : null;
 
   return (
     <main className="auth-shell">
@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="auth-card-copy">
           <span className="auth-eyebrow">Local Access</span>
           <h1>Acre local login</h1>
-          <p>Use one of the seeded users to create a local session. This is the current development-only auth flow.</p>
+          <p>Use an active office membership email to create a local Acre session for the current Back Office workspace.</p>
           <SiteReleaseBadge className="site-release-badge-auth" />
         </div>
 
@@ -47,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         {seededWorkspace ? (
           <section className="auth-demo-card">
-            <strong>Seeded users</strong>
+            <strong>Available local users</strong>
             <ul>
               {seededWorkspace.memberships.map((membership) => (
                 <li key={membership.membershipId}>

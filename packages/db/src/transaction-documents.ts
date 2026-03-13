@@ -234,6 +234,7 @@ export type CreateIncomingUpdateInput = {
 
 export type ReviewIncomingUpdateInput = {
   organizationId: string;
+  transactionId: string;
   incomingUpdateId: string;
   actorMembershipId: string;
   action: "accept" | "reject";
@@ -2040,7 +2041,8 @@ export async function reviewIncomingUpdate(input: ReviewIncomingUpdateInput): Pr
     const existing = await tx.incomingUpdate.findFirst({
       where: {
         id: input.incomingUpdateId,
-        organizationId: input.organizationId
+        organizationId: input.organizationId,
+        transactionId: input.transactionId
       },
       include: {
         transaction: {

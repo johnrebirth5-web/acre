@@ -4,18 +4,19 @@ import { findActiveMembershipContextByEmail, getSessionMembershipContext, type S
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  getSessionCookieOptions,
+  getSessionSecret,
+  shouldShowSeededUsers,
+  shouldUseSecureCookies
+} from "./auth-session-config";
 
 const SESSION_COOKIE_NAME = "acre_local_session";
-const DEV_SESSION_SECRET = "acre-local-session-dev-only";
 
 type SessionPayload = {
   membershipId: string;
   issuedAt: number;
 };
-
-function getSessionSecret() {
-  return process.env.ACRE_SESSION_SECRET || DEV_SESSION_SECRET;
-}
 
 function signPayload(serializedPayload: string) {
   return createHmac("sha256", getSessionSecret()).update(serializedPayload).digest("base64url");
@@ -58,18 +59,6 @@ function decodeSession(cookieValue: string | undefined): SessionPayload | null {
   } catch {
     return null;
   }
-}
-
-function getSessionCookieOptions() {
-  const forceSecureCookies = process.env.ACRE_SECURE_COOKIES;
-
-  return {
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: forceSecureCookies ? forceSecureCookies !== "false" : process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 12
-  };
 }
 
 export function createSessionCookieValue(membershipId: string) {
@@ -145,3 +134,5 @@ export function getSessionCookieSettings() {
 export function getSessionAccess(context: SessionMembershipContext) {
   return summarizeAccess(context.currentMembership.role);
 }
+
+export { shouldShowSeededUsers, shouldUseSecureCookies };

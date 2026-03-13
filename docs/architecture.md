@@ -150,9 +150,11 @@
   - 当前 statements 是 live-generated monthly summaries，不是 durable statement snapshots，也没有 PDF download
   - 当前 payment-method self-service 只允许当前 membership 操作自己的方法记录，不允许跨成员编辑
 - 当前已有最小本地登录 / 登出 / cookie session
+- 生产环境下 `ACRE_SESSION_SECRET` 现在应视为必填，不再继续回退到仓库内开发默认值
 - 当前已经有 transaction、contact、task、activity、library、accounting、agent management、settings 等模块的 service-to-db 数据访问层
 - 当前 dashboard 业务指标也已有最小查询 service
 - 当前 transaction documents 和 office library documents 都使用本地文件系统 storage adapter，metadata 和 workflow 放在 Prisma
+- 当前单 Droplet 生产默认 document storage root 是 `/var/lib/acre/documents`，新写入的 storage key 以该 root 下的相对路径保存
 - 当前没有 worker、queue、cron
 
 ### 数据库

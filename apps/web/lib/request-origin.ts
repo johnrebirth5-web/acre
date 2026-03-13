@@ -1,5 +1,3 @@
-import type { NextRequest } from "next/server";
-
 function normalizeProtocol(protocol: string | null | undefined) {
   if (!protocol) {
     return "http";
@@ -8,7 +6,15 @@ function normalizeProtocol(protocol: string | null | undefined) {
   return protocol.replace(/:$/, "");
 }
 
-export function getRequestOrigin(request: NextRequest) {
+type RequestLike = {
+  headers: Pick<Headers, "get">;
+  nextUrl: {
+    host: string;
+    protocol: string;
+  };
+};
+
+export function getRequestOrigin(request: RequestLike) {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const host = forwardedHost ?? request.headers.get("host") ?? request.nextUrl.host;
   const protocol = normalizeProtocol(request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol);

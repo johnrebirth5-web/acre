@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
 
   response.cookies.set(getSessionCookieName(), "", {
     ...getSessionCookieSettings(),
+    expires: new Date(0),
     maxAge: 0
   });
 

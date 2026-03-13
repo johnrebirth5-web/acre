@@ -136,6 +136,26 @@
 - 行 hover 要轻，不要 marketing 式大阴影
 - 状态尽量用 badge / pill，不靠删除线或颜色堆砌
 - 数字列尽量对齐，避免跳动
+- header 和 body 必须共享同一套列定义，不允许各自单独算宽度
+- 横向滚动只放在外层 table / workspace 容器，不放在单独行容器上
+- 不要再用 row-level `width: max-content` 驱动布局；需要稳定宽度时，用 table 容器 `min-width`
+- 文本列允许截断或换行，但不能把后续数值列挤偏
+- 数值列默认右对齐并使用 `tabular-nums`
+- badge / status 列保持左对齐，date 列允许使用更紧凑的 label + value 结构
+
+### 共享 table contract
+
+Back Office 当前统一采用两种合法实现，不能再混用第三套页面私有表格：
+
+1. `@acre/ui` 的 `DataTable / DataTableHeader / DataTableBody / DataTableRow`
+2. `office-table-*` 这一套共享 grid contract
+
+共同要求：
+
+- 表头和数据行必须使用完全相同的 `grid-template-columns`
+- row class 负责定义列模板和 `min-width`
+- 外层容器负责 `overflow-x: auto`
+- 页面只补本页需要的列模板，不再重复定义一整套 table chrome
 
 ## Responsive 规则
 
@@ -216,6 +236,7 @@
   - 容器自己滚动
   - 不允许整页跟着横向滚动
   - 行和表头保留明确 `min-width`
+  - header/body 不再各自使用不同宽度算法
   - 重要 dense 表格不改成 stacked cards
 - 当前已明确加固：
   - Transactions

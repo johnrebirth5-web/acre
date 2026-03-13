@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
+import type { CSSProperties, ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 
 type ClassValue = string | false | null | undefined;
 
@@ -174,23 +174,40 @@ export function StatCard(props: {
   );
 }
 
-export function DataTable(props: { className?: string; children: ReactNode }) {
-  return <div className={cx("office-data-table", props.className)}>{props.children}</div>;
+export function DataTable(props: { className?: string; style?: CSSProperties; children: ReactNode }) {
+  return (
+    <div className={cx("office-data-table", props.className)} role="table" style={props.style}>
+      {props.children}
+    </div>
+  );
 }
 
-export function DataTableHeader(props: { className?: string; children: ReactNode }) {
-  return <div className={cx("office-data-table-head", props.className)}>{props.children}</div>;
+export function DataTableHeader(props: { className?: string; style?: CSSProperties; children: ReactNode }) {
+  return (
+    <div className={cx("office-data-table-head", props.className)} role="row" style={props.style}>
+      {props.children}
+    </div>
+  );
 }
 
-export function DataTableBody(props: { className?: string; children: ReactNode }) {
-  return <div className={cx("office-data-table-body", props.className)}>{props.children}</div>;
+export function DataTableBody(props: { className?: string; style?: CSSProperties; children: ReactNode }) {
+  return (
+    <div className={cx("office-data-table-body", props.className)} role="rowgroup" style={props.style}>
+      {props.children}
+    </div>
+  );
 }
 
 export function DataTableRow(props: {
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
-  return <div className={cx("office-data-table-row", props.className)}>{props.children}</div>;
+  return (
+    <div className={cx("office-data-table-row", props.className)} role="row" style={props.style}>
+      {props.children}
+    </div>
+  );
 }
 
 export function FormField(props: {

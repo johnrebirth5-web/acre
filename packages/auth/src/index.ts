@@ -3,6 +3,7 @@ export type UserRole = "agent" | "office_manager" | "office_admin";
 export type AppPermission =
   | "dashboard:view"
   | "activity:view"
+  | "activity:comment"
   | "settings:view"
   | "settings:manage"
   | "agents:view"
@@ -16,6 +17,14 @@ export type AppPermission =
   | "users:view"
   | "library:view"
   | "library:manage"
+  | "transactions:view"
+  | "transactions:create"
+  | "transactions:edit"
+  | "transactions:finance"
+  | "contacts:view"
+  | "contacts:create"
+  | "contacts:edit"
+  | "contacts:link"
   | "documents:view"
   | "documents:manage"
   | "documents:approve"
@@ -35,6 +44,7 @@ export type AppPermission =
   | "offers:manage"
   | "offers:review"
   | "offers:accept"
+  | "offers:comment"
   | "tasks:view"
   | "tasks:manage"
   | "tasks:review"
@@ -87,8 +97,8 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_manager: [
     "dashboard:view",
     "activity:view",
+    "activity:comment",
     "settings:view",
-    "settings:manage",
     "agents:view",
     "agents:manage",
     "onboarding:view",
@@ -98,9 +108,16 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "teams:view",
     "teams:manage",
     "users:view",
-    "users:manage",
     "library:view",
     "library:manage",
+    "transactions:view",
+    "transactions:create",
+    "transactions:edit",
+    "transactions:finance",
+    "contacts:view",
+    "contacts:create",
+    "contacts:edit",
+    "contacts:link",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -120,6 +137,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "offers:manage",
     "offers:review",
     "offers:accept",
+    "offers:comment",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -141,6 +159,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
   office_admin: [
     "dashboard:view",
     "activity:view",
+    "activity:comment",
     "settings:view",
     "settings:manage",
     "agents:view",
@@ -152,8 +171,17 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "teams:view",
     "teams:manage",
     "users:view",
+    "users:manage",
     "library:view",
     "library:manage",
+    "transactions:view",
+    "transactions:create",
+    "transactions:edit",
+    "transactions:finance",
+    "contacts:view",
+    "contacts:create",
+    "contacts:edit",
+    "contacts:link",
     "documents:view",
     "documents:manage",
     "documents:approve",
@@ -173,6 +201,7 @@ const permissionMap: Record<UserRole, AppPermission[]> = {
     "offers:manage",
     "offers:review",
     "offers:accept",
+    "offers:comment",
     "tasks:view",
     "tasks:manage",
     "tasks:review",
@@ -216,6 +245,10 @@ export function isOfficeRole(role: UserRole): boolean {
 
 export function canAccessAccountActivity(role: UserRole): boolean {
   return can(role, "activity:view");
+}
+
+export function canCommentOfficeActivity(role: UserRole): boolean {
+  return can(role, "activity:comment");
 }
 
 export function canAccessOfficeNotifications(role: UserRole): boolean {
@@ -302,6 +335,38 @@ export function canManageOfficeLibrary(role: UserRole): boolean {
   return can(role, "library:manage");
 }
 
+export function canViewOfficeTransactions(role: UserRole): boolean {
+  return can(role, "transactions:view");
+}
+
+export function canCreateOfficeTransactions(role: UserRole): boolean {
+  return can(role, "transactions:create");
+}
+
+export function canEditOfficeTransactions(role: UserRole): boolean {
+  return can(role, "transactions:edit");
+}
+
+export function canManageOfficeTransactionFinance(role: UserRole): boolean {
+  return can(role, "transactions:finance");
+}
+
+export function canViewOfficeContacts(role: UserRole): boolean {
+  return can(role, "contacts:view");
+}
+
+export function canCreateOfficeContacts(role: UserRole): boolean {
+  return can(role, "contacts:create");
+}
+
+export function canEditOfficeContacts(role: UserRole): boolean {
+  return can(role, "contacts:edit");
+}
+
+export function canLinkOfficeContacts(role: UserRole): boolean {
+  return can(role, "contacts:link");
+}
+
 export function canApproveOfficeDocuments(role: UserRole): boolean {
   return can(role, "documents:approve");
 }
@@ -360,6 +425,10 @@ export function canReviewOfficeOffers(role: UserRole): boolean {
 
 export function canAcceptOfficeOffers(role: UserRole): boolean {
   return can(role, "offers:accept");
+}
+
+export function canCommentOfficeOffers(role: UserRole): boolean {
+  return can(role, "offers:comment");
 }
 
 export function canManageOfficeCommissions(role: UserRole): boolean {

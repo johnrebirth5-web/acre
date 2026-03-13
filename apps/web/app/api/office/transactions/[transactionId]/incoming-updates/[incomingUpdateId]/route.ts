@@ -21,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Incoming updates access required." }, { status: 403 });
   }
 
-  const { incomingUpdateId } = await params;
+  const { transactionId, incomingUpdateId } = await params;
   const body = (await request.json().catch(() => null)) as { action?: string } | null;
 
   if (body?.action !== "accept" && body?.action !== "reject") {
@@ -31,6 +31,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   try {
     const incomingUpdate = await reviewIncomingUpdate({
       organizationId: context.currentOrganization.id,
+      transactionId,
       incomingUpdateId,
       actorMembershipId: context.currentMembership.id,
       action: body.action

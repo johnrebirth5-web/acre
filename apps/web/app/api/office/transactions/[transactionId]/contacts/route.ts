@@ -1,4 +1,4 @@
-import { isOfficeRole } from "@acre/auth";
+import { canLinkOfficeContacts } from "@acre/auth";
 import { linkContactToTransaction } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../../../lib/auth-session";
@@ -16,8 +16,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canLinkOfficeContacts(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Contact linking access required." }, { status: 403 });
   }
 
   const { transactionId } = await params;

@@ -52,12 +52,36 @@
 - document storage dir: `/var/lib/acre/documents`
 - systemd service: `acre-web`
 - nginx site config: `/etc/nginx/sites-available/acre.conf`
+- app service logs: `journalctl -u acre-web`
+- nginx logs: `/var/log/nginx/access.log`、`/var/log/nginx/error.log`
 
 说明：
 
 - 当前服务器上的应用目录不是长期维护的 Git 工作副本
 - 当前部署方式是把本地仓库的**已提交代码**同步到服务器目录，再在服务器上构建
 - 所以“同步到 DO”时，不要假设服务器上可以直接 `git pull`
+- document storage 目录不在 app root 下，重部署不会覆盖它
+
+## 单 Droplet 文件存储约定
+
+当前生产文件存储不是“临时开发捷径”，而是当前单 Droplet 方案的一部分：
+
+- 默认生产目录：`/var/lib/acre/documents`
+- 这个目录必须位于持久化磁盘上，不能放在 `/opt/acre/app` 这类会被部署覆盖的目录里
+- 目录应由应用运行用户可读写；当前推荐保持 `acre:acre`
+- 最低要求：
+  - 应用进程可创建子目录和文件
+  - nginx 不直接读这个目录
+  - 目录纳入服务器级备份
+
+建议初始化检查：
+
+```bash
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
+  install -d -o acre -g acre -m 0750 /var/lib/acre/documents &&
+  ls -ld /var/lib/acre/documents
+'
+```
 
 ## 当前生产同步方式
 
@@ -112,6 +136,8 @@ ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
 '
 ```
 
+如果 schema 变更了，先执行 migration，再 build / restart，不要反过来。
+
 ### 4. 基础验证
 
 至少验证：
@@ -121,6 +147,13 @@ curl -I http://45.55.247.137/login
 curl -I http://45.55.247.137/office/dashboard
 ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'systemctl status acre-web --no-pager | sed -n "1,20p"'
 ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'systemctl status nginx --no-pager | sed -n "1,20p"'
+```
+
+如果登录或反向代理行为异常，再补查：
+
+```bash
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'journalctl -u acre-web -n 100 --no-pager'
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 'tail -n 100 /var/log/nginx/error.log'
 ```
 
 ## 生产环境初始化状态
@@ -197,6 +230,11 @@ ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
 
 后续一旦接入 HTTPS，应把这个变量移除或设回安全模式。
 
+额外要求：
+
+- `ACRE_SESSION_SECRET` 在生产应始终显式配置
+- `ACRE_DOCUMENTS_STORAGE_DIR` 建议显式配置为 `/var/lib/acre/documents`，即使代码现在也会在生产默认落到这里
+
 ## 当前 nginx / web 服务行为
 
 nginx 当前把所有流量反向代理到：
@@ -222,11 +260,34 @@ nginx -t
 ## 当前部署已知问题和边界
 
 - 当前是单机生产，不是高可用架构
-- 本地文件存储不适合长期大规模 documents 生产方案
-- 没有自动备份策略文档
+- 文件存储仍是本机磁盘，不适合长期大规模 documents 生产方案
 - 没有 HTTPS
 - 没有域名
 - 没有对象存储
+
+## 备份最低要求
+
+当前部署至少要把下面两部分一起备份，否则 documents 和 metadata 会失配：
+
+- PostgreSQL 数据库
+- `/var/lib/acre/documents`
+
+最低 runbook：
+
+```bash
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
+  su - postgres -c "pg_dump acre > /var/backups/acre/acre-$(date +%F).sql"
+'
+
+ssh -i ~/.ssh/acre_do_ed25519 root@45.55.247.137 '
+  tar -czf /var/backups/acre/documents-$(date +%F).tar.gz /var/lib/acre/documents
+'
+```
+
+注意：
+
+- 只备份数据库而不备份 documents，会导致 document metadata 仍在但文件丢失
+- 只备份 documents 而不备份数据库，会导致无法恢复文档归属、workflow 和 activity
 
 所以后续推荐优先级是：
 

@@ -23,6 +23,9 @@ type SaveStoredTextInput = {
   content: string;
 };
 
+const DEV_DOCUMENT_STORAGE_ROOT = path.join(process.cwd(), ".local-storage", "documents");
+const PRODUCTION_DOCUMENT_STORAGE_ROOT = "/var/lib/acre/documents";
+
 export type StoredDocumentFile = {
   storageKey: string;
   absolutePath: string;
@@ -30,8 +33,14 @@ export type StoredDocumentFile = {
   fileSizeBytes: number;
 };
 
-function getStorageRoot() {
-  return process.env.ACRE_DOCUMENTS_STORAGE_DIR?.trim() || path.join(process.cwd(), ".local-storage", "documents");
+export function getDocumentStorageRoot() {
+  const configuredRoot = process.env.ACRE_DOCUMENTS_STORAGE_DIR?.trim();
+
+  if (configuredRoot) {
+    return path.resolve(configuredRoot);
+  }
+
+  return process.env.NODE_ENV === "production" ? PRODUCTION_DOCUMENT_STORAGE_ROOT : DEV_DOCUMENT_STORAGE_ROOT;
 }
 
 function sanitizeSegment(value: string) {
@@ -39,11 +48,7 @@ function sanitizeSegment(value: string) {
 }
 
 async function ensureScopedDirectory(organizationId: string, scopeSegments: string[]) {
-  const directory = path.join(
-    getStorageRoot(),
-    sanitizeSegment(organizationId),
-    ...scopeSegments.map((segment) => sanitizeSegment(segment))
-  );
+  const directory = path.join(getDocumentStorageRoot(), sanitizeSegment(organizationId), ...scopeSegments.map((segment) => sanitizeSegment(segment)));
   await mkdir(directory, { recursive: true });
   return directory;
 }
@@ -55,15 +60,20 @@ async function saveScopedFile(input: {
   bytes: Uint8Array;
 }): Promise<StoredDocumentFile> {
   const directory = await ensureScopedDirectory(input.organizationId, input.scopeSegments);
-  const fileName = `${randomUUID()}-${sanitizeSegment(input.fileName)}`;
-  const absolutePath = path.join(directory, fileName);
+  const savedFileName = `${randomUUID()}-${sanitizeSegment(input.fileName)}`;
+  const relativePath = path.join(
+    sanitizeSegment(input.organizationId),
+    ...input.scopeSegments.map((segment) => sanitizeSegment(segment)),
+    savedFileName
+  );
+  const absolutePath = path.join(directory, savedFileName);
 
   await writeFile(absolutePath, Buffer.from(input.bytes));
 
   return {
-    storageKey: absolutePath,
+    storageKey: relativePath,
     absolutePath,
-    fileName,
+    fileName: savedFileName,
     fileSizeBytes: input.bytes.byteLength
   };
 }
@@ -97,7 +107,7 @@ export async function saveStoredTextDocument(input: SaveStoredTextInput): Promis
 }
 
 export async function readStoredFile(storageKey: string) {
-  const absolutePath = path.isAbsolute(storageKey) ? storageKey : path.join(getStorageRoot(), storageKey);
+  const absolutePath = path.isAbsolute(storageKey) ? storageKey : path.join(getDocumentStorageRoot(), storageKey);
   const [fileBuffer, fileStat] = await Promise.all([readFile(absolutePath), stat(absolutePath)]);
 
   return {
@@ -108,6 +118,6 @@ export async function readStoredFile(storageKey: string) {
 }
 
 export async function deleteStoredFile(storageKey: string) {
-  const absolutePath = path.isAbsolute(storageKey) ? storageKey : path.join(getStorageRoot(), storageKey);
+  const absolutePath = path.isAbsolute(storageKey) ? storageKey : path.join(getDocumentStorageRoot(), storageKey);
   await rm(absolutePath, { force: true });
 }

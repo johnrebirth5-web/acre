@@ -1,4 +1,4 @@
-import { isOfficeRole } from "@acre/auth";
+import { canCreateOfficeTransactions, canViewOfficeTransactions } from "@acre/auth";
 import { createTransaction, listTransactions, type OfficeTransactionStatus } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../lib/auth-session";
@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canViewOfficeTransactions(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Transaction access required." }, { status: 403 });
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canCreateOfficeTransactions(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Transaction create access required." }, { status: 403 });
   }
 
   const body = (await request.json()) as Record<string, unknown>;

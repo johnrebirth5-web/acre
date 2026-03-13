@@ -59,6 +59,13 @@
   - goals
 - Office Settings / Admin MVP
 - Back Office design system and responsive hardening passes
+- Back Office hardening pass:
+  - shared table/workspace alignment contract tightened across Office list screens
+  - route-level parent/child validation tightened for transaction incoming updates
+  - write permissions split more explicitly away from broad view access for comments, transactions, contacts, and finance actions
+  - local session behavior hardened for production secret handling and reverse-proxy cookie behavior
+  - single-Droplet document storage expectations documented around `/var/lib/acre/documents`
+  - minimum regression tests added for auth/session config, proxy origin handling, document storage, and permission boundaries
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`
@@ -72,6 +79,7 @@
 - improve office-level admin automation and checklist application behavior
 - strengthen durable statement/export/report outputs across accounting, commissions, and billing
 - continue filling any remaining module-level specs before future large feature prompts depend on chat history
+- add broader workflow-level automated coverage beyond the current minimum hardening tests
 
 ## Key product and engineering decisions
 
@@ -84,14 +92,14 @@
 
 ## Known limitations
 
-- object storage is still local filesystem MVP
+- object storage is still local filesystem MVP, but the single-Droplet production path is now explicit instead of project-relative
 - many integrations are intentionally not implemented:
   - MLS ingestion
   - external eSignature vendors
   - QuickBooks sync
   - ACH payout execution
   - email/SMS delivery
-- Office account security is still limited to local seeded auth; there is still no real password reset or 2-step verification flow
+- Office account security is still limited to local membership-email auth; there is still no real password reset or 2-step verification flow
 - some modules are still `MVP`, not full product parity
 - some workflow automation remains manual or manager-driven
 - time-based notification reminders currently reconcile on inbox load, not via background jobs

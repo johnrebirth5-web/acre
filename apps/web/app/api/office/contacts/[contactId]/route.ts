@@ -1,4 +1,4 @@
-import { isOfficeRole } from "@acre/auth";
+import { canEditOfficeContacts, canViewOfficeContacts } from "@acre/auth";
 import { getContactById, updateContact } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../../lib/auth-session";
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canViewOfficeContacts(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Contact access required." }, { status: 403 });
   }
 
   const { contactId } = await params;
@@ -48,8 +48,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canEditOfficeContacts(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Contact edit access required." }, { status: 403 });
   }
 
   const { contactId } = await params;

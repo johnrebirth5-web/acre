@@ -1,4 +1,4 @@
-import { isOfficeRole } from "@acre/auth";
+import { canCreateOfficeContacts, canViewOfficeContacts } from "@acre/auth";
 import { createContact, listContacts, officeContactsPageDefaults, officeContactsPageLimits } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../lib/auth-session";
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canViewOfficeContacts(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Contact access required." }, { status: 403 });
   }
 
   const search = request.nextUrl.searchParams.get("q") ?? undefined;
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!isOfficeRole(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Office access required." }, { status: 403 });
+  if (!canCreateOfficeContacts(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Contact create access required." }, { status: 403 });
   }
 
   const body = (await request.json()) as Record<string, unknown>;

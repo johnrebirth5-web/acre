@@ -23,6 +23,9 @@ This file is the high-level product map for the current `Office / Back Office` s
   - management-oriented pipeline workspace with live funnel summary, monthly closed/cancelled rollups, top-level metric summary, and a query-driven working transaction list.
 - Current maturity:
   - `MVP / refined`
+- Current notable behavior:
+  - pipeline working list now follows the shared Back Office table/workspace contract instead of page-local row sizing.
+  - funnel rail selection, monthly history selection, and right-side working list stay URL-driven and scoped to the current office/org context.
 - Follow-up work:
   - deeper analytics drilldowns
   - more advanced owner/team slicing
@@ -179,6 +182,9 @@ This file is the high-level product map for the current `Office / Back Office` s
   - transaction documents, unsorted docs, internal forms, internal eSignature workflow, and incoming update review.
 - Current maturity:
   - `MVP`
+- Current notable behavior:
+  - nested transaction child routes now need to respect the parent transaction scope instead of resolving by child id alone.
+  - current single-Droplet deployment intentionally keeps local filesystem document storage, with production storage expected under `/var/lib/acre/documents`.
 - Follow-up work:
   - object storage replacement for local file storage
   - richer template management
@@ -201,6 +207,8 @@ This file is the high-level product map for the current `Office / Back Office` s
   - user access management, team admin, field requirements, and checklist templates.
 - Current maturity:
   - `MVP`
+- Current notable behavior:
+  - office-manager and office-admin are still both office roles, but user-management writes are now intended to stay on the admin side while manager keeps operational workflow control.
 - Follow-up work:
   - richer multi-office access controls
   - stronger template application behavior

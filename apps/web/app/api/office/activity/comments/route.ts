@@ -1,4 +1,4 @@
-import { canAccessAccountActivity } from "@acre/auth";
+import { canCommentOfficeActivity } from "@acre/auth";
 import { addOfficeActivityComment } from "@acre/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSessionContext } from "../../../../../lib/auth-session";
@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  if (!canAccessAccountActivity(context.currentMembership.role)) {
-    return NextResponse.json({ error: "Account activity access required." }, { status: 403 });
+  if (!canCommentOfficeActivity(context.currentMembership.role)) {
+    return NextResponse.json({ error: "Activity comment access required." }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => null)) as
