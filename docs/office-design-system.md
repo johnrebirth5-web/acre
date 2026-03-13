@@ -143,6 +143,24 @@
 - 数值列默认右对齐并使用 `tabular-nums`
 - badge / status 列保持左对齐，date 列允许使用更紧凑的 label + value 结构
 
+### Dense table compaction
+
+这一轮 Back Office 表格进一步统一成“信息加权”的紧凑分列规则：
+
+- 主列最宽，只允许 1-2 个主列显著扩展
+- 次级文本列使用中等宽度，不与主列均分空间
+- 状态、计数、金额、日期、动作列必须是窄列或有明确上限
+- `Actions` / `Open` / `Edit` 这类列只容纳内容本身，不预留大块空白
+- cell padding、列间 gap、badge 高度都应优先服务 dense desktop workflow
+- 当宽度不足时，优先容器横向滚动，不把 utility columns 拉宽到浪费空间
+
+判断标准：
+
+- 看列重要性分宽度，而不是“每列差不多宽”
+- 短值列旁边不应该出现大面积空白
+- 主列应明显更容易扫读，数字列应更容易纵向比较
+- 收紧之后仍要保持专业、可读，不追求极限压缩
+
 ### 共享 table contract
 
 Back Office 当前统一采用两种合法实现，不能再混用第三套页面私有表格：

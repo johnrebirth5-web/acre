@@ -66,6 +66,10 @@
   - local session behavior hardened for production secret handling and reverse-proxy cookie behavior
   - single-Droplet document storage expectations documented around `/var/lib/acre/documents`
   - minimum regression tests added for auth/session config, proxy origin handling, document storage, and permission boundaries
+- Dense-table compaction pass:
+  - shared Back Office table density tightened through smaller table padding, gaps, badges, and utility-column widths
+  - major Office list screens moved further toward information-weighted column widths instead of even spacing
+  - agents, pipeline, accounting, billing, reports, tasks, contacts, library, and settings tables now reserve more width for primary content and less for short-value columns
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`
