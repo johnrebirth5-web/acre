@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { OfficeNotificationItem, OfficeNotificationsSnapshot } from "@acre/db";
-import { Badge, EmptyState, StatCard } from "@acre/ui";
+import { Badge, Button, EmptyState, FilterBar, FilterField, SectionCard, SelectInput, StatCard } from "@acre/ui";
 
 type OfficeNotificationsClientProps = {
   snapshot: OfficeNotificationsSnapshot;
@@ -92,73 +92,68 @@ export function OfficeNotificationsClient({ snapshot }: OfficeNotificationsClien
         <StatCard hint="Count in the current filtered view." label="In view" value={snapshot.totalCount} />
       </section>
 
-      <form className="bm-table-card office-notification-toolbar" method="get">
-        <div className="bm-card-head bm-card-head-inline">
-          <h3>Filters</h3>
-          <span>Unread-first sorting stays on by default.</span>
-        </div>
-
-        <div className="office-notification-filter-grid">
-          <label className="office-filter-field">
-            <span>Category</span>
-            <select className="office-select" defaultValue={snapshot.filters.category} name="category">
+      <SectionCard
+        className="office-list-card office-notification-toolbar"
+        subtitle="Unread-first sorting stays on by default."
+        title="Filters"
+      >
+        <FilterBar as="form" className="office-notification-filter-grid office-list-filters" method="get">
+          <FilterField label="Category">
+            <SelectInput defaultValue={snapshot.filters.category} name="category">
               <option value="">All categories</option>
               {snapshot.categoryOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label} ({option.count})
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-filter-field">
-            <span>Type</span>
-            <select className="office-select" defaultValue={snapshot.filters.type} name="type">
+          <FilterField label="Type">
+            <SelectInput defaultValue={snapshot.filters.type} name="type">
               <option value="">All notification types</option>
               {snapshot.typeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label} ({option.count})
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-filter-field">
-            <span>Read state</span>
-            <select className="office-select" defaultValue={snapshot.filters.readState} name="readState">
+          <FilterField label="Read state">
+            <SelectInput defaultValue={snapshot.filters.readState} name="readState">
               <option value="all">All</option>
               <option value="unread">Unread only</option>
               <option value="read">Read only</option>
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
           <div className="office-notification-filter-actions">
-            <button className="office-button" type="submit">
+            <Button type="submit">
               Apply filters
-            </button>
+            </Button>
             <Link className="office-button office-button-secondary" href="/office/notifications">
               Reset
             </Link>
-            <button
-              className="office-button office-button-secondary"
+            <Button
               disabled={pendingAction === "mark-all" || snapshot.unreadCount === 0}
               onClick={handleMarkAllRead}
               type="button"
+              variant="secondary"
             >
               Mark all in view as read
-            </button>
+            </Button>
           </div>
-        </div>
-      </form>
+        </FilterBar>
+      </SectionCard>
 
       {error ? <p className="office-form-error">{error}</p> : null}
 
-      <section className="bm-table-card office-notification-list-card">
-        <div className="bm-card-head">
-          <h3>All notifications</h3>
-          <span>{snapshot.totalCount} items in the current view</span>
-        </div>
-
+      <SectionCard
+        className="office-list-card office-notification-list-card"
+        subtitle={`${snapshot.totalCount} items in the current view`}
+        title="All notifications"
+      >
         {snapshot.groups.length ? (
           <div className="office-notification-groups">
             {snapshot.groups.map((group) => (
@@ -196,16 +191,17 @@ export function OfficeNotificationsClient({ snapshot }: OfficeNotificationsClien
                             Open record
                           </Link>
                         ) : null}
-                        <button
-                          className="office-button office-button-secondary office-button-sm"
+                        <Button
                           disabled={pendingAction === `mark_read:${notification.id}` || pendingAction === `mark_unread:${notification.id}`}
                           onClick={() =>
                             handleNotificationAction(notification.id, notification.isUnread ? "mark_read" : "mark_unread")
                           }
+                          size="sm"
                           type="button"
+                          variant="secondary"
                         >
                           {notification.isUnread ? "Mark read" : "Mark unread"}
-                        </button>
+                        </Button>
                       </div>
                     </article>
                   ))}
@@ -219,7 +215,7 @@ export function OfficeNotificationsClient({ snapshot }: OfficeNotificationsClien
             title="No notifications in this view"
           />
         )}
-      </section>
+      </SectionCard>
     </>
   );
 }

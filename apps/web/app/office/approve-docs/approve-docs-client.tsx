@@ -129,6 +129,26 @@ function getComplianceTone(status: OfficeTransactionTaskComplianceStatus) {
   return "neutral" as const;
 }
 
+function getTaskStatusTone(tone: OfficeTransactionTask["taskStatusTone"]) {
+  if (tone === "approved" || tone === "completed") {
+    return "success" as const;
+  }
+
+  if (tone === "rejected") {
+    return "danger" as const;
+  }
+
+  if (tone === "pending" || tone === "signature") {
+    return "warning" as const;
+  }
+
+  if (tone === "progress" || tone === "review" || tone === "reopened") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
+
 function buildQueueHref(snapshot: OfficeDocumentApprovalQueueSnapshot, queue: OfficeDocumentApprovalQueueView) {
   const params = new URLSearchParams();
 
@@ -303,7 +323,7 @@ export function OfficeApproveDocsClient({
                         <div className="office-approval-cell-title">{item.task.title}</div>
                         <div className="office-approval-badge-row">
                           <StatusBadge tone={getQueueTone(item.queueState)}>{item.queueStateLabel}</StatusBadge>
-                          <span className={`bm-status-pill bm-task-status-${item.task.taskStatusTone}`}>{item.task.taskStatusLabel}</span>
+                          <StatusBadge tone={getTaskStatusTone(item.task.taskStatusTone)}>{item.task.taskStatusLabel}</StatusBadge>
                         </div>
                         <div className="office-approval-meta-copy">{item.task.checklistGroup}</div>
                         {item.task.rejectionReason ? (

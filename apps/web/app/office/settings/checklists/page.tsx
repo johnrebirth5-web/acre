@@ -1,5 +1,5 @@
 import { canManageOfficeChecklists, canViewOfficeChecklists } from "@acre/auth";
-import { PageHeader, PageShell, SummaryChip } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeChecklistTemplatesSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
@@ -22,11 +22,11 @@ export default async function OfficeSettingsChecklistsPage() {
     <PageShell className="office-list-page office-settings-list-page">
       <PageHeader
         actions={
-          <div className="office-page-actions office-list-page-header-actions">
+          <PageHeaderSummary>
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Templates" tone="accent" value={snapshot.summary.totalTemplates} />
             <SummaryChip label="Checklist items" value={snapshot.summary.totalItems} />
-          </div>
+          </PageHeaderSummary>
         }
         description="Reusable checklist templates for transaction workflows, due offsets, and document/compliance requirements."
         eyebrow="Office admin"

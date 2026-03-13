@@ -32,7 +32,7 @@ export default async function OfficeNotificationsPage(props: OfficeNotifications
   });
 
   return (
-    <PageShell className="bm-page office-list-page office-notifications-page">
+    <PageShell className="office-list-page office-notifications-page">
       <PageHeader
         actions={
           <PageHeaderSummary>

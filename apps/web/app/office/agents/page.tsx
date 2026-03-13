@@ -5,7 +5,7 @@ import {
   canManageOfficeTeams,
   canViewOfficeAgents
 } from "@acre/auth";
-import { PageHeader, PageShell, SummaryChip } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeAgentsRosterSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -45,11 +45,11 @@ export default async function OfficeAgentsPage(props: OfficeAgentsPageProps) {
     <PageShell className="office-list-page office-agents-list-page">
       <PageHeader
         actions={
-          <div className="office-page-actions office-list-page-header-actions">
+          <PageHeaderSummary>
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Rostered members" tone="accent" value={snapshot.summary.totalMembers} />
             <SummaryChip label="Active teams" value={snapshot.summary.activeTeamCount} />
-          </div>
+          </PageHeaderSummary>
         }
         description="Agent profiles, onboarding visibility, teams, goals, and operating performance for the current back-office workspace."
         eyebrow="Agent management"

@@ -5,6 +5,7 @@ import {
   FilterBar,
   FilterField,
   PageHeader,
+  PageHeaderSummary,
   PageShell,
   SectionCard,
   SecondaryMetaList,
@@ -324,14 +325,14 @@ export default async function OfficeReportsPage(props: ReportsPageProps) {
     <PageShell className="office-list-page office-reports-list-page">
       <PageHeader
         actions={
-          <div className="office-page-actions office-list-page-header-actions">
+          <PageHeaderSummary>
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Matching transactions" tone="accent" value={snapshot.totals.totalTransactions} />
             <SummaryChip label="Total volume" value={snapshot.totals.totalVolumeLabel} />
             <Link className="office-button office-button-secondary" href={exportHref}>
               Export CSV
             </Link>
-          </div>
+          </PageHeaderSummary>
         }
         description="Manager-facing reports workspace for live transaction, agent/team, commission, accounting, and earnest money data."
         eyebrow="Reports"

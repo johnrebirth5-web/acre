@@ -189,7 +189,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
 
   return (
     <>
-      <PageShell className="bm-page office-list-page">
+      <PageShell className="office-contacts-page office-list-page">
         <PageHeader
           actions={
             <PageHeaderSummary>

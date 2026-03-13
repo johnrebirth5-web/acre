@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
+import { Button, EmptyState, FilterBar, FilterField, FormField, SectionCard, SelectInput, StatusBadge, TextInput, TextareaInput } from "@acre/ui";
 import type {
   OfficeTaskListSnapshot,
   OfficeTaskReviewFilter,
@@ -99,6 +100,46 @@ function formatDateTimeLabel(value: string) {
     hour: "numeric",
     minute: "2-digit"
   });
+}
+
+function getTaskStatusTone(tone: OfficeTransactionTask["taskStatusTone"]) {
+  if (tone === "approved" || tone === "completed") {
+    return "success" as const;
+  }
+
+  if (tone === "rejected") {
+    return "danger" as const;
+  }
+
+  if (tone === "pending" || tone === "signature") {
+    return "warning" as const;
+  }
+
+  if (tone === "progress" || tone === "review" || tone === "reopened") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
+
+function getTransactionStatusTone(status: string) {
+  if (status === "Closed") {
+    return "success" as const;
+  }
+
+  if (status === "Cancelled") {
+    return "danger" as const;
+  }
+
+  if (status === "Pending") {
+    return "warning" as const;
+  }
+
+  if (status === "Active") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
 }
 
 export function OfficeTasksClient({
@@ -288,82 +329,79 @@ export function OfficeTasksClient({
 
   return (
     <div className="office-task-list-page">
-      <form className="office-task-filter-form bm-table-card" method="get">
-        <div className="office-task-filter-grid">
-          <label className="office-task-filter-field">
-            <span>Current view</span>
-            <select defaultValue={snapshot.selectedViewKey} name="view">
+      <SectionCard
+        className="office-list-card office-task-filter-form"
+        subtitle="Filter task operations by saved view, assignee, compliance, and transaction context."
+        title="Filters"
+      >
+        <FilterBar as="form" className="office-task-filter-grid" method="get">
+          <FilterField className="office-task-filter-field" label="Current view">
+            <SelectInput defaultValue={snapshot.selectedViewKey} name="view">
               {snapshot.viewOptions.map((view) => (
                 <option key={view.id} value={view.key}>
                   {view.name}
                   {view.isSystem ? " (System)" : ""}
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-task-filter-field">
-            <span>Transaction status</span>
-            <select defaultValue={snapshot.filters.transactionStatus} name="transactionStatus">
+          <FilterField className="office-task-filter-field" label="Transaction status">
+            <SelectInput defaultValue={snapshot.filters.transactionStatus} name="transactionStatus">
               <option value="All">All statuses</option>
               <option value="Opportunity">Opportunity</option>
               <option value="Active">Active</option>
               <option value="Pending">Pending</option>
               <option value="Closed">Closed</option>
               <option value="Cancelled">Cancelled</option>
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-task-filter-field">
-            <span>Assignee</span>
-            <select defaultValue={snapshot.filters.assigneeMembershipId} name="assigneeMembershipId">
+          <FilterField className="office-task-filter-field" label="Assignee">
+            <SelectInput defaultValue={snapshot.filters.assigneeMembershipId} name="assigneeMembershipId">
               <option value="">All assignees</option>
               {snapshot.assigneeOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-task-filter-field">
-            <span>Due date</span>
-            <select defaultValue={snapshot.filters.dueWindow} name="dueWindow">
+          <FilterField className="office-task-filter-field" label="Due date">
+            <SelectInput defaultValue={snapshot.filters.dueWindow} name="dueWindow">
               {dueWindowOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-task-filter-field">
-            <span>Review status</span>
-            <select defaultValue={snapshot.filters.reviewStatus} name="reviewStatus">
+          <FilterField className="office-task-filter-field" label="Review status">
+            <SelectInput defaultValue={snapshot.filters.reviewStatus} name="reviewStatus">
               {reviewStatusOptions.map((option) => (
                 <option key={option.value || "all"} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-task-filter-field">
-            <span>Transaction</span>
-            <select defaultValue={snapshot.filters.transactionId} name="transactionId">
+          <FilterField className="office-task-filter-field" label="Transaction">
+            <SelectInput defaultValue={snapshot.filters.transactionId} name="transactionId">
               <option value="">All transactions</option>
               {snapshot.transactionOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FilterField>
 
-          <label className="office-task-filter-field office-task-filter-field-wide">
-            <span>Search</span>
-            <input defaultValue={snapshot.filters.q} name="q" placeholder="Task, transaction, assignee..." type="text" />
-          </label>
+          <FilterField className="office-task-filter-field office-task-filter-field-wide" label="Search">
+            <TextInput defaultValue={snapshot.filters.q} name="q" placeholder="Task, transaction, assignee..." type="text" />
+          </FilterField>
 
           <fieldset className="office-task-compliance-filter">
             <legend>Compliance status</legend>
@@ -398,15 +436,15 @@ export function OfficeTasksClient({
           </div>
 
           <div className="office-task-filter-actions">
-            <button className="office-button" type="submit">
+            <Button type="submit">
               Apply filters
-            </button>
+            </Button>
             <Link className="office-button office-button-secondary" href="/office/tasks">
               Reset
             </Link>
           </div>
-        </div>
-      </form>
+        </FilterBar>
+      </SectionCard>
 
       <section className="office-kpi-grid office-kpi-grid-compact">
         {attentionSummary.map((item) => (
@@ -417,78 +455,74 @@ export function OfficeTasksClient({
         ))}
       </section>
 
-      <section className="bm-table-card office-task-view-save-card">
+      <SectionCard
+        className="office-list-card office-task-view-save-card"
+        subtitle="Built-in views stay fixed. Save the current filter set as a personal custom view."
+        title="Saved views"
+      >
         <div className="office-task-view-save-row">
           <div>
             <strong>{snapshot.selectedViewName}</strong>
-            <p>Built-in views stay fixed. Save the current filter set as a personal custom view.</p>
+            <p>Use the current filters and visible columns as the starting point for a saved personal view.</p>
           </div>
           <div className="office-task-view-save-controls">
-            <input onChange={(event) => setSaveViewName(event.target.value)} placeholder="Save current view as..." value={saveViewName} />
-            <button className="bm-create-button" disabled={isSavingView} onClick={handleSaveCurrentView} type="button">
+            <TextInput onChange={(event) => setSaveViewName(event.target.value)} placeholder="Save current view as..." value={saveViewName} />
+            <Button disabled={isSavingView} onClick={handleSaveCurrentView} type="button" variant="secondary">
               {isSavingView ? "Saving..." : "Save view"}
-            </button>
+            </Button>
           </div>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="bm-detail-card office-task-create-card">
-        <div className="bm-card-head">
-          <h3>New task</h3>
-          <span>Create a task directly into the office task list.</span>
-        </div>
-
+      <SectionCard
+        className="office-list-card office-task-create-card"
+        subtitle="Create a task directly into the office task list."
+        title="New task"
+      >
         <div className="office-task-edit-grid">
-          <label className="bm-detail-field">
-            <span>Transaction</span>
-            <select onChange={(event) => updateCreateField("transactionId", event.target.value)} value={newTaskState.transactionId}>
+          <FormField label="Transaction">
+            <SelectInput onChange={(event) => updateCreateField("transactionId", event.target.value)} value={newTaskState.transactionId}>
               <option value="">Select transaction</option>
               {snapshot.transactionOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="bm-detail-field">
-            <span>Checklist group</span>
-            <input onChange={(event) => updateCreateField("checklistGroup", event.target.value)} type="text" value={newTaskState.checklistGroup} />
-          </label>
-          <label className="bm-detail-field bm-detail-field-wide">
-            <span>Task title</span>
-            <input onChange={(event) => updateCreateField("title", event.target.value)} type="text" value={newTaskState.title} />
-          </label>
-          <label className="bm-detail-field bm-detail-field-wide">
-            <span>Description</span>
-            <textarea onChange={(event) => updateCreateField("description", event.target.value)} rows={3} value={newTaskState.description} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Assignee</span>
-            <select onChange={(event) => updateCreateField("assigneeMembershipId", event.target.value)} value={newTaskState.assigneeMembershipId}>
+            </SelectInput>
+          </FormField>
+          <FormField label="Checklist group">
+            <TextInput onChange={(event) => updateCreateField("checklistGroup", event.target.value)} type="text" value={newTaskState.checklistGroup} />
+          </FormField>
+          <FormField className="office-form-grid-span-3" label="Task title">
+            <TextInput onChange={(event) => updateCreateField("title", event.target.value)} type="text" value={newTaskState.title} />
+          </FormField>
+          <FormField className="office-form-grid-span-3" label="Description">
+            <TextareaInput onChange={(event) => updateCreateField("description", event.target.value)} rows={3} value={newTaskState.description} />
+          </FormField>
+          <FormField label="Assignee">
+            <SelectInput onChange={(event) => updateCreateField("assigneeMembershipId", event.target.value)} value={newTaskState.assigneeMembershipId}>
               <option value="">Unassigned</option>
               {snapshot.assigneeOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="bm-detail-field">
-            <span>Due date</span>
-            <input onChange={(event) => updateCreateField("dueAt", event.target.value)} type="date" value={newTaskState.dueAt} />
-          </label>
-          <label className="bm-detail-field">
-            <span>Workflow status</span>
-            <select onChange={(event) => updateCreateField("status", event.target.value)} value={newTaskState.status}>
+            </SelectInput>
+          </FormField>
+          <FormField label="Due date">
+            <TextInput onChange={(event) => updateCreateField("dueAt", event.target.value)} type="date" value={newTaskState.dueAt} />
+          </FormField>
+          <FormField label="Workflow status">
+            <SelectInput onChange={(event) => updateCreateField("status", event.target.value)} value={newTaskState.status}>
               {taskStatusOptions.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>
               ))}
-            </select>
-          </label>
+            </SelectInput>
+          </FormField>
 
-          <div className="office-task-checkbox-row bm-detail-field bm-detail-field-wide">
+          <div className="office-task-checkbox-row office-detail-field office-detail-field-wide">
             <span>Compliance rules</span>
             <label>
               <input
@@ -518,19 +552,18 @@ export function OfficeTasksClient({
         </div>
 
         <div className="office-task-create-actions">
-          <button className="bm-create-button" disabled={pendingAction === "create"} onClick={handleCreateTask} type="button">
+          <Button disabled={pendingAction === "create"} onClick={handleCreateTask} type="button" variant="secondary">
             {pendingAction === "create" ? "Creating..." : "Create task"}
-          </button>
+          </Button>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="bm-table-card office-task-list-card">
-        <div className="bm-card-head">
-          <h3>Task list</h3>
-          <span>{snapshot.taskCount} task rows in the current view</span>
-        </div>
-
-        {error ? <p className="bm-transaction-submit-error office-task-inline-error">{error}</p> : null}
+      <SectionCard
+        className="office-list-card office-task-list-card"
+        subtitle={`${snapshot.taskCount} task rows in the current view`}
+        title="Task list"
+      >
+        {error ? <p className="office-form-error office-task-inline-error">{error}</p> : null}
 
         <div className="office-task-table-wrap">
           <table className="office-task-table">
@@ -575,66 +608,70 @@ export function OfficeTasksClient({
                         <td>{task.assigneeName}</td>
                         <td>{task.dueAt || "No due date"}</td>
                         <td>
-                          <span className={`bm-status-pill bm-task-status-${task.taskStatusTone}`}>{task.taskStatusLabel}</span>
+                          <StatusBadge tone={getTaskStatusTone(task.taskStatusTone)}>{task.taskStatusLabel}</StatusBadge>
                         </td>
                         <td>
-                          <span className={`bm-transaction-status bm-transaction-status-${task.transactionStatus.toLowerCase()}`}>{task.transactionStatus.toLowerCase()}</span>
+                          <StatusBadge tone={getTransactionStatusTone(task.transactionStatus)}>{task.transactionStatus}</StatusBadge>
                         </td>
                         {showOwnerColumn ? <td>{task.ownerName}</td> : null}
                         <td>
                           <div className="office-task-action-strip">
                             {task.canCompleteDirectly ? (
-                              <button
-                                className="bm-view-toggle"
+                              <Button
                                 disabled={pendingAction === `complete:${task.id}`}
                                 onClick={() => handleWorkflowAction(task, "complete")}
+                                size="sm"
                                 type="button"
+                                variant="secondary"
                               >
                                 Complete
-                              </button>
+                              </Button>
                             ) : null}
                             {task.canRequestReview ? (
-                              <button
-                                className="bm-view-toggle"
+                              <Button
                                 disabled={pendingAction === `request_review:${task.id}`}
                                 onClick={() => handleWorkflowAction(task, "request_review")}
+                                size="sm"
                                 type="button"
+                                variant="secondary"
                               >
                                 Request review
-                              </button>
+                              </Button>
                             ) : null}
                             {task.canApprove &&
                             canApproveDocuments &&
                             ((task.awaitingSecondaryApproval && canSecondaryReviewTasks && canCurrentUserSecondApprove) ||
                               (!task.awaitingSecondaryApproval && canReviewTasks)) ? (
-                              <button
-                                className="bm-view-toggle"
+                              <Button
                                 disabled={pendingAction === `approve:${task.id}`}
                                 onClick={() => handleWorkflowAction(task, "approve")}
+                                size="sm"
                                 type="button"
                               >
                                 {task.awaitingSecondaryApproval ? "Second approve" : "Approve"}
-                              </button>
+                              </Button>
                             ) : null}
                             {task.canReject && canReviewTasks && canApproveDocuments ? (
-                              <button
-                                className="bm-view-toggle"
+                              <Button
                                 disabled={pendingAction === `reject:${task.id}`}
                                 onClick={() => handleWorkflowAction(task, "reject")}
+                                size="sm"
                                 type="button"
+                                variant="danger"
                               >
                                 Reject
-                              </button>
+                              </Button>
                             ) : null}
                             {task.canReopen ? (
-                              <button
-                                className="bm-view-toggle"
+                              <Button
                                 disabled={pendingAction === `reopen:${task.id}`}
                                 onClick={() => handleWorkflowAction(task, "reopen")}
+                                size="sm"
                                 type="button"
+                                variant="secondary"
                               >
                                 Reopen
-                              </button>
+                              </Button>
                             ) : null}
                           </div>
                         </td>
@@ -644,29 +681,25 @@ export function OfficeTasksClient({
                         <tr className="office-task-edit-row" key={`${task.id}-editor`}>
                           <td colSpan={showOwnerColumn ? 9 : 8}>
                             <div className="office-task-edit-grid">
-                              <label className="bm-detail-field">
-                                <span>Checklist group</span>
-                                <input
+                              <FormField label="Checklist group">
+                                <TextInput
                                   onChange={(event) => updateTaskField(task.id, "checklistGroup", event.target.value)}
                                   type="text"
                                   value={formState.checklistGroup}
                                 />
-                              </label>
-                              <label className="bm-detail-field bm-detail-field-wide">
-                                <span>Task title</span>
-                                <input onChange={(event) => updateTaskField(task.id, "title", event.target.value)} type="text" value={formState.title} />
-                              </label>
-                              <label className="bm-detail-field bm-detail-field-wide">
-                                <span>Description</span>
-                                <textarea
+                              </FormField>
+                              <FormField className="office-form-grid-span-3" label="Task title">
+                                <TextInput onChange={(event) => updateTaskField(task.id, "title", event.target.value)} type="text" value={formState.title} />
+                              </FormField>
+                              <FormField className="office-form-grid-span-3" label="Description">
+                                <TextareaInput
                                   onChange={(event) => updateTaskField(task.id, "description", event.target.value)}
                                   rows={3}
                                   value={formState.description}
                                 />
-                              </label>
-                              <label className="bm-detail-field">
-                                <span>Assignee</span>
-                                <select
+                              </FormField>
+                              <FormField label="Assignee">
+                                <SelectInput
                                   onChange={(event) => updateTaskField(task.id, "assigneeMembershipId", event.target.value)}
                                   value={formState.assigneeMembershipId}
                                 >
@@ -676,24 +709,22 @@ export function OfficeTasksClient({
                                       {option.label}
                                     </option>
                                   ))}
-                                </select>
-                              </label>
-                              <label className="bm-detail-field">
-                                <span>Due date</span>
-                                <input onChange={(event) => updateTaskField(task.id, "dueAt", event.target.value)} type="date" value={formState.dueAt} />
-                              </label>
-                              <label className="bm-detail-field">
-                                <span>Workflow status</span>
-                                <select onChange={(event) => updateTaskField(task.id, "status", event.target.value)} value={formState.status}>
+                                </SelectInput>
+                              </FormField>
+                              <FormField label="Due date">
+                                <TextInput onChange={(event) => updateTaskField(task.id, "dueAt", event.target.value)} type="date" value={formState.dueAt} />
+                              </FormField>
+                              <FormField label="Workflow status">
+                                <SelectInput onChange={(event) => updateTaskField(task.id, "status", event.target.value)} value={formState.status}>
                                   {taskStatusOptions.map((status) => (
                                     <option key={status} value={status}>
                                       {status}
                                     </option>
                                   ))}
-                                </select>
-                              </label>
+                                </SelectInput>
+                              </FormField>
 
-                              <div className="office-task-checkbox-row bm-detail-field bm-detail-field-wide">
+                              <div className="office-task-checkbox-row office-detail-field office-detail-field-wide">
                                 <span>Compliance rules</span>
                                 <label>
                                   <input
@@ -752,15 +783,15 @@ export function OfficeTasksClient({
                             )}
 
                             <div className="office-task-edit-actions">
-                              <button
-                                className="bm-create-button"
+                              <Button
                                 disabled={pendingAction === `save:${task.id}`}
                                 onClick={() => handleSaveTask(task)}
+                                variant="secondary"
                                 type="button"
                               >
                                 {pendingAction === `save:${task.id}` ? "Saving..." : "Save task"}
-                              </button>
-                              <Link className="bm-view-toggle" href={task.transactionHref}>
+                              </Button>
+                              <Link className="office-button office-button-secondary office-button-sm" href={task.transactionHref}>
                                 Open transaction
                               </Link>
                             </div>
@@ -773,14 +804,17 @@ export function OfficeTasksClient({
               ) : (
                 <tr>
                   <td colSpan={showOwnerColumn ? 9 : 8}>
-                    <div className="bm-pipeline-empty">No tasks matched the current filters.</div>
+                    <EmptyState
+                      description="Adjust the filters or switch saved views to widen the task result set."
+                      title="No tasks matched the current filters"
+                    />
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </section>
+      </SectionCard>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getOfficePipelineWorkspaceSnapshot } from "@acre/db";
-import { Button, FilterBar, FilterField, PageHeader, PageHeaderSummary, PageShell, SelectInput, SummaryChip, TextInput } from "@acre/ui";
+import { Button, FilterBar, FilterField, PageHeader, PageHeaderSummary, PageShell, SelectInput, StatusBadge, SummaryChip, TextInput } from "@acre/ui";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
 type PipelinePageSearchParams = {
@@ -16,6 +16,26 @@ type PipelinePageSearchParams = {
 type PipelinePageProps = {
   searchParams?: Promise<PipelinePageSearchParams>;
 };
+
+function getPipelineStatusTone(status: string) {
+  if (status === "Pending") {
+    return "warning" as const;
+  }
+
+  if (status === "Closed") {
+    return "success" as const;
+  }
+
+  if (status === "Cancelled") {
+    return "danger" as const;
+  }
+
+  if (status === "Active") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
 
 function buildPipelineHref(
   currentFilters: {
@@ -109,7 +129,7 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
         : "Showing all transactions inside the current top-level filters.";
 
   return (
-    <PageShell className="bm-page office-pipeline-page">
+    <PageShell className="office-pipeline-page">
       <PageHeader
         actions={
           <PageHeaderSummary className="office-pipeline-page-actions">
@@ -344,7 +364,7 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
                       <strong>{transaction.cityState}</strong>
                     </span>
                     <span className="office-pipeline-cell-badge">
-                      <span className={`bm-status-pill bm-status-${transaction.status.toLowerCase()}`}>{transaction.status}</span>
+                      <StatusBadge tone={getPipelineStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
                     </span>
                     <span className="office-pipeline-cell-value">{transaction.representing}</span>
                     <span className="office-pipeline-cell-value">{transaction.owner}</span>

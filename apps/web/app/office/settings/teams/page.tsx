@@ -1,5 +1,5 @@
 import { canManageOfficeTeams, canViewOfficeTeams } from "@acre/auth";
-import { PageHeader, PageShell, SummaryChip } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeAgentsRosterSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../../lib/auth-session";
@@ -22,11 +22,11 @@ export default async function OfficeSettingsTeamsPage() {
     <PageShell className="office-list-page office-settings-list-page">
       <PageHeader
         actions={
-          <div className="office-page-actions office-list-page-header-actions">
+          <PageHeaderSummary>
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Teams" tone="accent" value={snapshot.teams.length} />
             <SummaryChip label="Rostered members" value={snapshot.summary.totalMembers} />
-          </div>
+          </PageHeaderSummary>
         }
         description="Administrative team roster management for operational grouping, assignment, and active/inactive team structure."
         eyebrow="Office admin"

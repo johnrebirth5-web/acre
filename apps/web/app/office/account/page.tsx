@@ -19,7 +19,7 @@ export default async function OfficeAccountPage() {
   }
 
   return (
-    <PageShell className="office-account-page">
+    <PageShell className="office-account-page office-list-page">
       <PageHeader
         actions={
           <PageHeaderSummary>

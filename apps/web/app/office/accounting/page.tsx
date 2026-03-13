@@ -9,7 +9,7 @@ import {
   canViewOfficeCommissions,
   canViewOfficeAgentBilling
 } from "@acre/auth";
-import { PageHeader, PageShell, SummaryChip } from "@acre/ui";
+import { PageHeader, PageHeaderSummary, PageShell, SummaryChip } from "@acre/ui";
 import { getOfficeAccountingSnapshot, getOfficeAgentBillingSnapshot, getOfficeCommissionManagementSnapshot } from "@acre/db";
 import { redirect } from "next/navigation";
 import { requireOfficeSession } from "../../../lib/auth-session";
@@ -91,12 +91,12 @@ export default async function OfficeAccountingPage(props: OfficeAccountingPagePr
     <PageShell className="office-list-page office-accounting-list-page">
       <PageHeader
         actions={
-          <div className="office-page-actions office-list-page-header-actions">
+          <PageHeaderSummary>
             <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
             <SummaryChip label="Total invoices" tone="accent" value={snapshot.overview.totalInvoices} />
             <SummaryChip label="Open bills" value={snapshot.overview.openBills} />
             <SummaryChip label="Office net ledger impact" value={snapshot.overview.officeNetLedgerImpactLabel} />
-          </div>
+          </PageHeaderSummary>
         }
         description="Transactional accounting for invoices, bills, payments, ledger posting, and earnest money workflows."
         eyebrow="Accounting"

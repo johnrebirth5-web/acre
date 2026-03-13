@@ -2988,6 +2988,7 @@ select {
   gap: 12px 14px;
 }
 
+.office-task-edit-grid .office-form-field,
 .office-task-edit-grid .bm-detail-field {
   margin: 0;
 }
@@ -3103,6 +3104,10 @@ select {
   flex-wrap: wrap;
 }
 
+.office-task-action-strip .office-button {
+  min-width: max-content;
+}
+
 .office-task-edit-row td {
   padding: 0;
   background: #fafafa;
@@ -3131,6 +3136,12 @@ select {
 
 .office-task-inline-error {
   margin-bottom: 12px;
+}
+
+.office-task-table .office-empty-state {
+  min-height: 0;
+  padding: 24px 12px;
+  background: transparent;
 }
 
 .office-approval-queue-page {
@@ -8639,6 +8650,10 @@ a {
 .office-pipeline-cell-badge {
   display: flex;
   align-items: center;
+}
+
+.office-pipeline-cell-badge .office-status-badge {
+  justify-self: flex-start;
 }
 
 .office-pipeline-cell-date {

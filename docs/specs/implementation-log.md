@@ -88,6 +88,11 @@
   - `contacts` and `transactions` now share the same list footer / pager contract and status-language treatment instead of two parallel list-page skins
   - `pipeline` header now uses the same summary-chip language as the rest of Office instead of a separate header-chip pattern
   - `agents` team management is now split into a compact inventory table plus a separate administration block so the page reads as one controlled back-office surface instead of a mixed-generation form dump
+- Office list/workbench unification follow-up:
+  - `tasks` filter, saved-view, create-task, and task-list sections now use canonical `SectionCard + FilterBar + Button + StatusBadge` primitives instead of mixed `bm-table-card` / `bm-detail-card` / `bm-view-toggle` markup
+  - `notifications` filter and list areas now use the same list-card rhythm as the rest of Office instead of a separate legacy card shell
+  - `approve docs` and `pipeline` status presentation now map back to `StatusBadge`, reducing one more visible layer of parallel status styling
+  - agents, accounting, reports, and settings list pages now use `PageHeaderSummary` consistently instead of mixing direct `office-page-actions` markup
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`
