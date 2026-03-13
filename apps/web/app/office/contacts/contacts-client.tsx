@@ -13,9 +13,11 @@ import {
   FilterBar,
   FilterField,
   PageHeader,
+  PageHeaderSummary,
   PageShell,
   SectionCard,
   SelectInput,
+  StatusBadge,
   SummaryChip,
   TextInput
 } from "@acre/ui";
@@ -35,6 +37,22 @@ type ContactsClientProps = {
 
 const stageOptions = ["All", "Warm", "Tour booked", "Nurture", "New"] as const;
 const pageSizeOptions = [10, 20, 50, 100] as const;
+
+function getContactStageTone(stage: string) {
+  if (stage === "Tour booked") {
+    return "accent" as const;
+  }
+
+  if (stage === "Warm") {
+    return "warning" as const;
+  }
+
+  if (stage === "Nurture") {
+    return "neutral" as const;
+  }
+
+  return "success" as const;
+}
 
 function normalizeStageFilter(value: string): (typeof stageOptions)[number] {
   return stageOptions.includes(value as (typeof stageOptions)[number]) ? (value as (typeof stageOptions)[number]) : "All";
@@ -174,7 +192,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
       <PageShell className="bm-page office-list-page">
         <PageHeader
           actions={
-            <div className="office-page-actions office-list-page-header-actions">
+            <PageHeaderSummary>
               <SummaryChip label="Contacts" value={totalCount} />
               <SummaryChip
                 label="Current view"
@@ -184,7 +202,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
               <Button onClick={() => setIsModalOpen(true)} type="button">
                 New contact
               </Button>
-            </div>
+            </PageHeaderSummary>
           }
           description="Organization-scoped contacts, follow-up context, and linked transaction visibility in one list."
           eyebrow="Contacts"
@@ -192,7 +210,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
         />
 
         <SectionCard className="office-list-card" subtitle={summaryLabel} title="Contact list">
-          <FilterBar as="form" className="bm-contacts-toolbar" onSubmit={handleFilterSubmit}>
+          <FilterBar as="form" className="bm-contacts-toolbar office-list-filters" onSubmit={handleFilterSubmit}>
             <FilterField className="bm-contacts-search-field" label="Search">
               <TextInput
                 aria-label="Search contacts"
@@ -239,7 +257,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
                     </strong>
                     <p>{contact.email || contact.phone || contact.source}</p>
                   </div>
-                  <span>{contact.stage}</span>
+                  <StatusBadge tone={getContactStageTone(contact.stage)}>{contact.stage}</StatusBadge>
                   <span>{contact.intent}</span>
                   <span>{contact.areas.join(", ") || "—"}</span>
                   <span>{contact.lastContactLabel}</span>
@@ -252,12 +270,12 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
             </DataTableBody>
           </DataTable>
 
-          <footer className="bm-contacts-footer">
+          <footer className="office-list-footer">
             <span>
               {pageStart}-{pageEnd} of {totalCount}
             </span>
-            <div className="bm-contacts-footer-controls">
-              <label className="bm-contacts-page-size">
+            <div className="office-list-footer-controls">
+              <label className="office-list-page-size">
                 <span>Rows</span>
                 <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
                   {pageSizeOptions.map((option) => (
@@ -268,10 +286,10 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
                 </SelectInput>
               </label>
 
-              <div className="bm-contacts-pager">
+              <div className="office-list-pager">
                 {page > 1 ? (
                   <Link
-                    className="bm-contacts-page-button"
+                    className="office-list-page-button"
                     href={buildContactsHref(pathname, {
                       q: filters.q,
                       stage: filters.stage,
@@ -282,16 +300,16 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
                     «
                   </Link>
                 ) : (
-                  <span className="bm-contacts-page-button is-disabled">«</span>
+                  <span className="office-list-page-button is-disabled">«</span>
                 )}
 
-                <span className="bm-contacts-page-indicator">
+                <span className="office-list-page-indicator">
                   Page {page} / {totalPages}
                 </span>
 
                 {page < totalPages ? (
                   <Link
-                    className="bm-contacts-page-button"
+                    className="office-list-page-button"
                     href={buildContactsHref(pathname, {
                       q: filters.q,
                       stage: filters.stage,
@@ -302,7 +320,7 @@ export function ContactsClient({ contacts, totalCount, totalPages, page, pageSiz
                     »
                   </Link>
                 ) : (
-                  <span className="bm-contacts-page-button is-disabled">»</span>
+                  <span className="office-list-page-button is-disabled">»</span>
                 )}
               </div>
             </div>

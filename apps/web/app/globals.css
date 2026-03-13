@@ -5654,6 +5654,7 @@ a {
 
 .office-button-secondary,
 .office-toggle-link,
+.office-list-page-button,
 .bm-view-toggle,
 .bm-transactions-page-button,
 .bm-contacts-page-button {
@@ -5664,6 +5665,7 @@ a {
 
 .office-button-secondary:hover,
 .office-toggle-link:hover,
+.office-list-page-button:hover,
 .bm-view-toggle:hover,
 .bm-transactions-page-button:hover,
 .bm-contacts-page-button:hover {
@@ -5708,6 +5710,7 @@ a {
 
 .office-button:focus-visible,
 .office-toggle-link:focus-visible,
+.office-list-page-button:focus-visible,
 .bm-create-button:focus-visible,
 .bm-view-toggle:focus-visible,
 .bm-transactions-page-button:focus-visible,
@@ -5867,6 +5870,13 @@ a {
 
 .office-list-filters > .office-filter-actions .office-button {
   min-width: max-content;
+}
+
+.office-list-filters.bm-transactions-toolbar,
+.office-list-filters.bm-contacts-toolbar,
+.office-list-filters.office-agents-toolbar {
+  margin: 0;
+  padding: 0;
 }
 
 .office-data-table,
@@ -6498,6 +6508,7 @@ a {
   color: var(--office-text-muted);
 }
 
+.office-list-footer,
 .bm-transactions-footer,
 .bm-contacts-footer {
   display: flex;
@@ -6510,6 +6521,7 @@ a {
   flex-wrap: wrap;
 }
 
+.office-list-footer-controls,
 .bm-transactions-footer-controls,
 .bm-contacts-footer-controls {
   display: flex;
@@ -6518,6 +6530,7 @@ a {
   flex-wrap: wrap;
 }
 
+.office-list-page-size,
 .bm-transactions-page-size,
 .bm-contacts-page-size {
   display: flex;
@@ -6525,10 +6538,59 @@ a {
   gap: 8px;
 }
 
+.office-list-page-size select,
 .bm-transactions-page-size select,
 .bm-contacts-page-size select {
   min-height: 34px;
   min-width: 72px;
+}
+
+.office-list-page-size span {
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.office-list-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.office-list-page-button,
+.bm-transactions-page-button,
+.bm-contacts-page-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--office-border);
+  border-radius: 8px;
+  background: var(--office-surface-subtle);
+  color: var(--office-text-muted);
+  font-size: 0.76rem;
+  text-decoration: none;
+}
+
+.office-list-page-button.is-disabled,
+.bm-transactions-page-button.is-disabled,
+.bm-contacts-page-button.is-disabled {
+  background: #f4f6f8;
+  color: #a3adba;
+}
+
+.office-list-page-indicator {
+  min-width: 76px;
+  text-align: center;
+  color: var(--office-text-muted);
+  font-size: 0.84rem;
+}
+
+.bm-transaction-status-badge,
+.bm-contacts-table-row .office-status-badge,
+.office-agents-team-table-row .office-status-badge {
+  justify-self: start;
 }
 
 .bm-transactions-empty,
@@ -6935,6 +6997,40 @@ a {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
+}
+
+.office-agents-team-inventory,
+.office-agents-team-admin-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.office-agents-team-create-form {
+  padding: 14px 16px;
+  border: 1px solid var(--office-border);
+  border-radius: 14px;
+  background: var(--office-surface-subtle);
+}
+
+.office-agents-team-table {
+  --office-agents-team-min-width: 760px;
+  --office-agents-team-columns:
+    minmax(220px, 2.2fr)
+    minmax(88px, 0.7fr)
+    minmax(96px, 0.76fr)
+    minmax(120px, 0.9fr)
+    minmax(94px, 0.7fr);
+}
+
+.office-agents-team-table-head,
+.office-agents-team-table-row {
+  min-width: var(--office-agents-team-min-width);
+  grid-template-columns: var(--office-agents-team-columns);
+}
+
+.office-agents-team-table-row > * {
+  display: flex;
+  align-items: center;
 }
 
 .office-agents-team-card,

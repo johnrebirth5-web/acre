@@ -8,6 +8,7 @@ import {
   DataTable,
   DataTableBody,
   DataTableHeader,
+  DataTableRow,
   EmptyState,
   FilterBar,
   FilterField,
@@ -280,8 +281,35 @@ export function OfficeAgentsClient({
         subtitle="Teams are shared roster groupings for visibility and management. Create or rename them here, then manage membership inside each agent profile."
         title="Teams"
       >
+        <div className="office-agents-team-inventory">
+          <span className="office-mini-heading">Team inventory</span>
+          <DataTable className="office-table office-agents-team-table">
+            <DataTableHeader className="office-agents-team-table-head">
+              <span>Team</span>
+              <span>Members</span>
+              <span>Open tasks</span>
+              <span>Open transactions</span>
+              <span>Status</span>
+            </DataTableHeader>
+            <DataTableBody>
+              {snapshot.teams.map((team) => (
+                <DataTableRow className="office-agents-team-table-row" key={`team-summary-${team.id}`}>
+                  <span className="office-data-table-row-main">
+                    <strong>{team.name}</strong>
+                    <small>{team.slug}</small>
+                  </span>
+                  <span>{team.memberCount}</span>
+                  <span>{team.openTaskCount}</span>
+                  <span>{team.openTransactionCount}</span>
+                  <StatusBadge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</StatusBadge>
+                </DataTableRow>
+              ))}
+            </DataTableBody>
+          </DataTable>
+        </div>
+
         {canManageTeams ? (
-          <form className="office-inline-form" onSubmit={handleCreateTeam}>
+          <form className="office-inline-form office-agents-team-create-form" onSubmit={handleCreateTeam}>
             <FormField className="office-inline-form-field" label="New team name">
               <TextInput onChange={(event) => setTeamName(event.target.value)} placeholder="Create team" value={teamName} />
             </FormField>
@@ -292,84 +320,87 @@ export function OfficeAgentsClient({
           </form>
         ) : null}
 
-        <div className="office-agents-team-grid">
-          {snapshot.teams.map((team) => (
-            <form
-              className="office-section-card office-agents-team-card"
-              key={team.id}
-              onSubmit={async (event) => {
-                event.preventDefault();
-                await handleSaveTeam(team.id, new FormData(event.currentTarget));
-              }}
-            >
-              <div className="office-section-body">
-                <div className="office-agents-team-card-head">
-                  <FormField className="office-agents-team-name-field" label="Team name">
-                    <TextInput defaultValue={team.name} name="name" readOnly={!canManageTeams} />
-                  </FormField>
-                  <StatusBadge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</StatusBadge>
+        <div className="office-agents-team-admin-shell">
+          <span className="office-mini-heading">Team administration</span>
+          <div className="office-agents-team-grid">
+            {snapshot.teams.map((team) => (
+              <form
+                className="office-section-card office-agents-team-card"
+                key={team.id}
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  await handleSaveTeam(team.id, new FormData(event.currentTarget));
+                }}
+              >
+                <div className="office-section-body">
+                  <div className="office-agents-team-card-head">
+                    <FormField className="office-agents-team-name-field" label="Team name">
+                      <TextInput defaultValue={team.name} name="name" readOnly={!canManageTeams} />
+                    </FormField>
+                    <StatusBadge tone={team.isActive ? "success" : "neutral"}>{team.isActive ? "Active" : "Inactive"}</StatusBadge>
+                  </div>
+
+                  <div className="office-secondary-meta-list">
+                    <div className="office-secondary-meta-row">
+                      <dt>Slug</dt>
+                      <dd>{team.slug}</dd>
+                    </div>
+                    <div className="office-secondary-meta-row">
+                      <dt>Members</dt>
+                      <dd>{team.memberCount}</dd>
+                    </div>
+                    <div className="office-secondary-meta-row">
+                      <dt>Open tasks</dt>
+                      <dd>{team.openTaskCount}</dd>
+                    </div>
+                    <div className="office-secondary-meta-row">
+                      <dt>Open transactions</dt>
+                      <dd>{team.openTransactionCount}</dd>
+                    </div>
+                    <div className="office-secondary-meta-row">
+                      <dt>Onboarding in progress</dt>
+                      <dd>{team.onboardingInProgressCount}</dd>
+                    </div>
+                  </div>
+
+                  <ul className="office-agents-team-members">
+                    {team.members.map((member) => (
+                      <li key={member.membershipId}>
+                        <Link href={`/office/agents/${member.membershipId}`}>{member.label}</Link>
+                        <span>{member.role}</span>
+                      </li>
+                    ))}
+                    {team.members.length === 0 ? <li className="office-agents-team-empty">No members assigned yet.</li> : null}
+                  </ul>
+
+                  {canManageTeams ? (
+                    <div className="office-inline-form office-inline-form-compact">
+                      <input name="isActive" type="hidden" value={String(team.isActive)} />
+                      <Button disabled={pendingAction === `save-team:${team.id}`} type="submit" variant="secondary">
+                        {pendingAction === `save-team:${team.id}` ? "Saving..." : "Save team"}
+                      </Button>
+                      <Button
+                        disabled={pendingAction === `save-team:${team.id}`}
+                        onClick={async () => {
+                          const formData = new FormData();
+                          formData.set("name", team.name);
+                          formData.set("isActive", String(!team.isActive));
+                          await handleSaveTeam(team.id, formData);
+                        }}
+                        type="button"
+                        variant="ghost"
+                      >
+                        {team.isActive ? "Deactivate" : "Reactivate"}
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
-
-                <div className="office-secondary-meta-list">
-                  <div className="office-secondary-meta-row">
-                    <dt>Slug</dt>
-                    <dd>{team.slug}</dd>
-                  </div>
-                  <div className="office-secondary-meta-row">
-                    <dt>Members</dt>
-                    <dd>{team.memberCount}</dd>
-                  </div>
-                  <div className="office-secondary-meta-row">
-                    <dt>Open tasks</dt>
-                    <dd>{team.openTaskCount}</dd>
-                  </div>
-                  <div className="office-secondary-meta-row">
-                    <dt>Open transactions</dt>
-                    <dd>{team.openTransactionCount}</dd>
-                  </div>
-                  <div className="office-secondary-meta-row">
-                    <dt>Onboarding in progress</dt>
-                    <dd>{team.onboardingInProgressCount}</dd>
-                  </div>
-                </div>
-
-                <ul className="office-agents-team-members">
-                  {team.members.map((member) => (
-                    <li key={member.membershipId}>
-                      <Link href={`/office/agents/${member.membershipId}`}>{member.label}</Link>
-                      <span>{member.role}</span>
-                    </li>
-                  ))}
-                  {team.members.length === 0 ? <li className="office-agents-team-empty">No members assigned yet.</li> : null}
-                </ul>
-
-                {canManageTeams ? (
-                  <div className="office-inline-form office-inline-form-compact">
-                    <input name="isActive" type="hidden" value={String(team.isActive)} />
-                    <Button disabled={pendingAction === `save-team:${team.id}`} type="submit" variant="secondary">
-                      {pendingAction === `save-team:${team.id}` ? "Saving..." : "Save team"}
-                    </Button>
-                    <Button
-                      disabled={pendingAction === `save-team:${team.id}`}
-                      onClick={async () => {
-                        const formData = new FormData();
-                        formData.set("name", team.name);
-                        formData.set("isActive", String(!team.isActive));
-                        await handleSaveTeam(team.id, formData);
-                      }}
-                      type="button"
-                      variant="ghost"
-                    >
-                      {team.isActive ? "Deactivate" : "Reactivate"}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </form>
-          ))}
-          {snapshot.teams.length === 0 ? (
-            <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" />
-          ) : null}
+              </form>
+            ))}
+            {snapshot.teams.length === 0 ? (
+              <EmptyState description="Create your first team to start grouping agents into rosters." title="No teams yet" />
+            ) : null}
+          </div>
         </div>
 
         {!canManageAgents && !canManageOnboarding && !canManageGoals && !canManageTeams ? (

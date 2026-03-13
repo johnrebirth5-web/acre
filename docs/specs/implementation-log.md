@@ -83,6 +83,11 @@
   - added shared `PageHeaderSummary` in `@acre/ui` so top-right page summary/actions stop diverging page by page
   - dashboard, tasks, activity, library, settings overview, approve docs, notifications, billing, and account now use the same summary-chip header contract instead of mixed `Badge`-based header chrome
   - stray mixed-language approval-queue UI copy was restored to English so the Office shell reads like one coherent product
+- Root-cause list/workspace cleanup follow-up:
+  - direct page audit showed `contacts` and `transactions` were still visually dominated by page-local footer / pager / status treatments even after shared-shell cleanup
+  - `contacts` and `transactions` now share the same list footer / pager contract and status-language treatment instead of two parallel list-page skins
+  - `pipeline` header now uses the same summary-chip language as the rest of Office instead of a separate header-chip pattern
+  - `agents` team management is now split into a compact inventory table plus a separate administration block so the page reads as one controlled back-office surface instead of a mixed-generation form dump
 - long-context spec structure under `docs/specs`
   - added `agent-management-spec.md`
   - added `buyer-offers-spec.md`

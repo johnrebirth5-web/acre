@@ -13,9 +13,11 @@ import {
   FilterBar,
   FilterField,
   PageHeader,
+  PageHeaderSummary,
   PageShell,
   SectionCard,
   SelectInput,
+  StatusBadge,
   SummaryChip,
   TextInput
 } from "@acre/ui";
@@ -83,6 +85,26 @@ const transactionTypeFilterOptions = [
   { value: "other", label: "Other" }
 ] as const;
 const pageSizeOptions = [10, 20, 50, 100] as const;
+
+function getTransactionStatusTone(status: OfficeTransactionStatus) {
+  if (status === "Pending") {
+    return "warning" as const;
+  }
+
+  if (status === "Closed") {
+    return "success" as const;
+  }
+
+  if (status === "Cancelled") {
+    return "danger" as const;
+  }
+
+  if (status === "Active") {
+    return "accent" as const;
+  }
+
+  return "neutral" as const;
+}
 
 const primaryFields: ModalField[] = [
   { label: "Address", name: "address" },
@@ -386,13 +408,13 @@ export function TransactionsClient({
       <PageShell className="bm-transactions-page office-list-page">
         <PageHeader
           actions={
-            <div className="office-page-actions office-list-page-header-actions office-transactions-page-actions">
+            <PageHeaderSummary className="office-transactions-page-actions">
               <SummaryChip label="Transactions" value={summary.totalCount} />
               <SummaryChip label="My net income" tone="accent" value={summary.totalNetIncome} />
               <Button className="bm-transactions-create" onClick={() => setIsModalOpen(true)} type="button">
                 Create transaction
               </Button>
-            </div>
+            </PageHeaderSummary>
           }
           description="Operational transaction list with query-param filters for status, owner, team, type, and date-window drill-down."
           eyebrow="Transactions"
@@ -400,7 +422,7 @@ export function TransactionsClient({
         />
 
         <SectionCard className="office-list-card" subtitle="Search, filter, and review the current office transaction set." title="Transaction list">
-          <FilterBar as="form" className="bm-transactions-toolbar" onSubmit={handleApplyFilters}>
+          <FilterBar as="form" className="bm-transactions-toolbar office-list-filters" onSubmit={handleApplyFilters}>
             <FilterField className="bm-transactions-search" label="Search">
               <TextInput
                 aria-label="Search transactions"
@@ -493,7 +515,9 @@ export function TransactionsClient({
                   <span>{transaction.price}</span>
                   <span>{transaction.owner}</span>
                   <span>{transaction.representing}</span>
-                  <span className={`bm-transaction-status bm-transaction-status-${transaction.status.toLowerCase()}`}>{transaction.status.toLowerCase()}</span>
+                  <StatusBadge className="bm-transaction-status-badge" tone={getTransactionStatusTone(transaction.status)}>
+                    {transaction.status}
+                  </StatusBadge>
                   <span>{transaction.importantDate || "—"}</span>
                 </DataTableRow>
               ))}
@@ -507,12 +531,12 @@ export function TransactionsClient({
             </DataTableBody>
           </DataTable>
 
-          <footer className="bm-transactions-footer">
+          <footer className="office-list-footer">
             <span>
               {pageStart}-{pageEnd} of {totalCount}
             </span>
-            <div className="bm-transactions-footer-controls">
-              <label className="bm-transactions-page-size">
+            <div className="office-list-footer-controls">
+              <label className="office-list-page-size">
                 <span>Rows</span>
                 <SelectInput onChange={(event) => handlePageSizeChange(Number(event.target.value))} value={String(pageSize)}>
                   {pageSizeOptions.map((option) => (
@@ -523,10 +547,10 @@ export function TransactionsClient({
                 </SelectInput>
               </label>
 
-              <div className="bm-transactions-pager">
+              <div className="office-list-pager">
                 {page > 1 ? (
                   <Link
-                    className="bm-transactions-page-button"
+                    className="office-list-page-button"
                     href={buildTransactionsHref(pathname, {
                       q: filters.q,
                       status: filters.status,
@@ -542,16 +566,16 @@ export function TransactionsClient({
                     «
                   </Link>
                 ) : (
-                  <span className="bm-transactions-page-button is-disabled">«</span>
+                  <span className="office-list-page-button is-disabled">«</span>
                 )}
 
-                <span className="bm-transactions-page-indicator">
+                <span className="office-list-page-indicator">
                   Page {page} / {totalPages}
                 </span>
 
                 {page < totalPages ? (
                   <Link
-                    className="bm-transactions-page-button"
+                    className="office-list-page-button"
                     href={buildTransactionsHref(pathname, {
                       q: filters.q,
                       status: filters.status,
@@ -567,7 +591,7 @@ export function TransactionsClient({
                     »
                   </Link>
                 ) : (
-                  <span className="bm-transactions-page-button is-disabled">»</span>
+                  <span className="office-list-page-button is-disabled">»</span>
                 )}
               </div>
             </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getOfficePipelineWorkspaceSnapshot } from "@acre/db";
-import { Button, FilterBar, FilterField, PageHeader, PageShell, SelectInput, TextInput } from "@acre/ui";
+import { Button, FilterBar, FilterField, PageHeader, PageHeaderSummary, PageShell, SelectInput, SummaryChip, TextInput } from "@acre/ui";
 import { requireOfficeSession } from "../../../lib/auth-session";
 
 type PipelinePageSearchParams = {
@@ -109,20 +109,21 @@ export default async function OfficePipelinePage(props: PipelinePageProps) {
         : "Showing all transactions inside the current top-level filters.";
 
   return (
-    <PageShell className="bm-page">
+    <PageShell className="bm-page office-pipeline-page">
       <PageHeader
         actions={
-          <div className="office-page-actions office-pipeline-page-actions">
-            <span className="office-pipeline-header-chip">{snapshot.metricModeLabel}</span>
-            {hasScopedSelection ? <span className="office-pipeline-header-chip office-pipeline-header-chip-accent">{snapshot.selection.label}</span> : null}
-          </div>
+          <PageHeaderSummary className="office-pipeline-page-actions">
+            <SummaryChip label="Office scope" value={context.currentOffice?.name ?? context.currentOrganization.name} />
+            <SummaryChip label="Metric" tone="accent" value={snapshot.metricModeLabel} />
+            {hasScopedSelection ? <SummaryChip label="Selection" value={snapshot.selection.label} /> : null}
+          </PageHeaderSummary>
         }
         description="Manager-facing pipeline workspace with live funnel totals, recent outcome rollups, and one unified list of real transactions."
         eyebrow="Pipeline"
         title="Pipeline"
       />
 
-      <FilterBar as="form" className="office-report-filters office-pipeline-filters" method="get">
+      <FilterBar as="form" className="office-report-filters office-pipeline-filters office-list-filters" method="get">
         <FilterField className="office-pipeline-search-field" label="Search pipeline">
           <TextInput defaultValue={snapshot.filters.search} name="search" placeholder="Title, address, city, owner..." type="search" />
         </FilterField>
